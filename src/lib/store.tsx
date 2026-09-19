@@ -5,7 +5,6 @@ import type { AppState, Hole, Putt, Round, SavedCourse, TrackUI } from './types'
 export type Action =
   | { t: 'addPutter'; id: string; name: string }
   | { t: 'renamePutter'; id: string; name: string }
-  | { t: 'setPutterColor'; id: string; color?: string }
   | { t: 'setActivePutter'; id: string }
   | { t: 'retirePutter'; id: string; retired: boolean }
   | { t: 'saveCourse'; course: SavedCourse }
@@ -15,6 +14,14 @@ export type Action =
   | { t: 'removePutt'; roundId: string; hole: number; index: number }
   | { t: 'updatePutt'; roundId: string; hole: number; index: number; patch: Partial<Putt> }
   | { t: 'setHoleScore'; roundId: string; hole: number; patch: Partial<Pick<Hole, 'par' | 'strokes' | 'vsPar'>> }
+  | {
+      t: 'applyCourse';
+      roundId: string;
+      course: string;
+      courseId?: string;
+      tee?: string;
+      pars?: number[];
+    }
   | { t: 'undoLast' }
   | { t: 'setTrack'; patch: Partial<TrackUI> }
   | { t: 'finishRound' }
@@ -22,6 +29,7 @@ export type Action =
   | { t: 'deleteRound'; id: string }
   | { t: 'setBaseline'; baseline: [number, number][] }
   | { t: 'replaceState'; state: AppState }
+  | { t: 'mergeState'; state: AppState }
   | { t: 'clearAll' };
 
 export function blankHoles(count: number): Hole[] {
@@ -71,12 +79,6 @@ export function reducer(state: AppState, a: Action): AppState {
         ...state,
         putters: state.putters.map((p) => (p.id === a.id ? { ...p, name: a.name.trim() } : p)),
       };
-    case 'setPutterColor':
-      return {
-        ...state,
-        putters: state.putters.map((p) => (p.id === a.id ? { ...p, color: a.color } : p)),
-      };
-
     case 'setActivePutter':
       return {
         ...state,
@@ -137,6 +139,20 @@ export function reducer(state: AppState, a: Action): AppState {
         ),
       }));
 
+    case 'applyCourse': {
+      const nines = a.tee?.includes('/') ? a.tee.split('/').map((n) => n.trim()) : null;
+      return mapRound(state, a.roundId, (r) => ({
+        ...r,
+        course: a.course,
+        label: a.course || r.label,
+        courseId: a.courseId,
+        tee: a.tee,
+        firstNine: r.firstNine ?? (nines ? nines[0] : undefined),
+        secondNine: r.secondNine ?? (r.holeCount > 9 && nines ? nines[1] : undefined),
+        holes: r.holes.map((h, i) => (a.pars?.[i] ? { ...h, par: a.pars[i] } : h)),
+      }));
+    }
+
     case 'setHoleScore':
       return mapRound(state, a.roundId, (r) => ({
         ...r,
@@ -189,6 +205,20 @@ export function reducer(state: AppState, a: Action): AppState {
 
     case 'setBaseline':
       return { ...state, baseline: a.baseline };
+
+    case 'mergeState': {
+      const newPutters = a.state.putters.filter((p) => !state.putters.some((x) => x.id === p.id));
+      const newCourses = (a.state.courses ?? []).filter(
+        (c) => !state.courses.some((x) => x.id === c.id),
+      );
+      const newRounds = a.state.rounds.filter((r) => !state.rounds.some((x) => x.id === r.id));
+      return {
+        ...state,
+        putters: [...state.putters, ...newPutters],
+        courses: [...state.courses, ...newCourses],
+        rounds: [...newRounds, ...state.rounds],
+      };
+    }
 
     case 'replaceState':
       return { ...a.state, track: freshTrack };

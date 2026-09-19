@@ -223,6 +223,12 @@ export function roundStats(round: Round, baseline: [number, number][]): Stats {
 export interface RoundPoint {
   round: Round;
   stats: Stats;
+  /** Nine-hole rounds count double so every per-round number is on an eighteen-hole footing. */
+  scale: number;
+}
+
+export function roundScale(r: Round): number {
+  return r.holeCount === 9 ? 2 : 1;
 }
 
 export interface Overall {
@@ -237,7 +243,11 @@ export interface Overall {
 }
 
 export function overall(rounds: Round[], baseline: [number, number][]): Overall {
-  const points = rounds.map((round) => ({ round, stats: roundStats(round, baseline) }));
+  const points = rounds.map((round) => ({
+    round,
+    stats: roundStats(round, baseline),
+    scale: roundScale(round),
+  }));
   const pooled = statsForHoles(rounds.flatMap((r) => r.holes), baseline);
   const n = points.length;
   const avg = (pick: (p: RoundPoint) => number) =>
@@ -246,11 +256,13 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
   return {
     rounds: n,
     pooled,
-    puttsPerRound: avg((p) => p.stats.totalPutts),
-    threePuttsPerRound: avg((p) => p.stats.threePlus),
-    sgPerRound: avg((p) => p.stats.sg),
+    puttsPerRound: avg((p) => p.stats.totalPutts * p.scale),
+    threePuttsPerRound: avg((p) => p.stats.threePlus * p.scale),
+    sgPerRound: avg((p) => p.stats.sg * p.scale),
     scoringPct: pct(pooled.scoring),
-    girPerRound: points.some((p) => p.stats.scoredHoles > 0) ? avg((p) => p.stats.gir) : null,
+    girPerRound: points.some((p) => p.stats.scoredHoles > 0)
+      ? avg((p) => p.stats.gir * p.scale)
+      : null,
     points,
   };
 }

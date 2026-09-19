@@ -6,7 +6,7 @@ import { fmtDate, today } from '../lib/format';
 import { go } from '../lib/router';
 import { newId } from '../lib/storage';
 import { blankHoles, makeRound, useApp } from '../lib/store';
-import { DEFAULT_BASELINE, PUTTER_COLORS, type AppState } from '../lib/types';
+import { DEFAULT_BASELINE, type AppState } from '../lib/types';
 
 export function Settings() {
   const { state, dispatch } = useApp();
@@ -24,6 +24,25 @@ export function Settings() {
   const [pasteNotes, setPasteNotes] = useState<string[]>([]);
   const [added, setAdded] = useState<{ id: string; date: string; putts: number } | null>(null);
   const [pending, setPending] = useState<{ state: AppState; rounds: number } | null>(null);
+  const [restore, setRestore] = useState('');
+
+  const loadMine = async () => {
+    setRestore('Loading...');
+    try {
+      const res = await fetch('./my-rounds.json');
+      if (!res.ok) throw new Error(String(res.status));
+      const parsed = (await res.json()) as AppState;
+      const before = state.rounds.length;
+      dispatch({ t: 'mergeState', state: parsed });
+      const added = parsed.rounds.filter((r) => !state.rounds.some((x) => x.id === r.id)).length;
+      setRestore(
+        added ? `Added ${added} ${added === 1 ? 'round' : 'rounds'}.` : 'Those rounds are already here.',
+      );
+      void before;
+    } catch {
+      setRestore('Could not reach the file. Try again with signal.');
+    }
+  };
 
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
@@ -98,21 +117,8 @@ export function Settings() {
               value={p.name}
               onChange={(e) => dispatch({ t: 'renamePutter', id: p.id, name: e.target.value })}
             />
-            <div className="swatches">
-              {PUTTER_COLORS.map((c) => (
-                <button
-                  key={c}
-                  className={p.color === c ? 'swatch on' : 'swatch'}
-                  style={{ background: c }}
-                  aria-label={`colour ${c}`}
-                  onClick={() =>
-                    dispatch({ t: 'setPutterColor', id: p.id, color: p.color === c ? undefined : c })
-                  }
-                />
-              ))}
-              <span style={{ marginLeft: 'auto', alignSelf: 'center' }}>
-                <PutterTag putterId={p.id} />
-              </span>
+            <div style={{ marginTop: 10 }}>
+              <PutterTag putterId={p.id} />
             </div>
             <div className="btn-row" style={{ marginTop: 8 }}>
               <button
@@ -311,7 +317,11 @@ export function Settings() {
       </details>
 
       <h2>Data</h2>
-      <div className="btn-row">
+      <button className="btn btn-wide" onClick={loadMine}>
+        Load my Ives Grove rounds
+      </button>
+      {restore && <p className="small muted">{restore}</p>}
+      <div className="btn-row" style={{ marginTop: 10 }}>
         <button className="btn" onClick={exportJson}>
           Export JSON
         </button>

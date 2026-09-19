@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { ConfirmButton } from '../components/ConfirmButton';
+import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
 import { Keypad } from '../components/Keypad';
 import { Seg } from '../components/Seg';
 import { Sheet } from '../components/Sheet';
@@ -44,6 +45,8 @@ export function Track() {
   const { state, dispatch } = useApp();
   const round = liveRound(state);
   const [finishing, setFinishing] = useState(false);
+  const [courseOpen, setCourseOpen] = useState(false);
+  const [choice, setChoice] = useState<CourseChoice>({ name: '' });
   const [score, setScore] = useState('');
 
   if (!round) {
@@ -67,6 +70,7 @@ export function Track() {
   const d = Number(track.distanceInput);
   const canSubmit = track.distanceInput !== '' && d >= 1;
   const draft = track.draft ?? {};
+  const hasPars = round.holes.some((h) => h.par !== undefined);
 
   const setDraft = (patch: Record<string, unknown>) =>
     dispatch({ t: 'setTrack', patch: { draft: { ...draft, ...patch } } });
@@ -92,6 +96,7 @@ export function Track() {
             {complete
               ? `${hole.putts.length} ${hole.putts.length === 1 ? 'putt' : 'putts'}`
               : `putt ${hole.putts.length + 1}`}
+            {hole.par ? <span className="par-note"> par {hole.par}</span> : null}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {scored.length > 0 && <span className="tag num">{fmtVsPar(runningScore)}</span>}
@@ -125,6 +130,16 @@ export function Track() {
           })}
         </div>
       </div>
+
+      {!hasPars && (
+        <button
+          className="btn btn-ghost btn-wide"
+          style={{ marginBottom: 12 }}
+          onClick={() => setCourseOpen(true)}
+        >
+          Add the course to fill in pars
+        </button>
+      )}
 
       {hole.putts.length > 0 && (
         <div className="putt-log" style={{ marginBottom: 14 }}>
@@ -297,6 +312,29 @@ export function Track() {
           }}
         />
       </div>
+
+      {courseOpen && (
+        <Sheet title="Course" onClose={() => setCourseOpen(false)}>
+          <CoursePicker
+            holeCount={round.holeCount}
+            value={choice}
+            onChange={(c) => {
+              setChoice(c);
+              if (!c.pars?.length) return;
+              dispatch({
+                t: 'applyCourse',
+                roundId: round.id,
+                course: c.name,
+                courseId: c.courseId,
+                tee: c.tee,
+                pars:
+                  round.holeCount === 9 && c.pars.length > 9 ? c.pars.slice(0, 9) : c.pars,
+              });
+              setCourseOpen(false);
+            }}
+          />
+        </Sheet>
+      )}
 
       {finishing && (
         <Sheet title="Finish round" onClose={() => setFinishing(false)}>

@@ -2,5 +2,5 @@ node_modules
 dist
 *.tsbuildinfo
 .DS_Store
-tsconfig.tsbuildinfo
-seed/
+.vercel
+public/my-rounds.json

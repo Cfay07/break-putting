@@ -5,7 +5,15 @@ import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { Trend } from '../components/Trend';
 import { fmtDate, pctText, signed } from '../lib/format';
-import { byCourse, courseLabel, overall, pct, roundStats, type Stats as S } from '../lib/stats';
+import {
+  byCourse,
+  courseLabel,
+  overall,
+  pct,
+  roundScale,
+  roundStats,
+  type Stats as S,
+} from '../lib/stats';
 import { useApp } from '../lib/store';
 
 const AVG = '__avg__';
@@ -19,14 +27,14 @@ interface Side {
   gir: number | null;
 }
 
-function sideFromStats(label: string, s: S): Side {
+function sideFromStats(label: string, s: S, scale = 1): Side {
   return {
     label,
-    putts: s.totalPutts,
-    three: s.threePlus,
+    putts: s.totalPutts * scale,
+    three: s.threePlus * scale,
     scoring: pct(s.scoring),
-    sg: s.sg,
-    gir: s.scoredHoles ? s.gir : null,
+    sg: s.sg * scale,
+    gir: s.scoredHoles ? s.gir * scale : null,
   };
 }
 
@@ -46,15 +54,19 @@ export function Stats() {
   const o = useMemo(() => overall(rounds, state.baseline), [rounds, state.baseline]);
   const courses = useMemo(() => byCourse(rounds, state.baseline), [rounds, state.baseline]);
   const withScore = useMemo(
-    () => rounds.map((r) => ({ r, s: roundStats(r, state.baseline) })).filter((x) => x.r.score !== undefined),
+    () =>
+      rounds
+        .map((r) => ({ r, s: roundStats(r, state.baseline), k: roundScale(r) }))
+        .filter((x) => x.r.score !== undefined),
     [rounds, state.baseline],
   );
   const avgScore = withScore.length
-    ? withScore.reduce((sum, x) => sum + x.r.score!, 0) / withScore.length
+    ? withScore.reduce((sum, x) => sum + x.r.score! * x.k, 0) / withScore.length
     : null;
   const avgIfNeutral = withScore.length
-    ? withScore.reduce((sum, x) => sum + x.r.score! + x.s.sg, 0) / withScore.length
+    ? withScore.reduce((sum, x) => sum + (x.r.score! + x.s.sg) * x.k, 0) / withScore.length
     : null;
+  const anyNine = withScore.some((x) => x.k > 1) || rounds.some((r) => roundScale(r) > 1);
 
   if (state.rounds.filter((r) => r.finished).length === 0) {
     return (
@@ -71,10 +83,14 @@ export function Stats() {
   const rightRound = rightId === AVG ? null : rounds.find((r) => r.id === rightId);
 
   const leftSide: Side | null = left
-    ? sideFromStats(fmtDate(left.date), roundStats(left, state.baseline))
+    ? sideFromStats(fmtDate(left.date), roundStats(left, state.baseline), roundScale(left))
     : null;
   const rightSide: Side | null = rightRound
-    ? sideFromStats(fmtDate(rightRound.date), roundStats(rightRound, state.baseline))
+    ? sideFromStats(
+        fmtDate(rightRound.date),
+        roundStats(rightRound, state.baseline),
+        roundScale(rightRound),
+      )
     : {
         label: `Average of ${o.rounds}`,
         putts: o.puttsPerRound,
@@ -132,16 +148,15 @@ export function Stats() {
                         {x.r.course ? ` · ${courseLabel(x.r)}` : ''}
                       </span>
                       <span className="v num" style={{ whiteSpace: 'nowrap' }}>
-                        {x.r.score} <span className="muted">→</span>{' '}
-                        {(x.r.score! + x.s.sg).toFixed(1)}
+                        {x.r.score! * x.k} <span className="muted">→</span>{' '}
+                        {((x.r.score! + x.s.sg) * x.k).toFixed(1)}
                       </span>
                     </div>
                   ))}
-                {withScore.length > 5 && (
-                  <p className="small muted" style={{ margin: '10px 0 0' }}>
-                    Your last five. The average above uses all {withScore.length}.
-                  </p>
-                )}
+                <p className="small muted" style={{ margin: '10px 0 0' }}>
+                  {withScore.length > 5 ? `Your last five. The average above uses all ${withScore.length}. ` : ''}
+                  {anyNine ? 'A round marked (9) is doubled so it compares to an eighteen.' : ''}
+                </p>
               </div>
             </>
           )}
@@ -176,14 +191,20 @@ export function Stats() {
             )}
           </div>
 
+          {anyNine && (
+            <p className="small muted" style={{ marginTop: -4 }}>
+              Nine-hole rounds are doubled to compare with an eighteen.
+            </p>
+          )}
+
           <h2>By distance</h2>
           <DistanceTable stats={o.pooled} rounds={o.rounds} />
 
           <h2>Am I improving</h2>
           {[
-            { title: 'Putts per round', values: o.points.map((p) => p.stats.totalPutts), invert: true, fmt: (v: number) => v.toFixed(0) },
-            { title: '3-putts per round', values: o.points.map((p) => p.stats.threePlus), invert: true, fmt: (v: number) => v.toFixed(0) },
-            { title: 'Strokes gained per round', values: o.points.map((p) => p.stats.sg), invert: false, fmt: (v: number) => signed(v, 2) },
+            { title: 'Putts per round', values: o.points.map((p) => p.stats.totalPutts * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
+            { title: '3-putts per round', values: o.points.map((p) => p.stats.threePlus * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
+            { title: 'Strokes gained per round', values: o.points.map((p) => p.stats.sg * p.scale), invert: false, fmt: (v: number) => signed(v, 2) },
             {
               title: 'Scoring make %',
               values: o.points.map((p) => pct(p.stats.scoring) ?? 0),

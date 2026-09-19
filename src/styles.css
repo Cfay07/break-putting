@@ -185,16 +185,6 @@ p { line-height: 1.45; }
 
 /* chips + segmented controls */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.swatches { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; align-items: center; }
-.swatch {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  padding: 0;
-  cursor: pointer;
-}
-.swatch.on { outline: 2px solid var(--ink); outline-offset: 2px; }
 .chip {
   min-height: 44px;
   border: 1.5px solid var(--line);
@@ -238,6 +228,7 @@ p { line-height: 1.45; }
 }
 .track-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .track-head .where { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.par-note { font-size: 12px; font-weight: 600; color: var(--ink-3); letter-spacing: 0.02em; }
 .hole-strip { display: flex; gap: 3px; margin-top: 9px; }
 .hole-strip button {
   flex: 1;

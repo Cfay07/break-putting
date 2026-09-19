@@ -67,34 +67,6 @@ export interface Putter {
   name: string;
   active: boolean;
   retired: boolean;
-  /** Background for the putter pill. Letters are picked for contrast. */
-  color?: string;
-}
-
-const WHITE = '#f7f5ee';
-const BLACK = '#141414';
-
-/** Each pill colour ships with the letter colour that reads best on it. */
-export const PUTTER_PILLS: { bg: string; ink: string }[] = [
-  { bg: '#1c1c1e', ink: WHITE },
-  { bg: '#14392b', ink: WHITE },
-  { bg: '#e07b22', ink: BLACK },
-  { bg: '#a52a1f', ink: WHITE },
-  { bg: '#2d4f7c', ink: WHITE },
-  { bg: '#c9a227', ink: BLACK },
-  { bg: '#b9bec2', ink: BLACK },
-  { bg: '#f2efe6', ink: BLACK },
-];
-
-export const PUTTER_COLORS = PUTTER_PILLS.map((p) => p.bg);
-
-export function inkOn(hex: string): string {
-  const known = PUTTER_PILLS.find((p) => p.bg.toLowerCase() === hex.toLowerCase());
-  if (known) return known.ink;
-  const v = hex.replace('#', '');
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(v.slice(i, i + 2), 16) / 255);
-  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) > 0.42 ? BLACK : WHITE;
 }
 
 export interface TrackUI {
@@ -113,11 +85,40 @@ export interface AppState {
   track: TrackUI;
 }
 
+/**
+ * Scratch-level expected putts. The short end matches what DECADE reports hole for hole; the tail
+ * past 30 feet is set to DECADE's implied numbers rather than the flatter published table.
+ */
 export const DEFAULT_BASELINE: [number, number][] = [
-  [1, 1.0], [2, 1.01], [3, 1.04], [4, 1.13], [5, 1.23], [6, 1.34], [7, 1.42],
-  [8, 1.5], [9, 1.56], [10, 1.61], [12, 1.7], [15, 1.78], [20, 1.87],
-  [25, 1.94], [30, 2.0], [35, 2.05], [40, 2.1], [50, 2.2], [60, 2.27],
+  [1, 1.0], [2, 1.01], [3, 1.04], [4, 1.13], [5, 1.23], [6, 1.34], [7, 1.42], [8, 1.5],
+  [9, 1.56], [10, 1.61], [12, 1.7], [15, 1.78], [20, 1.87],
+  [25, 1.94], [30, 2.0], [35, 2.02], [40, 2.06], [50, 2.14], [60, 2.21],
 ];
+
+const WHITE = '#f7f5ee';
+const BLACK = '#141414';
+
+/** Putter pills take the brand's colour, so you can read the tag without reading the words. */
+const BRAND_PILLS: { match: RegExp; bg: string; ink: string }[] = [
+  { match: /scotty|cameron|phantom\s?x|titleist/i, bg: '#c8102e', ink: BLACK },
+  { match: /odyssey|toulon|callaway/i, bg: '#0e9594', ink: BLACK },
+  { match: /taylormade|spider/i, bg: '#8c5a2b', ink: WHITE },
+  { match: /\bping\b/i, bg: '#1a4f9c', ink: WHITE },
+  { match: /l\.?a\.?b\.?/i, bg: '#1c1c1e', ink: WHITE },
+  { match: /cobra/i, bg: '#e8622a', ink: BLACK },
+  { match: /bettinardi/i, bg: '#b8a03e', ink: BLACK },
+  { match: /evnroll/i, bg: '#8dc63f', ink: BLACK },
+  { match: /\bsik\b/i, bg: '#3f3f45', ink: WHITE },
+  { match: /swag/i, bg: '#111111', ink: '#d9b45b' },
+  { match: /mizuno/i, bg: '#2d4f7c', ink: WHITE },
+  { match: /wilson/i, bg: '#8c1c13', ink: WHITE },
+  { match: /cleveland|srixon/i, bg: '#0f5c4c', ink: WHITE },
+  { match: /axis\s?1|piretti|byron|olson/i, bg: '#6b7076', ink: WHITE },
+];
+
+export function brandPill(name: string): { bg: string; ink: string } | null {
+  return BRAND_PILLS.find((b) => b.match.test(name)) ?? null;
+}
 
 export const FACTORS = ['lip', 'push', 'pull', 'chunk'] as const;
 export type Factor = (typeof FACTORS)[number];
