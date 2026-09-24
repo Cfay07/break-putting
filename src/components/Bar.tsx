@@ -3,14 +3,17 @@ export function Bar({
   value,
   ratio,
   warn,
+  wide,
 }: {
   label: string;
   value: string;
   ratio: number | null;
   warn?: boolean;
+  /** Room for a label that reads like a sentence instead of a word. */
+  wide?: boolean;
 }) {
   return (
-    <div className="bar-row">
+    <div className={wide ? 'bar-row wide' : 'bar-row'}>
       <span className="k">{label}</span>
       <span className="bar">
         <span

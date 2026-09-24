@@ -47,12 +47,11 @@ function tagsIn(segment: string): Partial<Putt> {
   if (/\blip/.test(s)) t.lip = true;
   if (/\bpush/.test(s)) t.push = true;
   if (/\bpull/.test(s)) t.pull = true;
-  if (/\bchunk/.test(s)) t.chunk = true;
   return t;
 }
 
 function tagged(p: Partial<Putt>): boolean {
-  return !!(p.missSide || p.speed || p.lip || p.push || p.pull || p.chunk);
+  return !!(p.missSide || p.speed || p.lip || p.push || p.pull);
 }
 
 /** Reads the running score written after the pipe: "E", "+7", "-2". */
@@ -74,7 +73,7 @@ function runningScore(after: string | undefined): number | null {
  *
  * Hole number, then one comma-separated entry per putt in play order. The first number in an
  * entry is the distance; words anywhere in it (high, low, on line, short, long, past, lip, push,
- * pull, chunk) become tags. Anything after a "|" is the running score, which turns into the hole's
+ * pull) become tags. Anything after a "|" is the running score, which turns into the hole's
  * result against par and is what lets the app work out greens in regulation.
  *
  * Two rules cover how the tap-in gets written, or does not:
@@ -135,8 +134,7 @@ export function parsePaste(text: string, holeCount: number): ParseResult {
       prev.lip = prev.lip || last.lip;
       prev.push = prev.push || last.push;
       prev.pull = prev.pull || last.pull;
-      prev.chunk = prev.chunk || last.chunk;
-      putts[putts.length - 1] = { d: last.d, made: true };
+          putts[putts.length - 1] = { d: last.d, made: true };
       notes.push(`Hole ${hole}: read the note on the ${last.d}-footer as a note on the ${prev.d}-footer.`);
     } else {
       putts.push({ d: 1, made: true });

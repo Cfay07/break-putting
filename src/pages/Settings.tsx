@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Account } from '../components/Account';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { PutterTag } from '../components/PutterTag';
 import { parsePaste } from '../lib/importer';
@@ -23,26 +24,13 @@ export function Settings() {
   const [pasteErrors, setPasteErrors] = useState<string[]>([]);
   const [pasteNotes, setPasteNotes] = useState<string[]>([]);
   const [added, setAdded] = useState<{ id: string; date: string; putts: number } | null>(null);
-  const [pending, setPending] = useState<{ state: AppState; rounds: number } | null>(null);
-  const [restore, setRestore] = useState('');
-
-  const loadMine = async () => {
-    setRestore('Loading...');
-    try {
-      const res = await fetch('./my-rounds.json');
-      if (!res.ok) throw new Error(String(res.status));
-      const parsed = (await res.json()) as AppState;
-      const before = state.rounds.length;
-      dispatch({ t: 'mergeState', state: parsed });
-      const added = parsed.rounds.filter((r) => !state.rounds.some((x) => x.id === r.id)).length;
-      setRestore(
-        added ? `Added ${added} ${added === 1 ? 'round' : 'rounds'}.` : 'Those rounds are already here.',
-      );
-      void before;
-    } catch {
-      setRestore('Could not reach the file. Try again with signal.');
-    }
-  };
+  const [restoreNote, setRestoreNote] = useState('');
+  const [pending, setPending] = useState<{
+    state: AppState;
+    rounds: number;
+    fresh: number;
+    kept: number;
+  } | null>(null);
 
   const exportJson = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
@@ -61,7 +49,16 @@ export function Settings() {
         alert('That file is not a BREAK! backup.');
         return;
       }
-      setPending({ state: { ...parsed, baseline: parsed.baseline ?? DEFAULT_BASELINE }, rounds: parsed.rounds.length });
+      const incoming = { ...parsed, baseline: parsed.baseline ?? DEFAULT_BASELINE };
+      const same = (a: { date: string; holeCount: number }, b: { date: string; holeCount: number }) =>
+        a.date === b.date && a.holeCount === b.holeCount;
+      const fresh = incoming.rounds.filter(
+        (r) => !state.rounds.some((x) => x.id === r.id || same(x, r)),
+      ).length;
+      const kept = state.rounds.filter(
+        (x) => !incoming.rounds.some((r) => r.id === x.id || same(x, r)),
+      ).length;
+      setPending({ state: incoming, rounds: incoming.rounds.length, fresh, kept });
     } catch {
       alert('Could not read that file.');
     }
@@ -105,29 +102,36 @@ export function Settings() {
 
   return (
     <>
+      <h2>Account</h2>
+      <Account />
+
       <h2>Putters</h2>
       {state.putters.length === 0 && <p className="small muted">No putters yet. Add the one in your bag.</p>}
       {state.putters
         .slice()
         .sort((a, b) => Number(a.retired) - Number(b.retired))
         .map((p) => (
-          <div className="card" key={p.id} style={{ marginBottom: 8, opacity: p.retired ? 0.6 : 1 }}>
+          <div className="card putter-row" key={p.id} style={{ opacity: p.retired ? 0.6 : 1 }}>
+            <div className="putter-head">
+              <PutterTag putterId={p.id} />
+              {p.active && <span className="tiny muted">In the bag</span>}
+              {p.retired && <span className="tiny muted">Retired</span>}
+            </div>
             <input
               type="text"
+              aria-label="putter name"
               value={p.name}
               onChange={(e) => dispatch({ t: 'renamePutter', id: p.id, name: e.target.value })}
             />
-            <div style={{ marginTop: 10 }}>
-              <PutterTag putterId={p.id} />
-            </div>
-            <div className="btn-row" style={{ marginTop: 8 }}>
-              <button
-                className="btn btn-ghost"
-                disabled={p.active || p.retired}
-                onClick={() => dispatch({ t: 'setActivePutter', id: p.id })}
-              >
-                {p.active ? 'In the bag' : 'Set active'}
-              </button>
+            <div className="btn-row">
+              {!p.active && !p.retired && (
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => dispatch({ t: 'setActivePutter', id: p.id })}
+                >
+                  Put in the bag
+                </button>
+              )}
               <button
                 className="btn btn-ghost"
                 onClick={() => dispatch({ t: 'retirePutter', id: p.id, retired: !p.retired })}
@@ -181,6 +185,27 @@ export function Settings() {
         ))
       )}
 
+      <h2>While you play</h2>
+      <div className="card">
+        <div className="round-head">
+          <span className="k" style={{ fontSize: 14 }}>
+            Hide score and bleed on the Track screen
+          </span>
+          <button
+            className={state.quietTrack ? 'chip chip-sel' : 'chip'}
+            style={{ minHeight: 32, padding: '0 12px', fontSize: 13 }}
+            aria-pressed={!!state.quietTrack}
+            onClick={() => dispatch({ t: 'setQuietTrack', on: !state.quietTrack })}
+          >
+            {state.quietTrack ? 'Hidden' : 'Shown'}
+          </button>
+        </div>
+        <p className="small muted" style={{ margin: '8px 0 0' }}>
+          For tournament rounds. Putts still log exactly the same and every stat is still worked out
+          afterwards, you just do not see the running score or the drop while you are out there.
+        </p>
+      </div>
+
       <h2>Under the hood</h2>
       <details>
         <summary>Expected putts baseline</summary>
@@ -231,8 +256,8 @@ export function Settings() {
         <summary>Bulk-load an old round</summary>
       <p className="small muted">
         Write it the way you write it on your phone. Hole number, then one entry per putt in order, commas
-        between them. Words in an entry become tags: high, low, on line, short, long, past, lip, push, pull,
-        chunk. Whatever follows the pipe is your running score, which is how the app works out greens in
+        between them. Words in an entry become tags: high, low, on line, short, long, past, lip, push,
+        pull. Whatever follows the pipe is your running score, which is how the app works out greens in
         regulation.
       </p>
       <pre className="small card" style={{ margin: '0 0 10px', overflowX: 'auto' }}>{`1: 8 feet (lip) (high), 1 foot | E
@@ -317,11 +342,7 @@ export function Settings() {
       </details>
 
       <h2>Data</h2>
-      <button className="btn btn-wide" onClick={loadMine}>
-        Load my Ives Grove rounds
-      </button>
-      {restore && <p className="small muted">{restore}</p>}
-      <div className="btn-row" style={{ marginTop: 10 }}>
+      <div className="btn-row">
         <button className="btn" onClick={exportJson}>
           Export JSON
         </button>
@@ -331,26 +352,60 @@ export function Settings() {
       </div>
       {pending && (
         <div className="card card-live" style={{ marginTop: 10 }}>
-          <h3>Replace everything with {pending.rounds} rounds from that file?</h3>
-          <p className="small muted" style={{ margin: '2px 0 10px' }}>
-            The {state.rounds.length} {state.rounds.length === 1 ? 'round' : 'rounds'} on this device go away.
+          <h3>
+            That file holds {pending.rounds} {pending.rounds === 1 ? 'round' : 'rounds'}
+          </h3>
+          <p className="small muted" style={{ margin: '2px 0 12px' }}>
+            {pending.fresh} new to this device, {pending.rounds - pending.fresh} covering rounds you
+            already have. {pending.kept} here {pending.kept === 1 ? 'is' : 'are'} not in the file.
           </p>
-          <div className="btn-row">
+          {pending.fresh > 0 && (
             <button
-              className="btn btn-primary"
+              className="btn btn-primary btn-wide"
               onClick={() => {
-                dispatch({ t: 'replaceState', state: pending.state });
+                dispatch({ t: 'mergeState', state: pending.state });
                 setPending(null);
+                setRestoreNote(`Added ${pending.fresh}. Nothing here was removed.`);
               }}
             >
-              Replace
+              Add the {pending.fresh} new {pending.fresh === 1 ? 'round' : 'rounds'}
             </button>
-            <button className="btn btn-ghost" onClick={() => setPending(null)}>
+          )}
+          <button
+            className={pending.fresh > 0 ? 'btn btn-wide' : 'btn btn-primary btn-wide'}
+            style={{ marginTop: pending.fresh > 0 ? 8 : 0 }}
+            onClick={() => {
+              dispatch({ t: 'updateFromFile', state: pending.state });
+              setPending(null);
+              setRestoreNote(
+                `Updated ${pending.rounds - pending.fresh}, added ${pending.fresh}, kept ${pending.kept} the file did not mention.`,
+              );
+            }}
+          >
+            Update matching rounds, keep the rest
+          </button>
+          <div className="btn-row" style={{ marginTop: 8 }}>
+            <ConfirmButton
+              className="btn btn-ghost btn-danger"
+              label="Replace everything instead"
+              confirmLabel="Tap again to wipe and replace"
+              onConfirm={() => {
+                dispatch({ t: 'replaceState', state: pending.state });
+                setPending(null);
+                setRestoreNote('Replaced everything on this device.');
+              }}
+            />
+            <button
+              className="btn btn-ghost"
+              style={{ flex: '0 0 auto' }}
+              onClick={() => setPending(null)}
+            >
               Cancel
             </button>
           </div>
         </div>
       )}
+      {restoreNote && <p className="small muted">{restoreNote}</p>}
       <input
         ref={fileRef}
         type="file"

@@ -27,5 +27,5 @@ export function pctText(v: number | null, digits = 0): string {
 
 export function puttSequence(distances: { d: number; made: boolean }[]): string {
   if (!distances.length) return '';
-  return distances.map((p, i) => (p.made && i === distances.length - 1 ? `${p.d} in` : `${p.d}`)).join(' → ');
+  return distances.map((p, i) => (p.made && i === distances.length - 1 ? `${p.d} holed` : `${p.d}`)).join(' → ');
 }

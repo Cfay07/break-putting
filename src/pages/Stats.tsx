@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
+import { bleedSummary } from '../lib/bleed';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { Trend } from '../components/Trend';
 import { fmtDate, pctText, signed } from '../lib/format';
+import { Bar } from '../components/Bar';
 import {
   byCourse,
   courseLabel,
@@ -12,6 +14,7 @@ import {
   pct,
   roundScale,
   roundStats,
+  splitByGreen,
   type Stats as S,
 } from '../lib/stats';
 import { useApp } from '../lib/store';
@@ -52,7 +55,13 @@ export function Stats() {
   );
 
   const o = useMemo(() => overall(rounds, state.baseline), [rounds, state.baseline]);
+  const taggedRounds = useMemo(
+    () => rounds.filter((r) => r.holes.some((h) => h.putts.some((p) => p.missSide))).length,
+    [rounds],
+  );
   const courses = useMemo(() => byCourse(rounds, state.baseline), [rounds, state.baseline]);
+  const bleed = useMemo(() => bleedSummary(rounds), [rounds]);
+  const green = useMemo(() => splitByGreen(rounds), [rounds]);
   const withScore = useMemo(
     () =>
       rounds
@@ -134,8 +143,10 @@ export function Stats() {
               <div className="card">
                 <div className="shoot-for num">{avgIfNeutral.toFixed(1)}</div>
                 <p className="small" style={{ margin: '4px 0 12px' }}>
-                  That is your scoring average of {avgScore.toFixed(1)} with the putter taken out of it.
-                  Putting is costing you {Math.abs(avgScore - avgIfNeutral).toFixed(1)} shots a round.
+                  That is your scoring average of {avgScore.toFixed(1)} with a tour pro's putting
+                  dropped into the same rounds. Strokes gained is always measured against tour, so
+                  read the {Math.abs(avgScore - avgIfNeutral).toFixed(1)} as the gap to a pro's
+                  putter, not to a decent amateur one.
                 </p>
                 {withScore
                   .slice()
@@ -198,7 +209,11 @@ export function Stats() {
           )}
 
           <h2>By distance</h2>
-          <DistanceTable stats={o.pooled} rounds={o.rounds} />
+          <DistanceTable stats={o.pooled} rounds={o.rounds} sgPerRound={o.bucketSgPerRound} />
+          <p className="small muted" style={{ marginTop: 6 }}>
+            Made and % count every putt as it happened. Each row is rounded to two decimals, so
+            adding them by eye can land a hundredth off the total{anyNine ? '. Nine-hole rounds are doubled here the same way as in Averages' : ''}.
+          </p>
 
           <h2>Am I improving</h2>
           {[
@@ -212,16 +227,25 @@ export function Stats() {
               fmt: (v: number) => `${v.toFixed(0)}%`,
             },
           ].map((chart) => (
-            <div className="card" key={chart.title}>
-              <div className="round-head">
+            <div className="card trend-card" key={chart.title}>
+              <div className="trend-head">
                 <span className="tiny">{chart.title}</span>
-                <span className="num" style={{ fontWeight: 700 }}>
-                  {chart.fmt(chart.values[chart.values.length - 1])}
+                <span className="trend-now">
+                  <span className="num">{chart.fmt(chart.values[chart.values.length - 1])}</span>
+                  <span className="tiny muted">
+                    avg {chart.fmt(chart.values.reduce((a, b) => a + b, 0) / chart.values.length)}
+                  </span>
                 </span>
               </div>
               <Trend values={chart.values} invert={chart.invert} />
             </div>
           ))}
+          {anyNine && (
+            <p className="small muted" style={{ marginTop: 10 }}>
+              A nine-hole round is doubled here, so it sits next to an eighteen fairly. Open the
+              round itself to see what it actually was.
+            </p>
+          )}
 
           <h2>Round vs round</h2>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -281,14 +305,171 @@ export function Stats() {
             </table>
             </div>
           )}
+          {anyNine && (
+            <p className="small muted" style={{ marginTop: 6 }}>
+              A nine-hole round is doubled on both sides here, so the comparison is like for like.
+            </p>
+          )}
 
           <h2>Lag control</h2>
           <LagPanel stats={o.pooled} />
 
+          {green && (
+            <>
+              <h2>Green hit vs green missed</h2>
+              <div className="card">
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Green</th>
+                        <th>Holes</th>
+                        <th>1st putt</th>
+                        <th>Putts</th>
+                        <th>1-putt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {([
+                        ['Hit', green.hit],
+                        ['Missed', green.missed],
+                      ] as const).map(([label, side]) => (
+                        <tr key={label}>
+                          <td>{label}</td>
+                          <td>{side.holes}</td>
+                          <td>{side.firstPutt} ft</td>
+                          <td>{side.puttsPerHole.toFixed(2)}</td>
+                          <td>{side.onePuttPct.toFixed(0)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="small" style={{ margin: '8px 0 0' }}>
+                  You one-putt {green.hit.onePuttPct.toFixed(0)}% of the greens you hit and{' '}
+                  {green.missed.onePuttPct.toFixed(0)}% of the ones you miss. That gap is distance.
+                  Your first putt is a median {green.hit.firstPutt} ft when you hit the green and{' '}
+                  {green.missed.firstPutt} ft when you miss it, and your make rate falls off a cliff
+                  past five feet.
+                </p>
+
+                {(() => {
+                  const m = green.missed;
+                  const made = (m.makes / m.attempts) * 100;
+                  const normal = (m.expected / m.attempts) * 100;
+                  const gap = made - normal;
+                  const floor = ((2 * m.se) / m.attempts) * 100;
+                  return (
+                    <>
+                      <div className="field-label">Same putts, matched foot for foot</div>
+                      <Bar
+                        label="What you made"
+                        value={`${made.toFixed(1)}%`}
+                        ratio={made / 100}
+                        warn={gap < -floor}
+                        wide
+                      />
+                      <Bar
+                        label="Your normal"
+                        value={`${normal.toFixed(1)}%`}
+                        ratio={normal / 100}
+                        wide
+                      />
+                      <p className="small" style={{ margin: '6px 0 0' }}>
+                        {Math.abs(gap) < floor
+                          ? 'Dead even. Once the distance is matched your stroke is the same either way, so the pressure is not the problem. How far away you are when you hit a green is.'
+                          : gap < 0
+                            ? `You make ${Math.abs(gap).toFixed(1)} points fewer when you are scrambling. The par putt is getting to you.`
+                            : `You make ${gap.toFixed(1)} points more when you are scrambling. You putt better with something to save.`}
+                      </p>
+                      <p className="small muted" style={{ margin: '6px 0 0' }}>
+                        Your normal is what your own make rate from those exact distances says
+                        you should have made. The gap has to clear {floor.toFixed(1)} points before
+                        it means anything, off {m.attempts} putts. This test is weak either way:
+                        the two groups barely sit at the same distances, so there is not much to
+                        match on.
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            </>
+          )}
+
           <h2>Miss patterns</h2>
-          <PatternPanel stats={o.pooled} />
+          <PatternPanel stats={o.pooled} taggedRounds={taggedRounds} />
+
+          {bleed.count > 0 && (
+            <>
+              <h2>Bleed</h2>
+              <div className="card">
+                <div className="shoot-for num neg">{bleed.shotsPerRound?.toFixed(1)}</div>
+                <p className="small" style={{ margin: '4px 0 0' }}>
+                  Shots a round you drop on the holes that follow a putting mistake. That is on
+                  top of what the mistake itself already cost you.
+                </p>
+                <p className="small muted" style={{ margin: '6px 0 0' }}>
+                  A mistake is a three-putt, or a putt missed from three to six feet on a hole you
+                  went over par on. The bleed runs until you play one at par or better.
+                </p>
+
+                {bleed.afterRate !== null && bleed.normalRate !== null && (
+                  <>
+                    <div className="field-label">Par or better on the next hole</div>
+                    <Bar
+                      label="After a mistake"
+                      value={`${(bleed.afterRate * 100).toFixed(0)}%`}
+                      ratio={bleed.afterRate}
+                      warn={bleed.afterRate < bleed.normalRate}
+                      wide
+                    />
+                    <Bar
+                      label="Any other hole"
+                      value={`${(bleed.normalRate * 100).toFixed(0)}%`}
+                      ratio={bleed.normalRate}
+                      wide
+                    />
+                    <p className="small muted" style={{ margin: '6px 0 0' }}>
+                      {bleed.afterRate < bleed.normalRate
+                        ? `Right after a mistake you save the hole ${Math.round(bleed.afterRate * 100)} times in 100 instead of ${Math.round(bleed.normalRate * 100)}.`
+                        : 'A mistake does not follow you to the next hole.'}
+                    </p>
+                  </>
+                )}
+
+                <div className="field-label">The mistakes themselves</div>
+                <div className="stat-row">
+                  <span className="k">How many a round</span>
+                  <span className="v num">{bleed.perRound?.toFixed(1)}</span>
+                </div>
+                {bleed.worst && (
+                  <div className="stat-row">
+                    <span className="k">
+                      Worst one{' '}
+                      <span className="muted">
+                        {fmtDate(bleed.worst.date)}, hole {bleed.worst.triggerHole}
+                      </span>
+                    </span>
+                    <span className="v num neg">+{bleed.worst.shots} after</span>
+                  </div>
+                )}
+
+                <p className="small muted" style={{ margin: '12px 0 0' }}>
+                  Based on {bleed.sample} holes played after a mistake.
+                  {bleed.sample < 200
+                    ? ' A gap this size needs a few hundred before it proves anything, so read it as a hint.'
+                    : ''}
+                </p>
+              </div>
+            </>
+          )}
 
           <h2>By putter</h2>
+          {anyNine && (
+            <p className="small muted" style={{ margin: '0 0 6px' }}>
+              Per eighteen holes, so a nine-hole round counts double.
+            </p>
+          )}
           <div className="table-wrap">
           <table>
             <thead>
@@ -297,7 +478,7 @@ export function Stats() {
                 <th>Rds</th>
                 <th>Putts</th>
                 <th>3P</th>
-                <th>4-10 ft</th>
+                <th>3-10 ft</th>
                 <th>SG</th>
               </tr>
             </thead>
@@ -363,7 +544,12 @@ export function Stats() {
           )}
 
           <h2>What to work on</h2>
-          <InsightList stats={o.pooled} />
+          <InsightList
+            stats={o.pooled}
+            rounds={o.rounds}
+            threePuttsPerRound={o.threePuttsPerRound}
+            taggedRounds={taggedRounds}
+          />
         </>
       )}
     </>

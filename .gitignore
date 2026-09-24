@@ -4,3 +4,5 @@ dist
 .DS_Store
 .vercel
 public/my-rounds.json
+supabase/.db-password
+supabase/.temp/

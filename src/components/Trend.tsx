@@ -14,7 +14,15 @@ export function Trend({ values, invert }: { values: number[]; invert?: boolean }
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="trend" role="img" aria-label="trend by round">
-      <line x1={pad} x2={w - pad} y1={y(avg)} y2={y(avg)} stroke="#8c9a92" strokeWidth="1" strokeDasharray="4 4" />
+      <line
+        x1={pad}
+        x2={w - pad}
+        y1={y(avg)}
+        y2={y(avg)}
+        stroke="#8c9a92"
+        strokeWidth="1"
+        strokeDasharray="4 4"
+      />
       <polyline
         points={values.map((v, i) => `${x(i)},${y(v)}`).join(' ')}
         fill="none"

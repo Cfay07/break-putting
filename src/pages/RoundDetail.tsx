@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { ConfirmButton } from '../components/ConfirmButton';
+import { ScoreMark } from '../components/ScoreMark';
 import { DistanceTable } from '../components/DistanceTable';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { InsightList } from '../components/InsightList';
@@ -7,17 +9,22 @@ import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { PutterTag } from '../components/PutterTag';
 import { Seg } from '../components/Seg';
+import { SegMulti } from '../components/SegMulti';
 import { Sheet } from '../components/Sheet';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
 import { go } from '../lib/router';
-import { pct, roundStats } from '../lib/stats';
+import { pct, roundStats, suspectHoles } from '../lib/stats';
 import { useApp } from '../lib/store';
 import {
   BREAK_DIRS,
+  BREAK_LABELS,
+  breakDirsOf,
+  breakLabel,
+  toggleBreak,
   FACTORS,
   FACTOR_LABELS,
   holeVsPar,
-  type BreakDir,
+  holedOut,
   type MissSide,
   type Speed,
 } from '../lib/types';
@@ -26,13 +33,6 @@ const MISS_SIDES: MissSide[] = ['high', 'low', 'online'];
 const MISS_LABELS = { high: 'High', low: 'Low', online: 'On line' };
 const SPEEDS: Speed[] = ['short', 'good', 'long'];
 const SPEED_LABELS = { short: 'Short', good: 'Good', long: 'Long' };
-const BREAK_LABELS: Record<BreakDir, string> = {
-  'L→R': 'L→R',
-  'R→L': 'R→L',
-  straight: 'Straight',
-  uphill: 'Uphill',
-  downhill: 'Downhill',
-};
 
 export function RoundDetail({ id }: { id: string }) {
   const { state, dispatch } = useApp();
@@ -55,6 +55,20 @@ export function RoundDetail({ id }: { id: string }) {
   const scoringPct = pct(s.scoring);
   const mismatch = round.recordedPutts && round.recordedPutts !== s.totalPutts;
   const hole = editHole !== null ? round.holes.find((h) => h.hole === editHole) : undefined;
+  const marks = bleedMarks(round);
+  const bleeds = bleedsIn(round);
+  const suspect = suspectHoles(round);
+
+  // The relative column runs as a total through the round, the way a leaderboard reads, since
+  // par and score already sit side by side to show what each hole cost.
+  const running = new Map<number, number>();
+  let carried = 0;
+  for (const h of round.holes) {
+    const vs = holeVsPar(h);
+    if (vs === undefined) continue;
+    carried += vs;
+    running.set(h.hole, carried);
+  }
 
   return (
     <>
@@ -168,7 +182,16 @@ export function RoundDetail({ id }: { id: string }) {
       <InsightList stats={s} />
 
       <h2>Scorecard</h2>
+      {suspect.length > 0 && (
+        <p className="small neg" style={{ margin: '0 0 8px' }}>
+          Check{' '}
+          {suspect.map((x) => `hole ${x.hole} (${x.from} ft then ${x.to} ft)`).join(', ')}. A putt
+          cannot finish farther from the hole than it started, so a distance there is wrong. Tap the
+          hole to fix it.
+        </p>
+      )}
       <div className="sc-wrap">
+
         {round.holes.map((h) => (
           <button
             key={h.hole}
@@ -176,17 +199,62 @@ export function RoundDetail({ id }: { id: string }) {
             onClick={() => setEditHole(h.hole)}
           >
             <span className="h">{h.hole}</span>
-            <span className="tiny" style={{ width: 14, flex: 'none' }}>
-              {h.par ?? ''}
+            <span className="par-cell">{h.par ?? ''}</span>
+            <span className="seq">
+              {h.putts.length ? puttSequence(h.putts) : holedOut(h) ? 'chipped in' : '--'}
             </span>
-            <span className="seq">{h.putts.length ? puttSequence(h.putts) : '--'}</span>
-            <span className="vs num">
-              {h.strokes ?? (holeVsPar(h) === undefined ? '' : fmtVsPar(holeVsPar(h)!))}
+            <span className="drop-cell">
+              {marks.triggers.has(h.hole) || marks.bled.has(h.hole) ? '🩸' : ''}
+            </span>
+            <ScoreMark strokes={h.strokes} vsPar={holeVsPar(h)} />
+            <span className={(running.get(h.hole) ?? 0) < 0 ? 'rel num pos' : 'rel num'}>
+              {running.has(h.hole) ? fmtVsPar(running.get(h.hole)!) : ''}
             </span>
             <span className="n num">{h.putts.length || ''}</span>
           </button>
         ))}
+
+        {(round.holeCount > 9
+          ? [
+              { label: 'Out', from: 1, to: 9 },
+              { label: 'In', from: 10, to: 18 },
+              { label: 'Total', from: 1, to: round.holeCount },
+            ]
+          : [{ label: 'Total', from: 1, to: round.holeCount }]
+        ).map((band) => {
+          const inBand = round.holes.filter((h) => h.hole >= band.from && h.hole <= band.to);
+          // Par only counts holes actually played, so a round finished early doesn't show
+          // a full nine's par next to a partial score.
+          const par = inBand.reduce((n, h) => n + (h.strokes !== undefined ? h.par ?? 0 : 0), 0);
+          const strokes = inBand.reduce((n, h) => n + (h.strokes ?? 0), 0);
+          const putts = inBand.reduce((n, h) => n + h.putts.length, 0);
+          const rel = inBand.reduce((n, h) => n + (holeVsPar(h) ?? 0), 0);
+          const scored = inBand.some((h) => h.strokes !== undefined);
+          return (
+            <div
+              key={band.label}
+              className={band.label === 'Total' ? 'sc-row sc-total sc-grand' : 'sc-row sc-total'}
+            >
+              <span className="h" />
+              <span className="par-cell">{par || ''}</span>
+              <span className="seq band">{band.label}</span>
+              <span className="drop-cell" />
+              <span className="sc num">{scored ? strokes : ''}</span>
+              <span className={rel < 0 ? 'rel num pos' : 'rel num'}>
+                {scored ? fmtVsPar(rel) : ''}
+              </span>
+              <span className="n num">{putts || ''}</span>
+            </div>
+          );
+        })}
       </div>
+
+      {bleeds.length > 0 && (
+        <p className="small muted" style={{ marginTop: 8 }}>
+          🩸 marks a putting mistake and the holes it bled into.{' '}
+          {bleeds.map((b) => `Hole ${b.triggerHole}, ${b.why}, ${b.shots} shot${b.shots === 1 ? '' : 's'}`).join('. ')}.
+        </p>
+      )}
 
       {hole && (
         <Sheet title={`Hole ${hole.hole}`} onClose={() => setEditHole(null)}>
@@ -260,19 +328,24 @@ export function RoundDetail({ id }: { id: string }) {
                       })
                     }
                   />
-                  <div className="field-label">How it broke</div>
-                  <Seg
+                  <div className="field-label">
+                    How it broke
+                    {breakLabel(breakDirsOf(p)) ? (
+                      <span className="muted"> · {breakLabel(breakDirsOf(p))}</span>
+                    ) : null}
+                  </div>
+                  <SegMulti
                     quiet
                     options={BREAK_DIRS}
                     labels={BREAK_LABELS}
-                    value={p.breakDir}
-                    onPick={(v) =>
+                    values={breakDirsOf(p)}
+                    onToggle={(v) =>
                       dispatch({
                         t: 'updatePutt',
                         roundId: round.id,
                         hole: hole.hole,
                         index: i,
-                        patch: { breakDir: v },
+                        patch: { breakDirs: toggleBreak(breakDirsOf(p), v), breakDir: undefined },
                       })
                     }
                   />

@@ -1,4 +1,4 @@
-const CACHE = 'break-v1';
+const CACHE = 'break-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -11,13 +11,29 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Serve from cache first so the app opens with no signal, and refresh the copy in the
-// background so the next launch has the newest build.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
   if (new URL(request.url).origin !== self.location.origin) return;
 
+  const isPage = request.mode === 'navigate';
+
+  if (isPage) {
+    // The page itself comes from the network when there is any, so a new build is live on the
+    // next launch instead of the one after. The cached copy is the fallback with no signal.
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(request, copy));
+          return res;
+        })
+        .catch(() => caches.match(request).then((hit) => hit || caches.match('./'))),
+    );
+    return;
+  }
+
+  // Everything else is content-hashed, so a cache hit is always the right file.
   event.respondWith(
     caches.match(request).then((hit) => {
       const fresh = fetch(request)

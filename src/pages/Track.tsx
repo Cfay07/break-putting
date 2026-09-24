@@ -4,15 +4,21 @@ import { ConfirmButton } from '../components/ConfirmButton';
 import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
 import { Keypad } from '../components/Keypad';
 import { Seg } from '../components/Seg';
+import { SegMulti } from '../components/SegMulti';
 import { Sheet } from '../components/Sheet';
 import { go } from '../lib/router';
+import { liveBleed } from '../lib/bleed';
 import { liveRound, useApp } from '../lib/store';
+import { syncQuietly } from '../lib/sync';
 import {
   BREAK_DIRS,
+  BREAK_LABELS,
+  breakLabel,
+  toggleBreak,
   FACTORS,
   FACTOR_LABELS,
   holeVsPar,
-  type BreakDir,
+  holedOut,
   type Factor,
   type MissSide,
   type Round,
@@ -21,23 +27,20 @@ import {
 
 const MISS_SIDES: MissSide[] = ['high', 'low', 'online'];
 const MISS_LABELS = { high: 'High', low: 'Low', online: 'On line' };
+/** Below this a made putt is a tap-in, and asking which way it broke is just friction. */
+const BREAK_PROMPT_FROM = 4;
+
 const SPEEDS: Speed[] = ['short', 'good', 'long'];
 const SPEED_LABELS = { short: 'Short', good: 'Good', long: 'Long' };
-const BREAK_LABELS: Record<BreakDir, string> = {
-  'L→R': 'L→R',
-  'R→L': 'R→L',
-  straight: 'Straight',
-  uphill: 'Uphill',
-  downhill: 'Downhill',
-};
+
+function played(round: Round, hole: number): boolean {
+  const h = round.holes.find((x) => x.hole === hole);
+  return !!h && (holedOut(h) || h.putts.some((p) => p.made));
+}
 
 function nextUnplayed(round: Round, from: number): number {
-  for (let h = from + 1; h <= round.holeCount; h++) {
-    if (!round.holes.find((x) => x.hole === h)?.putts.some((p) => p.made)) return h;
-  }
-  for (let h = 1; h <= round.holeCount; h++) {
-    if (!round.holes.find((x) => x.hole === h)?.putts.some((p) => p.made)) return h;
-  }
+  for (let h = from + 1; h <= round.holeCount; h++) if (!played(round, h)) return h;
+  for (let h = 1; h <= round.holeCount; h++) if (!played(round, h)) return h;
   return from;
 }
 
@@ -62,11 +65,14 @@ export function Track() {
 
   const { track } = state;
   const hole = round.holes.find((h) => h.hole === track.hole) ?? { hole: track.hole, putts: [] };
-  const complete = hole.putts.length > 0 && hole.putts[hole.putts.length - 1].made;
-  const roundComplete = round.holes.every((h) => h.putts.some((p) => p.made));
+  const complete =
+    holedOut(hole) || (hole.putts.length > 0 && hole.putts[hole.putts.length - 1].made);
+  const roundComplete = round.holes.every((h) => holedOut(h) || h.putts.some((p) => p.made));
   const scored = round.holes.filter((h) => holeVsPar(h) !== undefined);
   const runningScore = scored.reduce((sum, h) => sum + (holeVsPar(h) ?? 0), 0);
   const totalStrokes = round.holes.reduce((sum, h) => sum + (h.strokes ?? 0), 0);
+  const bleed = liveBleed(round);
+  const quiet = state.quietTrack ?? false;
   const d = Number(track.distanceInput);
   const canSubmit = track.distanceInput !== '' && d >= 1;
   const draft = track.draft ?? {};
@@ -85,6 +91,7 @@ export function Track() {
     setFinishing(false);
     setScore('');
     go(`/round/${round.id}`);
+    void syncQuietly(state, dispatch);
   };
 
   return (
@@ -93,13 +100,22 @@ export function Track() {
         <div className="track-head">
           <span className="where">
             Hole {track.hole} ·{' '}
-            {complete
-              ? `${hole.putts.length} ${hole.putts.length === 1 ? 'putt' : 'putts'}`
-              : `putt ${hole.putts.length + 1}`}
+            {holedOut(hole)
+              ? 'chipped in'
+              : complete
+                ? `${hole.putts.length} ${hole.putts.length === 1 ? 'putt' : 'putts'}`
+                : `putt ${hole.putts.length + 1}`}
             {hole.par ? <span className="par-note"> par {hole.par}</span> : null}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {scored.length > 0 && <span className="tag num">{fmtVsPar(runningScore)}</span>}
+            {!quiet && scored.length > 0 && (
+              <span className="tag num">{fmtVsPar(runningScore)}</span>
+            )}
+            {!quiet && bleed.bleeding && (
+              <span className="drop" aria-label={`bleeding ${bleed.holes} holes`}>
+                🩸{bleed.holes > 0 ? bleed.holes : ''}
+              </span>
+            )}
             <button className="btn btn-ghost" onClick={() => dispatch({ t: 'undoLast' })}>
               Undo
             </button>
@@ -107,7 +123,7 @@ export function Track() {
         </div>
         <div className="hole-strip">
           {round.holes.map((h) => {
-            const done = h.putts.some((p) => p.made);
+            const done = holedOut(h) || h.putts.some((p) => p.made);
             const three = h.putts.length >= 3;
             const cls = [three ? 'three' : done ? 'done' : '', h.hole === track.hole ? 'now' : '']
               .filter(Boolean)
@@ -145,7 +161,7 @@ export function Track() {
         <div className="putt-log" style={{ marginBottom: 14 }}>
           {hole.putts.map((p, i) => (
             <span key={i} className={p.made ? 'putt-pill made' : 'putt-pill'}>
-              {p.d} ft{p.made ? ' in' : ''}
+              {p.d} ft{p.made ? ' holed' : ''}
               <button
                 aria-label={`remove putt ${i + 1}`}
                 onClick={() =>
@@ -162,7 +178,10 @@ export function Track() {
       {complete ? (
         <div className="card">
           <h3>
-            Hole {hole.hole}: {hole.putts.length} {hole.putts.length === 1 ? 'putt' : 'putts'}
+            Hole {hole.hole}:{' '}
+            {holedOut(hole)
+              ? 'chipped in'
+              : `${hole.putts.length} ${hole.putts.length === 1 ? 'putt' : 'putts'}`}
           </h3>
           <div style={{ marginTop: 10 }}>
             <HoleScore
@@ -172,6 +191,11 @@ export function Track() {
               }
             />
           </div>
+          {!quiet && !bleed.bleeding && (holeVsPar(hole) ?? 1) <= 0 && (
+            <p className="small muted" style={{ margin: '10px 0 0' }}>
+              Stopped the bleed.
+            </p>
+          )}
           <div style={{ height: 14 }} />
           {roundComplete ? (
             <button className="btn btn-primary btn-wide" onClick={() => setFinishing(true)}>
@@ -212,7 +236,11 @@ export function Track() {
             <button
               className="btn btn-primary"
               disabled={!canSubmit}
-              onClick={() => dispatch({ t: 'addPutt', putt: { d, made: true } })}
+              onClick={() =>
+                d >= BREAK_PROMPT_FROM
+                  ? dispatch({ t: 'setTrack', patch: { phase: 'tags', draft: { d, made: true } } })
+                  : dispatch({ t: 'addPutt', putt: { d, made: true } })
+              }
             >
               MADE
             </button>
@@ -226,43 +254,68 @@ export function Track() {
               MISSED
             </button>
           </div>
+          {hole.putts.length === 0 && (
+            <button
+              className="btn btn-ghost btn-wide"
+              style={{ marginTop: 10 }}
+              onClick={() =>
+                dispatch({
+                  t: 'setHoleScore',
+                  roundId: round.id,
+                  hole: hole.hole,
+                  patch: { holedOut: true },
+                })
+              }
+            >
+              Chipped in, no putts
+            </button>
+          )}
         </>
       ) : (
         <>
           <div className="card">
-            <span className="tiny">Missed from</span>
+            <span className="tiny">{draft.made ? 'Holed from' : 'Missed from'}</span>
             <h3 style={{ fontSize: 22, marginTop: 2 }} className="num">
               {draft.d} ft
             </h3>
           </div>
 
-          <div className="field-label">Miss side</div>
-          <Seg
-            options={MISS_SIDES}
-            labels={MISS_LABELS}
-            value={draft.missSide}
-            onPick={(v) => setDraft({ missSide: v })}
-          />
+          {!draft.made && (
+            <>
+              <div className="field-label">Miss side</div>
+              <Seg
+                options={MISS_SIDES}
+                labels={MISS_LABELS}
+                value={draft.missSide}
+                onPick={(v) => setDraft({ missSide: v })}
+              />
 
-          <div className="field-label">Speed</div>
-          <Seg
-            options={SPEEDS}
-            labels={SPEED_LABELS}
-            value={draft.speed}
-            onPick={(v) => setDraft({ speed: v })}
-          />
+              <div className="field-label">Speed</div>
+              <Seg
+                options={SPEEDS}
+                labels={SPEED_LABELS}
+                value={draft.speed}
+                onPick={(v) => setDraft({ speed: v })}
+              />
+            </>
+          )}
 
-          <div className="field-label">How it broke (optional)</div>
-          <Seg
+          <div className="field-label">
+            How it broke (optional)
+            {breakLabel(draft.breakDirs ?? []) ? (
+              <span className="muted"> · {breakLabel(draft.breakDirs ?? [])}</span>
+            ) : null}
+          </div>
+          <SegMulti
             quiet
             options={BREAK_DIRS}
             labels={BREAK_LABELS}
-            value={draft.breakDir}
-            onPick={(v) => setDraft({ breakDir: v })}
+            values={draft.breakDirs ?? []}
+            onToggle={(v) => setDraft({ breakDirs: toggleBreak(draft.breakDirs ?? [], v) })}
           />
 
-          <div className="field-label">Factors</div>
-          <div className="chips">
+          {!draft.made && <div className="field-label">Factors</div>}
+          <div className="chips" style={draft.made ? { display: 'none' } : undefined}>
             {FACTORS.map((f: Factor) => (
               <button
                 key={f}
@@ -279,9 +332,11 @@ export function Track() {
           <button
             className="btn btn-primary btn-wide"
             style={{ marginTop: 18 }}
-            onClick={() => dispatch({ t: 'addPutt', putt: { ...draft, d: draft.d!, made: false } })}
+            onClick={() =>
+              dispatch({ t: 'addPutt', putt: { ...draft, d: draft.d!, made: !!draft.made } })
+            }
           >
-            Next putt
+            {draft.made ? 'Save putt' : 'Next putt'}
           </button>
           <button
             className="btn btn-ghost btn-wide"

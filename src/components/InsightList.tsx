@@ -1,8 +1,8 @@
-import { insights } from '../lib/insights';
+import { insights, type InsightContext } from '../lib/insights';
 import type { Stats } from '../lib/stats';
 
-export function InsightList({ stats }: { stats: Stats }) {
-  const cards = insights(stats);
+export function InsightList({ stats, ...ctx }: { stats: Stats } & InsightContext) {
+  const cards = insights(stats, ctx);
   if (!cards.length) {
     return <p className="small muted">Log a few more putts and the patterns start showing up here.</p>;
   }

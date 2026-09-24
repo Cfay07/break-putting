@@ -1,5 +1,15 @@
 import { expectedPutts, puttSG } from './sg';
-import { holeVsPar, type Hole, type Putt, type Round } from './types';
+import {
+  breakBucket,
+  breakDirsOf,
+  holeVsPar,
+  holedOut,
+  slopeOf,
+  type BreakBucket,
+  type Hole,
+  type Putt,
+  type Round,
+} from './types';
 
 export const BUCKETS = [
   { key: 'tapin', label: 'Tap-in ≤2', max: 2 },
@@ -44,13 +54,32 @@ export interface Pattern {
   push: number;
   pull: number;
   lip: number;
-  chunk: number;
   tagged: number;
   byBucket: Record<BucketKey, { high: number; low: number; online: number }>;
+  /** Every tagged putt lands in exactly one break bucket, double breakers included. */
+  byBreak: Record<BreakBucket, BreakTally>;
+  /**
+   * Makes and misses carrying a break tag, counted apart. A make rate built on misses alone
+   * would read zero no matter how well you putt, so the table needs both before it can claim
+   * anything.
+   */
+  breakMakes: number;
+  breakMisses: number;
+  uphill: BreakTally;
+  downhill: BreakTally;
+}
+
+export interface BreakTally {
+  attempts: number;
+  makes: number;
+  high: number;
+  low: number;
 }
 
 export interface Stats {
   totalPutts: number;
+  /** Putts that did not go in. The denominator for how much of the tagging is filled in. */
+  missedPutts: number;
   holesPlayed: number;
   puttsPerHole: number;
   onePutts: number;
@@ -64,7 +93,6 @@ export interface Stats {
   lagAttempts: number;
   lagInside: number;
   lipOuts: number;
-  chunks: number;
   sg: number;
   makesTotalFeet: number;
   gir: number;
@@ -90,11 +118,22 @@ function emptyBuckets(): Record<BucketKey, Tally> {
   };
 }
 
+function emptyBreak(): BreakTally {
+  return { attempts: 0, makes: 0, high: 0, low: 0 };
+}
+
 function emptyPattern(): Pattern {
   return {
     high: 0, low: 0, online: 0,
     short: 0, good: 0, long: 0,
-    push: 0, pull: 0, lip: 0, chunk: 0, tagged: 0,
+    push: 0, pull: 0, lip: 0, tagged: 0,
+    breakMakes: 0,
+    breakMisses: 0,
+    byBreak: {
+      lr: emptyBreak(), rl: emptyBreak(), double: emptyBreak(), straight: emptyBreak(),
+    },
+    uphill: emptyBreak(),
+    downhill: emptyBreak(),
     byBucket: {
       tapin: { high: 0, low: 0, online: 0 },
       b35: { high: 0, low: 0, online: 0 },
@@ -115,17 +154,20 @@ export function pct(t: Tally): number | null {
 
 export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stats {
   const played = holes.filter((h) => h.putts.length > 0);
+  // A chip-in never touches the putting numbers, but it is still a green you missed, so it
+  // belongs in the greens-in-regulation denominator.
+  const chippedIn = holes.filter((h) => holedOut(h) && holeVsPar(h) !== undefined).length;
   const buckets = emptyBuckets();
   const pattern = emptyPattern();
   const scoring: Tally = emptyTally();
   const lagPutts: { d: number; leave: number }[] = [];
 
   let totalPutts = 0;
+  let missedPutts = 0;
   let onePutts = 0;
   let twoPutts = 0;
   let threePlus = 0;
   let lipOuts = 0;
-  let chunks = 0;
   let sg = 0;
   let makesTotalFeet = 0;
   let gir = 0;
@@ -166,6 +208,8 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
       if (p.made) {
         buckets[b].makes++;
         makesTotalFeet += p.d;
+      } else {
+        missedPutts++;
       }
       if (p.d >= SCORING_MIN && p.d <= SCORING_MAX) {
         scoring.attempts++;
@@ -176,7 +220,6 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
         }
       }
       if (p.lip) { pattern.lip++; lipOuts++; }
-      if (p.chunk) { pattern.chunk++; chunks++; }
       if (p.push) pattern.push++;
       if (p.pull) pattern.pull++;
       if (p.missSide) {
@@ -185,11 +228,26 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
         pattern.tagged++;
       }
       if (p.speed) pattern[p.speed]++;
+      const dirs = breakDirsOf(p);
+      if (dirs.length) {
+        if (p.made) pattern.breakMakes++;
+        else pattern.breakMisses++;
+      }
+      const bucket = breakBucket(dirs);
+      const slope = slopeOf(dirs);
+      for (const t of [bucket ? pattern.byBreak[bucket] : null, slope ? pattern[slope] : null]) {
+        if (!t) continue;
+        t.attempts++;
+        if (p.made) t.makes++;
+        else if (p.missSide === 'high') t.high++;
+        else if (p.missSide === 'low') t.low++;
+      }
     }
   }
 
   return {
     totalPutts,
+    missedPutts,
     holesPlayed: played.length,
     puttsPerHole: played.length ? totalPutts / played.length : 0,
     onePutts,
@@ -207,11 +265,10 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
     lagAttempts: lagPutts.length,
     lagInside: lagPutts.filter((l) => l.leave <= l.d * LEAVE_STANDARD).length,
     lipOuts,
-    chunks,
     sg,
     makesTotalFeet,
     gir,
-    scoredHoles,
+    scoredHoles: scoredHoles + chippedIn,
     pattern,
   };
 }
@@ -234,6 +291,12 @@ export function roundScale(r: Round): number {
 export interface Overall {
   rounds: number;
   pooled: Stats;
+  /**
+   * Strokes gained per bucket with nine-hole rounds doubled, so this column sums to the same
+   * number the Averages card shows. The pooled buckets are raw and stay that way, because
+   * make rates must not be double counted.
+   */
+  bucketSgPerRound: Record<BucketKey, number | null>;
   puttsPerRound: number | null;
   threePuttsPerRound: number | null;
   sgPerRound: number | null;
@@ -253,9 +316,18 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
   const avg = (pick: (p: RoundPoint) => number) =>
     n ? points.reduce((s, p) => s + pick(p), 0) / n : null;
 
+  const bucketSgPerRound = {} as Record<BucketKey, number | null>;
+  for (const b of BUCKETS) {
+    const any = points.some((p) => p.stats.buckets[b.key].sgPutts > 0);
+    bucketSgPerRound[b.key] = any
+      ? points.reduce((sum, p) => sum + p.stats.buckets[b.key].sg * p.scale, 0) / (n || 1)
+      : null;
+  }
+
   return {
     rounds: n,
     pooled,
+    bucketSgPerRound,
     puttsPerRound: avg((p) => p.stats.totalPutts * p.scale),
     threePuttsPerRound: avg((p) => p.stats.threePlus * p.scale),
     sgPerRound: avg((p) => p.stats.sg * p.scale),
@@ -269,10 +341,22 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
 
 export interface CourseSplit {
   label: string;
+  lastPlayed: string;
   rounds: number;
   putts: number;
   threePlus: number;
   sg: number;
+}
+
+/**
+ * Courses get typed a dozen ways. "Ives Grove" and "Ives Grove Golf Links" are one place, so
+ * grouping ignores the club-type suffix and the casing, while the label keeps the fuller name.
+ */
+export function courseKey(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\b(golf|links|course|club|country|cc|gc|g\.?c\.?)\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
 }
 
 /** "Ives Grove (Blue/Red)", or "Ives Grove (9)" for a nine-hole round. */
@@ -288,26 +372,209 @@ export function courseLabel(r: Round): string {
 export function byCourse(rounds: Round[], baseline: [number, number][]): CourseSplit[] {
   const groups = new Map<string, Round[]>();
   for (const r of rounds) {
-    const label = courseLabel(r);
-    groups.set(label, [...(groups.get(label) ?? []), r]);
+    const nines = [r.firstNine, r.secondNine].filter(Boolean).join('/');
+    const key = `${courseKey(r.course ?? '')}|${nines}|${r.holeCount}`;
+    groups.set(key, [...(groups.get(key) ?? []), r]);
   }
 
   return [...groups.entries()]
-    .map(([label, rs]) => {
+    .map(([, rs]) => {
+      // the fullest spelling of the name wins the label
+      const best = rs.reduce((a, b) => ((b.course ?? '').length > (a.course ?? '').length ? b : a));
+      const label = courseLabel(best);
       const n = rs.length;
       const scale = (rs[0].holeCount === 9 ? 2 : 1) / n;
       const stats = statsForHoles(rs.flatMap((r) => r.holes), baseline);
+      const lastPlayed = rs.reduce((a, b) => (b.date > a.date ? b : a)).date;
       return {
         label,
+        lastPlayed,
         rounds: n,
         putts: stats.totalPutts * scale,
         threePlus: stats.threePlus * scale,
         sg: stats.sg * scale,
       };
     })
-    .sort((a, b) => b.rounds - a.rounds || a.label.localeCompare(b.label));
+    // most played first, then most recent, so a hundred one-off courses do not crowd out
+    // the ones you actually have data on
+    .sort((a, b) => b.rounds - a.rounds || b.lastPlayed.localeCompare(a.lastPlayed));
 }
 
 export function allPutts(rounds: Round[]): Putt[] {
   return rounds.flatMap((r) => r.holes.flatMap((h) => h.putts));
+}
+
+/** Below this many sided misses the split is noise, not a lean. */
+export const MIN_SIDED_MISSES = 8;
+/**
+ * Putts from one round are not independent: same greens, same day, same speed. A genuine
+ * tendency has to show up across rounds, so a call needs breadth as well as volume.
+ */
+export const MIN_TAGGED_ROUNDS = 5;
+
+export interface ReadBias {
+  high: number;
+  low: number;
+  online: number;
+  side: 'high' | 'low' | null;
+  /** Share of sided misses that went to the leading side, 0.5 to 1. */
+  lean: number;
+  /** How far off an even split, in standard errors. Two is the line. */
+  z: number;
+  verdict: 'thin' | 'leaning' | 'read' | 'stroke';
+  onlineShare: number | null;
+  /** How many separate rounds the tags came from. */
+  rounds: number;
+}
+
+/**
+ * Misses piled on one side of the hole are a read, misses scattered both ways are a stroke.
+ * Different problem, different practice, so the split is worth calling rather than just counting.
+ */
+export function readBias(p: Pattern, taggedRounds = 1): ReadBias {
+  const sided = p.high + p.low;
+  const misses = sided + p.online;
+  const lean = sided ? Math.max(p.high, p.low) / sided : 0.5;
+  const z = sided ? (2 * lean - 1) * Math.sqrt(sided) : 0;
+  return {
+    high: p.high,
+    low: p.low,
+    online: p.online,
+    side: !sided || p.high === p.low ? null : p.high > p.low ? 'high' : 'low',
+    lean,
+    z,
+    verdict:
+      sided < MIN_SIDED_MISSES
+        ? 'thin'
+        : z < 2
+          ? 'stroke'
+          : taggedRounds < MIN_TAGGED_ROUNDS
+            ? 'leaning'
+            : 'read',
+    rounds: taggedRounds,
+    onlineShare: misses ? p.online / misses : null,
+  };
+}
+
+export interface GreenSide {
+  holes: number;
+  putts: number;
+  puttsPerHole: number;
+  /** Median length of the first putt. Median, not mean, because one 60-footer skews it. */
+  firstPutt: number;
+  onePutts: number;
+  onePuttPct: number;
+  attempts: number;
+  makes: number;
+  /** Makes your own rates from these very distances predict. */
+  expected: number;
+  /** Actual minus expected. Positive is better than your own normal. */
+  delta: number;
+  /** Standard error on the delta, so noise can be called noise. */
+  se: number;
+}
+
+export interface GreenSplit {
+  hit: GreenSide;
+  missed: GreenSide;
+}
+
+/**
+ * Putting on holes where the green was hit against holes where it was missed.
+ *
+ * A tour baseline would poison this: missing a green leaves you short putts, and anyone who
+ * putts worse than tour from short range looks like they crumble under scramble pressure when
+ * they only ever had a short-putt problem. So each side is measured against your own make rate
+ * from the same distances, which cancels that out and leaves only the difference between the
+ * two situations.
+ */
+export function splitByGreen(rounds: Round[]): GreenSplit | null {
+  const hit: Hole[] = [];
+  const missed: Hole[] = [];
+
+  for (const r of rounds) {
+    for (const h of r.holes) {
+      if (!h.putts.length) continue;
+      const vsPar = holeVsPar(h);
+      if (vsPar === undefined) continue;
+      (h.putts.length - vsPar >= 2 ? hit : missed).push(h);
+    }
+  }
+  if (!hit.length || !missed.length) return null;
+
+  const rate = ownRates([...hit, ...missed]);
+  return { hit: greenSide(hit, rate), missed: greenSide(missed, rate) };
+}
+
+function ownRates(holes: Hole[]): Record<BucketKey, number | null> {
+  const made = emptyBuckets();
+  for (const h of holes) {
+    for (const p of h.putts) {
+      const b = bucketOf(p.d);
+      made[b].attempts++;
+      if (p.made) made[b].makes++;
+    }
+  }
+  const out = {} as Record<BucketKey, number | null>;
+  for (const b of BUCKETS) {
+    const t = made[b.key];
+    out[b.key] = t.attempts ? t.makes / t.attempts : null;
+  }
+  return out;
+}
+
+function greenSide(holes: Hole[], rate: Record<BucketKey, number | null>): GreenSide {
+  const firsts = holes.map((h) => h.putts[0].d).sort((a, b) => a - b);
+  let putts = 0;
+  let onePutts = 0;
+  let attempts = 0;
+  let makes = 0;
+  let expected = 0;
+  let variance = 0;
+
+  for (const h of holes) {
+    putts += h.putts.length;
+    if (h.putts.length === 1) onePutts++;
+    for (const p of h.putts) {
+      const r = rate[bucketOf(p.d)];
+      if (r === null) continue;
+      attempts++;
+      if (p.made) makes++;
+      expected += r;
+      variance += r * (1 - r);
+    }
+  }
+
+  return {
+    holes: holes.length,
+    putts,
+    puttsPerHole: putts / holes.length,
+    firstPutt: firsts[Math.floor(firsts.length / 2)],
+    onePutts,
+    onePuttPct: (onePutts / holes.length) * 100,
+    attempts,
+    makes,
+    expected,
+    delta: makes - expected,
+    se: Math.sqrt(variance),
+  };
+}
+
+/**
+ * A putt rolls toward the hole, so it cannot finish farther away than it started. When it does,
+ * the distance was mistyped or an import read the wrong number, and every stat downstream of it
+ * is wrong. Surfaced rather than silently corrected, because only the player knows the real one.
+ */
+export function suspectHoles(round: Round): { hole: number; from: number; to: number }[] {
+  const out: { hole: number; from: number; to: number }[] = [];
+  for (const h of round.holes) {
+    for (let i = 0; i < h.putts.length - 1; i++) {
+      const from = h.putts[i].d;
+      const to = h.putts[i + 1].d;
+      // Missing a tap-in and still having a tap-in is ordinary. Anything longer that fails to
+      // get closer is not, so equal distances count too.
+      if (to >= from && to > 2) out.push({ hole: h.hole, from, to });
+    }
+  }
+  return out;
 }

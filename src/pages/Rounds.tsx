@@ -1,28 +1,41 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
 import { PutterTag } from '../components/PutterTag';
 import { Sheet } from '../components/Sheet';
 import { fmtDate, signed, today } from '../lib/format';
 import { go } from '../lib/router';
-import { courseLabel, roundStats } from '../lib/stats';
+import { courseLabel, roundScale, roundStats } from '../lib/stats';
 import { newId } from '../lib/storage';
 import { liveRound, makeRound, useApp } from '../lib/store';
+
+const SORTS = ['recent', 'best', 'worst'] as const;
+type Sort = (typeof SORTS)[number];
+const SORT_LABELS: Record<Sort, string> = { recent: 'Recent', best: 'Best', worst: 'Worst' };
 
 export function Rounds() {
   const { state, dispatch } = useApp();
   const live = liveRound(state);
-  const finished = state.rounds
-    .filter((r) => r.finished)
-    .slice()
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const [sort, setSort] = useState<Sort>('recent');
+  const finished = useMemo(() => {
+    const rows = state.rounds
+      .filter((r) => r.finished)
+      .map((r) => ({ round: r, stats: roundStats(r, state.baseline) }));
+    rows.sort((a, b) => b.round.date.localeCompare(a.round.date));
+    if (sort !== 'recent') {
+      // Nine-hole rounds double, so a tidy nine cannot outrank a good eighteen on volume alone.
+      // The sort is stable, so rounds that tie stay in date order.
+      const sg = (x: (typeof rows)[number]) => x.stats.sg * roundScale(x.round);
+      const dir = sort === 'best' ? -1 : 1;
+      rows.sort((a, b) => (sg(a) - sg(b)) * dir);
+    }
+    return rows;
+  }, [state.rounds, state.baseline, sort]);
   const usable = state.putters.filter((p) => !p.retired);
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [date, setDate] = useState(today);
   const [choice, setChoice] = useState<CourseChoice>({ name: '' });
-  const [firstNine, setFirstNine] = useState('');
-  const [secondNine, setSecondNine] = useState('');
   const [half, setHalf] = useState<'front' | 'back'>('front');
   const [holeCount, setHoleCount] = useState(18);
   const [putterId, setPutterId] = useState(usable.find((p) => p.active)?.id ?? usable[0]?.id ?? '');
@@ -35,13 +48,11 @@ export function Rounds() {
         ? choice.pars.slice(9, 18)
         : choice.pars.slice(0, 9)
       : choice.pars;
+  // The saved tee already carries the nine names, so there is nothing to type in by hand.
   const nineNames =
     holeCount === 9
-      ? { first: firstNine || (teeNines ? teeNines[half === 'back' ? 1 : 0] : ''), second: '' }
-      : {
-          first: firstNine || (teeNines ? teeNines[0] : ''),
-          second: secondNine || (teeNines ? teeNines[1] : ''),
-        };
+      ? { first: teeNines ? teeNines[half === 'back' ? 1 : 0] : '', second: '' }
+      : { first: teeNines ? teeNines[0] : '', second: teeNines ? teeNines[1] : '' };
 
   const start = () => {
     let id = putterId;
@@ -70,8 +81,6 @@ export function Rounds() {
     setOpen(false);
     setChoice({ name: '' });
     setNewPutter('');
-    setFirstNine('');
-    setSecondNine('');
     go('/track');
   };
 
@@ -107,47 +116,55 @@ export function Rounds() {
         </button>
       )}
 
-      <h2>Rounds</h2>
+      <div className="list-head">
+        <h2>Rounds</h2>
+        {finished.length >= 3 && (
+          <div className="sort-pick">
+            {SORTS.map((o) => (
+              <button key={o} type="button" aria-pressed={sort === o} onClick={() => setSort(o)}>
+                {SORT_LABELS[o]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       {finished.length === 0 && (
         <div className="empty">
           <p style={{ margin: 0 }}>No finished rounds yet. Log one and the stats fill in.</p>
         </div>
       )}
 
-      {(showAll ? finished : finished.slice(0, 20)).map((r) => {
-        const s = roundStats(r, state.baseline);
-        return (
-          <button key={r.id} className="round-row" onClick={() => go(`/round/${r.id}`)}>
-            <div className="round-head">
-              <span className="round-date">{fmtDate(r.date)}</span>
-              <PutterTag putterId={r.putterId} />
-            </div>
-            {r.course && (
-              <span className="small muted" style={{ display: 'block', marginTop: 2 }}>
-                {courseLabel(r)}
-              </span>
-            )}
-            <div className="metrics num">
-              <span className="metric">
-                <span className="tiny">Putts</span>
-                <span className="val">{s.totalPutts}</span>
-              </span>
-              <span className="metric">
-                <span className="tiny">3-putts</span>
-                <span className={s.threePlus ? 'val neg' : 'val'}>{s.threePlus}</span>
-              </span>
-              <span className="metric">
-                <span className="tiny">SG</span>
-                <span className={s.sg >= 0 ? 'val pos' : 'val neg'}>{signed(s.sg)}</span>
-              </span>
-              <span className="metric">
-                <span className="tiny">Score</span>
-                <span className="val">{r.score ?? '--'}</span>
-              </span>
-            </div>
-          </button>
-        );
-      })}
+      {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s }) => (
+        <button key={r.id} className="round-row" onClick={() => go(`/round/${r.id}`)}>
+          <div className="round-head">
+            <span className="round-date">{fmtDate(r.date)}</span>
+            <PutterTag putterId={r.putterId} />
+          </div>
+          {r.course && (
+            <span className="small muted" style={{ display: 'block', marginTop: 2 }}>
+              {courseLabel(r)}
+            </span>
+          )}
+          <div className="metrics num">
+            <span className="metric">
+              <span className="tiny">Putts</span>
+              <span className="val">{s.totalPutts}</span>
+            </span>
+            <span className="metric">
+              <span className="tiny">3-putts</span>
+              <span className={s.threePlus ? 'val neg' : 'val'}>{s.threePlus}</span>
+            </span>
+            <span className="metric">
+              <span className="tiny">SG</span>
+              <span className={s.sg >= 0 ? 'val pos' : 'val neg'}>{signed(s.sg, 2)}</span>
+            </span>
+            <span className="metric">
+              <span className="tiny">Score</span>
+              <span className="val">{r.score ?? '--'}</span>
+            </span>
+          </div>
+        </button>
+      ))}
 
       {finished.length > 20 && !showAll && (
         <button className="btn btn-ghost btn-wide" onClick={() => setShowAll(true)}>
@@ -161,27 +178,6 @@ export function Rounds() {
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
 
           <CoursePicker holeCount={holeCount} value={choice} onChange={setChoice} />
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}>
-              <div className="field-label">First nine</div>
-              <input
-                type="text"
-                value={firstNine}
-                onChange={(e) => setFirstNine(e.target.value)}
-                placeholder={teeNines ? teeNines[0] : 'Optional'}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div className="field-label">Second nine</div>
-              <input
-                type="text"
-                value={secondNine}
-                onChange={(e) => setSecondNine(e.target.value)}
-                placeholder={teeNines ? teeNines[1] : 'Optional'}
-              />
-            </div>
-          </div>
 
           <div className="field-label">Holes</div>
           <div className="seg">
@@ -221,12 +217,17 @@ export function Rounds() {
               ))}
             </div>
           ) : (
-            <input
-              type="text"
-              value={newPutter}
-              onChange={(e) => setNewPutter(e.target.value)}
-              placeholder="Name the putter you are using"
-            />
+            <>
+              <input
+                type="text"
+                value={newPutter}
+                onChange={(e) => setNewPutter(e.target.value)}
+                placeholder="Scotty Cameron, L.A.B. DF3, whatever is in the bag"
+              />
+              <p className="small muted" style={{ margin: '6px 0 0' }}>
+                Name your putter once and it is remembered. This is the only thing needed to start.
+              </p>
+            </>
           )}
 
           <button

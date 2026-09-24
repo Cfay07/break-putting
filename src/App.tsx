@@ -3,7 +3,9 @@ import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
 import { Stats } from './pages/Stats';
 import { Track } from './pages/Track';
+import { useEffect } from 'react';
 import { useRoute } from './lib/router';
+import { syncQuietly } from './lib/sync';
 import { liveRound, useApp } from './lib/store';
 
 const TABS = [
@@ -13,10 +15,23 @@ const TABS = [
   { path: '/settings', label: 'Settings' },
 ];
 
+/** Track earns a tab only while a round is going. Otherwise it is a dead end. */
+function tabsFor(live: boolean, route: string) {
+  return TABS.filter((t) => t.path !== '/track' || live || route === '/track');
+}
+
 export default function App() {
   const route = useRoute();
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const live = liveRound(state);
+
+  useEffect(() => {
+    void syncQuietly(state, dispatch);
+    const onBack = () => void syncQuietly(state, dispatch);
+    window.addEventListener('online', onBack);
+    return () => window.removeEventListener('online', onBack);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const roundMatch = route.match(/^\/round\/(.+)$/);
   const page = roundMatch ? (
@@ -51,7 +66,7 @@ export default function App() {
       </div>
       {page}
       <nav className="nav">
-        {TABS.map((t) => {
+        {tabsFor(!!live, route).map((t) => {
           const on = t.path === '/' ? route === '/' || route.startsWith('/round/') : route === t.path;
           return (
             <a key={t.path} href={`#${t.path}`} className={on ? 'on' : undefined}>
