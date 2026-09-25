@@ -75,7 +75,7 @@ export function Stats() {
   const avgIfNeutral = withScore.length
     ? withScore.reduce((sum, x) => sum + (x.r.score! + x.s.sg) * x.k, 0) / withScore.length
     : null;
-  const anyNine = withScore.some((x) => x.k > 1) || rounds.some((r) => roundScale(r) > 1);
+  const anyShort = withScore.some((x) => x.k > 1) || rounds.some((r) => roundScale(r) > 1);
 
   if (state.rounds.filter((r) => r.finished).length === 0) {
     return (
@@ -166,7 +166,7 @@ export function Stats() {
                   ))}
                 <p className="small muted" style={{ margin: '10px 0 0' }}>
                   {withScore.length > 5 ? `Your last five. The average above uses all ${withScore.length}. ` : ''}
-                  {anyNine ? 'A round marked (9) is doubled so it compares to an eighteen.' : ''}
+                  {anyShort ? 'A round shorter than eighteen is scaled up so it compares to one.' : ''}
                 </p>
               </div>
             </>
@@ -202,9 +202,9 @@ export function Stats() {
             )}
           </div>
 
-          {anyNine && (
+          {anyShort && (
             <p className="small muted" style={{ marginTop: -4 }}>
-              Nine-hole rounds are doubled to compare with an eighteen.
+              A round shorter than eighteen is scaled up to compare with one.
             </p>
           )}
 
@@ -212,7 +212,7 @@ export function Stats() {
           <DistanceTable stats={o.pooled} rounds={o.rounds} sgPerRound={o.bucketSgPerRound} />
           <p className="small muted" style={{ marginTop: 6 }}>
             Made and % count every putt as it happened. Each row is rounded to two decimals, so
-            adding them by eye can land a hundredth off the total{anyNine ? '. Nine-hole rounds are doubled here the same way as in Averages' : ''}.
+            adding them by eye can land a hundredth off the total{anyShort ? '. Short rounds are scaled up here the same way as in Averages' : ''}.
           </p>
 
           <h2>Am I improving</h2>
@@ -240,9 +240,9 @@ export function Stats() {
               <Trend values={chart.values} invert={chart.invert} />
             </div>
           ))}
-          {anyNine && (
+          {anyShort && (
             <p className="small muted" style={{ marginTop: 10 }}>
-              A nine-hole round is doubled here, so it sits next to an eighteen fairly. Open the
+              A short round is scaled up here, so it sits next to an eighteen fairly. Open the
               round itself to see what it actually was.
             </p>
           )}
@@ -305,9 +305,9 @@ export function Stats() {
             </table>
             </div>
           )}
-          {anyNine && (
+          {anyShort && (
             <p className="small muted" style={{ marginTop: 6 }}>
-              A nine-hole round is doubled on both sides here, so the comparison is like for like.
+              A short round is scaled up on both sides here, so the comparison is like for like.
             </p>
           )}
 
@@ -465,7 +465,7 @@ export function Stats() {
           )}
 
           <h2>By putter</h2>
-          {anyNine && (
+          {anyShort && (
             <p className="small muted" style={{ margin: '0 0 6px' }}>
               Per eighteen holes, so a nine-hole round counts double.
             </p>

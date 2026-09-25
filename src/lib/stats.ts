@@ -280,12 +280,23 @@ export function roundStats(round: Round, baseline: [number, number][]): Stats {
 export interface RoundPoint {
   round: Round;
   stats: Stats;
-  /** Nine-hole rounds count double so every per-round number is on an eighteen-hole footing. */
+  /** Scales a round up to an eighteen-hole footing, so a nine counts double and so does a walk-in. */
   scale: number;
 }
 
+/** Holes you actually got to. A chip-in still counts as a hole played. */
+export function holesPlayed(r: Round): number {
+  return r.holes.filter((h) => h.putts.length > 0 || holedOut(h)).length;
+}
+
+/**
+ * Measured off the holes played, not the holes you signed up for. Walking in after nine of a
+ * declared eighteen is a nine-hole round whatever the setup screen said, and quoting it as a
+ * full one drags every per-round average toward it.
+ */
 export function roundScale(r: Round): number {
-  return r.holeCount === 9 ? 2 : 1;
+  const played = holesPlayed(r);
+  return played ? 18 / played : 1;
 }
 
 export interface Overall {
@@ -359,12 +370,13 @@ export function courseKey(name: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-/** "Ives Grove (Blue/Red)", or "Ives Grove (9)" for a nine-hole round. */
+/** "Ives Grove (Blue/Red)", or "Ives Grove (9)" when you played fewer than eighteen. */
 export function courseLabel(r: Round): string {
   const parts = [r.course?.trim() || 'Course not named'];
   const nines = [r.firstNine, r.secondNine].filter(Boolean).join('/');
   if (nines) parts.push(`(${nines})`);
-  if (r.holeCount === 9) parts.push('(9)');
+  const played = holesPlayed(r);
+  if (played && played < 18) parts.push(`(${played})`);
   return parts.join(' ');
 }
 
@@ -373,7 +385,7 @@ export function byCourse(rounds: Round[], baseline: [number, number][]): CourseS
   const groups = new Map<string, Round[]>();
   for (const r of rounds) {
     const nines = [r.firstNine, r.secondNine].filter(Boolean).join('/');
-    const key = `${courseKey(r.course ?? '')}|${nines}|${r.holeCount}`;
+    const key = `${courseKey(r.course ?? '')}|${nines}|${holesPlayed(r)}`;
     groups.set(key, [...(groups.get(key) ?? []), r]);
   }
 
@@ -383,16 +395,19 @@ export function byCourse(rounds: Round[], baseline: [number, number][]): CourseS
       const best = rs.reduce((a, b) => ((b.course ?? '').length > (a.course ?? '').length ? b : a));
       const label = courseLabel(best);
       const n = rs.length;
-      const scale = (rs[0].holeCount === 9 ? 2 : 1) / n;
-      const stats = statsForHoles(rs.flatMap((r) => r.holes), baseline);
+      // Each round carries its own scale, so a group holding both a full eighteen and a
+      // walk-in after nine still averages to an eighteen-hole number.
+      const scaled = rs.map((r) => ({ s: roundStats(r, baseline), k: roundScale(r) }));
+      const per = (pick: (x: (typeof scaled)[number]) => number) =>
+        scaled.reduce((sum, x) => sum + pick(x), 0) / n;
       const lastPlayed = rs.reduce((a, b) => (b.date > a.date ? b : a)).date;
       return {
         label,
         lastPlayed,
         rounds: n,
-        putts: stats.totalPutts * scale,
-        threePlus: stats.threePlus * scale,
-        sg: stats.sg * scale,
+        putts: per((x) => x.s.totalPutts * x.k),
+        threePlus: per((x) => x.s.threePlus * x.k),
+        sg: per((x) => x.s.sg * x.k),
       };
     })
     // most played first, then most recent, so a hundred one-off courses do not crowd out
