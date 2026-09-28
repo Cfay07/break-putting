@@ -13,13 +13,16 @@ export interface Bleed {
   stopped: boolean;
 }
 
-/** The hole that starts a bleed: a three-putt, or a short putt missed on a hole that cost you. */
+/**
+ * The hole that starts a bleed: a three-putt, or a putt missed from makeable range. What the
+ * hole scored does not enter into it. A six-footer missed for birdie costs the same stroke as
+ * one missed for par, and it sends you to the next tee in the same mood, which is the whole
+ * thing this stat is trying to measure.
+ */
 export function triggerOn(h: Hole): string | null {
   if (!h.putts.length) return null;
   if (h.putts.length >= 4) return 'four-putt';
   if (h.putts.length >= 3) return 'three-putt';
-  const vsPar = holeVsPar(h);
-  if (vsPar === undefined || vsPar < 1) return null;
   const missed = h.putts
     .slice(0, -1)
     .find((p) => !p.made && p.d >= MAKEABLE.min && p.d <= MAKEABLE.max);

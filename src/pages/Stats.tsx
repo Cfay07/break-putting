@@ -409,8 +409,8 @@ export function Stats() {
                   top of what the mistake itself already cost you.
                 </p>
                 <p className="small muted" style={{ margin: '6px 0 0' }}>
-                  A mistake is a three-putt, or a putt missed from three to six feet on a hole you
-                  went over par on. The bleed runs until you play one at par or better.
+                  A mistake is a three-putt, or a putt missed from three to six feet, whatever the
+                  hole ended up scoring. The bleed runs until you play one at par or better.
                 </p>
 
                 {bleed.afterRate !== null && bleed.normalRate !== null && (
