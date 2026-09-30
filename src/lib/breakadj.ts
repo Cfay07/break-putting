@@ -1,3 +1,4 @@
+import { MIN_TAGGED } from './makeability';
 import { puttSG } from './sg';
 import {
   BREAK_BUCKETS,
@@ -21,8 +22,12 @@ import {
 /** Sample at which a bucket's adjustment counts for half of what its raw numbers say. */
 const SHRINK = 40;
 
-/** Below this there is nothing worth showing anybody. */
-export const MIN_TAGGED = 60;
+/**
+ * One threshold governs both models. When the makeability panel switches its break half on, the
+ * strokes adjustment switches on with it, so the app never shows a break effect in one place and
+ * denies it in another.
+ */
+export { MIN_TAGGED } from './makeability';
 
 export type SlopeKey = 'uphill' | 'downhill';
 
