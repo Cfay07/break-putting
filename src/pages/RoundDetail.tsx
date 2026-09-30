@@ -90,13 +90,13 @@ export function RoundDetail({ id }: { id: string }) {
       )}
       <div className="chips" style={{ marginTop: 8 }}>
         <button
-          className={round.tournament ? 'chip chip-sel' : 'chip'}
-          aria-pressed={!!round.tournament}
+          className={round.competitive ? 'chip chip-sel' : 'chip'}
+          aria-pressed={!!round.competitive}
           onClick={() =>
-            dispatch({ t: 'updateRound', id: round.id, patch: { tournament: !round.tournament } })
+            dispatch({ t: 'updateRound', id: round.id, patch: { competitive: !round.competitive } })
           }
         >
-          {round.tournament ? 'Tournament' : 'Casual'}
+          {round.competitive ? 'Competitive' : 'Casual'}
         </button>
       </div>
       <div className="btn-row" style={{ marginTop: 10 }}>

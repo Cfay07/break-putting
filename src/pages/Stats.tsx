@@ -43,11 +43,11 @@ function sideFromStats(label: string, s: S, scale = 1): Side {
   };
 }
 
-const SCOPES = ['all', 'tournament', 'casual'] as const;
+const SCOPES = ['all', 'competitive', 'casual'] as const;
 type Scope = (typeof SCOPES)[number];
 const SCOPE_LABELS: Record<Scope, string> = {
   all: 'All',
-  tournament: 'Tournament',
+  competitive: 'Competitive',
   casual: 'Casual',
 };
 
@@ -63,13 +63,13 @@ export function Stats() {
     const picked =
       scope === 'all'
         ? finished
-        : finished.filter((r) => !!r.tournament === (scope === 'tournament'));
+        : finished.filter((r) => !!r.competitive === (scope === 'competitive'));
     return [...picked].sort((a, b) => a.date.localeCompare(b.date));
   }, [state.rounds, scope]);
 
   // No point offering the split until a round has actually been marked as one.
-  const hasTournament = useMemo(
-    () => state.rounds.some((r) => r.finished && r.tournament),
+  const hasCompetitive = useMemo(
+    () => state.rounds.some((r) => r.finished && r.competitive),
     [state.rounds],
   );
 
@@ -151,7 +151,7 @@ export function Stats() {
 
   return (
     <>
-      {hasTournament && (
+      {hasCompetitive && (
         <div className="seg seg-quiet" style={{ marginBottom: 12 }}>
           {SCOPES.map((sc) => (
             <button key={sc} type="button" aria-pressed={scope === sc} onClick={() => setScope(sc)}>

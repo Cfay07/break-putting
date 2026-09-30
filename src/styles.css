@@ -154,6 +154,13 @@ p { line-height: 1.45; }
   color: inherit;
 }
 .round-row:active { background: #f4f1e8; }
+/* A competitive round earns a rail down its leading edge. Enough to pick out while scrolling
+   past, quiet enough that it does not fight the putter tag for attention. */
+.round-row.comp {
+  border-color: rgba(20, 57, 43, 0.28);
+  box-shadow: inset 3px 0 0 var(--ink);
+  padding-left: 17px;
+}
 .round-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .round-date { font-weight: 700; font-size: 16px; white-space: nowrap; }
 .tag {

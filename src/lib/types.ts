@@ -56,10 +56,10 @@ export interface Round {
   greens?: number;
   recordedPutts?: number;
   /**
-   * Played in competition. Kept per round rather than as a setting, because it is a fact about
-   * the round and the whole point is comparing these against the casual ones later.
-   */
-  tournament?: boolean;
+    * Played in competition. Kept per round rather than as a setting, because it is a fact about
+    * the round and the whole point is comparing these against the casual ones later.
+    */
+  competitive?: boolean;
   /** Named nines, for courses with more than eighteen holes. First is holes 1-9. */
   firstNine?: string;
   secondNine?: string;
@@ -118,7 +118,7 @@ export interface AppState {
   tombstones: Tombstone[];
   /** When the baseline and saved courses last changed. */
   settingsUpdated?: string;
-  /** Hides the running score and the bleed drop while playing, for tournament rounds. */
+  /** Hides the running score and the bleed drop while playing, for competitive rounds. */
   quietTrack?: boolean;
 }
 

@@ -18,8 +18,8 @@ export function Settings() {
   const [pCourse, setPCourse] = useState('');
   const [pPutter, setPPutter] = useState(state.putters.find((p) => p.active)?.id ?? '');
   const [pHoles, setPHoles] = useState(18);
-  // A pasted round almost always came out of DECADE, and DECADE is where the tournaments live.
-  const [pTourney, setPTourney] = useState(true);
+  // A pasted round almost always came out of DECADE, and DECADE is where the competitive play lives.
+  const [pComp, setPComp] = useState(true);
   const [paste, setPaste] = useState('');
   const [pScore, setPScore] = useState('');
   const [pCard, setPCard] = useState('');
@@ -90,7 +90,7 @@ export function Settings() {
       round: {
         ...round,
         holes: holes.length ? holes : blankHoles(pHoles),
-        tournament: pTourney || undefined,
+        competitive: pComp || undefined,
         score: pScore ? Number(pScore) : undefined,
         recordedPutts: pCard ? Number(pCard) : undefined,
         finished: true,
@@ -204,7 +204,7 @@ export function Settings() {
           </button>
         </div>
         <p className="small muted" style={{ margin: '8px 0 0' }}>
-          For tournament rounds. Putts still log exactly the same and every stat is still worked out
+          For competitive rounds. Putts still log exactly the same and every stat is still worked out
           afterwards, you just do not see the running score or the drop while you are out there.
         </p>
       </div>
@@ -290,8 +290,8 @@ export function Settings() {
       <div className="field-label">Playing</div>
       <div className="seg">
         {[false, true].map((t) => (
-          <button key={String(t)} type="button" aria-pressed={pTourney === t} onClick={() => setPTourney(t)}>
-            {t ? 'Tournament' : 'Casual'}
+          <button key={String(t)} type="button" aria-pressed={pComp === t} onClick={() => setPComp(t)}>
+            {t ? 'Competitive' : 'Casual'}
           </button>
         ))}
       </div>

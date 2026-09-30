@@ -38,7 +38,7 @@ export function Rounds() {
   const [choice, setChoice] = useState<CourseChoice>({ name: '' });
   const [half, setHalf] = useState<'front' | 'back'>('front');
   const [holeCount, setHoleCount] = useState(18);
-  const [tournament, setTournament] = useState(false);
+  const [competitive, setCompetitive] = useState(false);
   const [putterId, setPutterId] = useState(usable.find((p) => p.active)?.id ?? usable[0]?.id ?? '');
   const [newPutter, setNewPutter] = useState('');
 
@@ -75,7 +75,7 @@ export function Rounds() {
         }),
         courseId: choice.courseId,
         tee: choice.tee,
-        tournament: tournament || undefined,
+        competitive: competitive || undefined,
         firstNine: nineNames.first.trim() || undefined,
         secondNine: nineNames.second.trim() || undefined,
       },
@@ -137,7 +137,11 @@ export function Rounds() {
       )}
 
       {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s }) => (
-        <button key={r.id} className="round-row" onClick={() => go(`/round/${r.id}`)}>
+        <button
+            key={r.id}
+            className={r.competitive ? 'round-row comp' : 'round-row'}
+            onClick={() => go(`/round/${r.id}`)}
+          >
           <div className="round-head">
             <span className="round-date">{fmtDate(r.date)}</span>
             <PutterTag putterId={r.putterId} />
@@ -196,10 +200,10 @@ export function Rounds() {
               <button
                 key={String(t)}
                 type="button"
-                aria-pressed={tournament === t}
-                onClick={() => setTournament(t)}
+                aria-pressed={competitive === t}
+                onClick={() => setCompetitive(t)}
               >
-                {t ? 'Tournament' : 'Casual'}
+                {t ? 'Competitive' : 'Casual'}
               </button>
             ))}
           </div>
