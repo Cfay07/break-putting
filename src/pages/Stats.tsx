@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { bleedSummary } from '../lib/bleed';
+import { fitMakeModel } from '../lib/makeability';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
+import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { Trend } from '../components/Trend';
 import { fmtDate, pctText, signed } from '../lib/format';
@@ -76,6 +78,7 @@ export function Stats() {
     () => rounds.filter((r) => r.holes.some((h) => h.putts.some((p) => p.missSide))).length,
     [rounds],
   );
+  const makeModel = useMemo(() => fitMakeModel(rounds), [rounds]);
   const courses = useMemo(() => byCourse(rounds, state.baseline), [rounds, state.baseline]);
   const bleed = useMemo(() => bleedSummary(rounds), [rounds]);
   const green = useMemo(() => splitByGreen(rounds), [rounds]);
@@ -421,6 +424,9 @@ export function Stats() {
               </div>
             </>
           )}
+
+          <h2>What the app has learned about you</h2>
+          <LearnedPanel model={makeModel} />
 
           <h2>Miss patterns</h2>
           <PatternPanel stats={o.pooled} taggedRounds={taggedRounds} />
