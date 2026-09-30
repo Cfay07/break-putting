@@ -55,6 +55,11 @@ export interface Round {
   score?: number;
   greens?: number;
   recordedPutts?: number;
+  /**
+   * Played in competition. Kept per round rather than as a setting, because it is a fact about
+   * the round and the whole point is comparing these against the casual ones later.
+   */
+  tournament?: boolean;
   /** Named nines, for courses with more than eighteen holes. First is holes 1-9. */
   firstNine?: string;
   secondNine?: string;

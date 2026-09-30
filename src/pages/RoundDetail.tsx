@@ -88,6 +88,17 @@ export function RoundDetail({ id }: { id: string }) {
             .join(' · ')}
         </p>
       )}
+      <div className="chips" style={{ marginTop: 8 }}>
+        <button
+          className={round.tournament ? 'chip chip-sel' : 'chip'}
+          aria-pressed={!!round.tournament}
+          onClick={() =>
+            dispatch({ t: 'updateRound', id: round.id, patch: { tournament: !round.tournament } })
+          }
+        >
+          {round.tournament ? 'Tournament' : 'Casual'}
+        </button>
+      </div>
       <div className="btn-row" style={{ marginTop: 10 }}>
         <button className="btn btn-ghost" onClick={() => setEditing(true)}>
           Edit round

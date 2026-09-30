@@ -38,6 +38,7 @@ export function Rounds() {
   const [choice, setChoice] = useState<CourseChoice>({ name: '' });
   const [half, setHalf] = useState<'front' | 'back'>('front');
   const [holeCount, setHoleCount] = useState(18);
+  const [tournament, setTournament] = useState(false);
   const [putterId, setPutterId] = useState(usable.find((p) => p.active)?.id ?? usable[0]?.id ?? '');
   const [newPutter, setNewPutter] = useState('');
 
@@ -74,6 +75,7 @@ export function Rounds() {
         }),
         courseId: choice.courseId,
         tee: choice.tee,
+        tournament: tournament || undefined,
         firstNine: nineNames.first.trim() || undefined,
         secondNine: nineNames.second.trim() || undefined,
       },
@@ -184,6 +186,20 @@ export function Rounds() {
             {[18, 9].map((n) => (
               <button key={n} type="button" aria-pressed={holeCount === n} onClick={() => setHoleCount(n)}>
                 {n}
+              </button>
+            ))}
+          </div>
+
+          <div className="field-label">Playing</div>
+          <div className="seg">
+            {[false, true].map((t) => (
+              <button
+                key={String(t)}
+                type="button"
+                aria-pressed={tournament === t}
+                onClick={() => setTournament(t)}
+              >
+                {t ? 'Tournament' : 'Casual'}
               </button>
             ))}
           </div>

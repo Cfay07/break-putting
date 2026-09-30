@@ -41,16 +41,33 @@ function sideFromStats(label: string, s: S, scale = 1): Side {
   };
 }
 
+const SCOPES = ['all', 'tournament', 'casual'] as const;
+type Scope = (typeof SCOPES)[number];
+const SCOPE_LABELS: Record<Scope, string> = {
+  all: 'All',
+  tournament: 'Tournament',
+  casual: 'Casual',
+};
+
 export function Stats() {
   const { state } = useApp();
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState(AVG);
 
-  const rounds = useMemo(
-    () =>
-      state.rounds
-        .filter((r) => r.finished)
-        .sort((a, b) => a.date.localeCompare(b.date)),
+  const [scope, setScope] = useState<Scope>('all');
+
+  const rounds = useMemo(() => {
+    const finished = state.rounds.filter((r) => r.finished);
+    const picked =
+      scope === 'all'
+        ? finished
+        : finished.filter((r) => !!r.tournament === (scope === 'tournament'));
+    return [...picked].sort((a, b) => a.date.localeCompare(b.date));
+  }, [state.rounds, scope]);
+
+  // No point offering the split until a round has actually been marked as one.
+  const hasTournament = useMemo(
+    () => state.rounds.some((r) => r.finished && r.tournament),
     [state.rounds],
   );
 
@@ -131,6 +148,15 @@ export function Stats() {
 
   return (
     <>
+      {hasTournament && (
+        <div className="seg seg-quiet" style={{ marginBottom: 12 }}>
+          {SCOPES.map((sc) => (
+            <button key={sc} type="button" aria-pressed={scope === sc} onClick={() => setScope(sc)}>
+              {SCOPE_LABELS[sc]}
+            </button>
+          ))}
+        </div>
+      )}
       {o.rounds === 0 ? (
         <div className="empty">
           <p style={{ margin: 0 }}>No rounds match those filters.</p>

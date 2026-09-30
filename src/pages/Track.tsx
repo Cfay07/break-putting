@@ -72,7 +72,8 @@ export function Track() {
   const runningScore = scored.reduce((sum, h) => sum + (holeVsPar(h) ?? 0), 0);
   const totalStrokes = round.holes.reduce((sum, h) => sum + (h.strokes ?? 0), 0);
   const bleed = liveBleed(round);
-  const quiet = state.quietTrack ?? false;
+  // Tournament rounds hide the score and the bleed drop without anyone remembering a setting.
+  const quiet = (state.quietTrack ?? false) || !!round.tournament;
   const d = Number(track.distanceInput);
   const canSubmit = track.distanceInput !== '' && d >= 1;
   const draft = track.draft ?? {};

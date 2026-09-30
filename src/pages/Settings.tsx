@@ -18,6 +18,8 @@ export function Settings() {
   const [pCourse, setPCourse] = useState('');
   const [pPutter, setPPutter] = useState(state.putters.find((p) => p.active)?.id ?? '');
   const [pHoles, setPHoles] = useState(18);
+  // A pasted round almost always came out of DECADE, and DECADE is where the tournaments live.
+  const [pTourney, setPTourney] = useState(true);
   const [paste, setPaste] = useState('');
   const [pScore, setPScore] = useState('');
   const [pCard, setPCard] = useState('');
@@ -88,6 +90,7 @@ export function Settings() {
       round: {
         ...round,
         holes: holes.length ? holes : blankHoles(pHoles),
+        tournament: pTourney || undefined,
         score: pScore ? Number(pScore) : undefined,
         recordedPutts: pCard ? Number(pCard) : undefined,
         finished: true,
@@ -283,6 +286,14 @@ export function Settings() {
             ))}
           </div>
         </div>
+      </div>
+      <div className="field-label">Playing</div>
+      <div className="seg">
+        {[false, true].map((t) => (
+          <button key={String(t)} type="button" aria-pressed={pTourney === t} onClick={() => setPTourney(t)}>
+            {t ? 'Tournament' : 'Casual'}
+          </button>
+        ))}
       </div>
       <div className="field-label">Course</div>
       <input type="text" value={pCourse} onChange={(e) => setPCourse(e.target.value)} placeholder="Optional" />
