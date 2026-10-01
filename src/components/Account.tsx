@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { currentSession, online, signIn, signOut, signUp } from '../lib/cloud';
+import {
+  currentSession,
+  online,
+  pendingRecovery,
+  requestReset,
+  setNewPassword,
+  signIn,
+  signOut,
+  signUp,
+} from '../lib/cloud';
 import { lastSyncedAt, resetSyncClock, sync } from '../lib/sync';
 import { claimStored, emptyState, storedOwner } from '../lib/storage';
 import { useApp } from '../lib/store';
@@ -23,6 +32,43 @@ export function Account() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
+  const recovery = pendingRecovery();
+  const [fresh, setFresh] = useState('');
+
+  const sendReset = async () => {
+    if (!email.trim()) {
+      setNote('Put your email in first and I will send a link to it.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await requestReset(email.trim());
+      setNote(`Sent a reset link to ${email.trim()}. Open it on this device and it drops you straight back here.`);
+    } catch (e) {
+      setNote((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveNewPassword = async () => {
+    if (fresh.length < 6) {
+      setNote('Use at least six characters.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const s = await setNewPassword(recovery!, fresh);
+      setSession(s);
+      claimStored(s.userId);
+      setFresh('');
+      setNote('Password changed and you are signed in.');
+    } catch (e) {
+      setNote((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const enter = async (mode: 'in' | 'up') => {
     if (!email.trim() || password.length < 6) {
@@ -113,6 +159,32 @@ export function Account() {
     );
   }
 
+  if (recovery) {
+    return (
+      <>
+        <p className="small muted">
+          You came in from a reset link. Pick a new password and you will be signed in with it.
+        </p>
+        <div className="field-label">New password</div>
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={fresh}
+          onChange={(e) => setFresh(e.target.value)}
+        />
+        <button
+          className="btn btn-primary btn-wide"
+          style={{ marginTop: 12 }}
+          disabled={busy || fresh.length < 6}
+          onClick={saveNewPassword}
+        >
+          Save password
+        </button>
+        {note && <p className="small muted">{note}</p>}
+      </>
+    );
+  }
+
   return (
     <>
       <p className="small muted">
@@ -148,6 +220,9 @@ export function Account() {
           Create account
         </button>
       </div>
+      <button className="linkish tiny" style={{ marginTop: 10 }} disabled={busy} onClick={sendReset}>
+        Forgot your password?
+      </button>
       {note && <p className="small muted">{note}</p>}
     </>
   );

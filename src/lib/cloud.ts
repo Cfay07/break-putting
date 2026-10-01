@@ -84,6 +84,71 @@ export async function signIn(email: string, password: string): Promise<Session> 
   return s;
 }
 
+/**
+ * Supabase sends the recovery link back to this app with its token in the URL hash, which is
+ * also where the router keeps the route. Captured once at module load and cleared immediately,
+ * so the router never sees it and a refresh cannot replay a stale token.
+ */
+function grabRecoveryToken(): string | null {
+  const raw = window.location.hash.slice(1);
+  if (!raw.includes('access_token=')) return null;
+  const params = new URLSearchParams(raw);
+  const token = params.get('access_token');
+  const kind = params.get('type');
+  history.replaceState(null, '', window.location.pathname + window.location.search + '#/settings');
+  return kind === 'recovery' && token ? token : null;
+}
+
+const recoveryToken = typeof window === 'undefined' ? null : grabRecoveryToken();
+
+export function pendingRecovery(): string | null {
+  return recoveryToken;
+}
+
+/** Ask Supabase to email a reset link back to this app. */
+export async function requestReset(email: string): Promise<void> {
+  const redirect = `${window.location.origin}${window.location.pathname}`;
+  const res = await fetch(
+    `${URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirect)}`,
+    {
+      method: 'POST',
+      headers: { apikey: ANON, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    },
+  );
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as TokenResponse | null;
+    throw new Error(data?.msg || data?.message || `Could not send the email (${res.status}).`);
+  }
+}
+
+/** Set a new password using the token from the emailed link. */
+export async function setNewPassword(token: string, password: string): Promise<Session> {
+  const res = await fetch(`${URL}/auth/v1/user`, {
+    method: 'PUT',
+    headers: {
+      apikey: ANON,
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ password }),
+  });
+  const data = (await res.json()) as TokenResponse & { id?: string; email?: string };
+  if (!res.ok) {
+    throw new Error(data.msg || data.message || `Could not set the password (${res.status}).`);
+  }
+  // The recovery token is already a session; keep it so the reset lands you signed in.
+  const s: Session = {
+    accessToken: token,
+    refreshToken: '',
+    expiresAt: Date.now() + 3600 * 1000,
+    email: data.email ?? '',
+    userId: data.id ?? '',
+  };
+  keepSession(s);
+  return s;
+}
+
 export function signOut(): void {
   keepSession(null);
 }
