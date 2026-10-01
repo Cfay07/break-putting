@@ -59,7 +59,9 @@ async function rows<T>(path: string): Promise<T[]> {
 
 export async function loadTeams(): Promise<TeamView> {
   if (!currentSession() || !online()) return { teams: [], members: [], stats: [] };
-  const teams = await rows<Team>('teams?select=id,name,join_code,owner_id,theme');
+  const teams = await rows<Team>(
+    'teams?select=id,name,join_code,owner_id,theme&order=created_at.asc',
+  );
   if (!teams.length) return { teams: [], members: [], stats: [] };
   const [members, stats] = await Promise.all([
     rows<Member>('team_members?select=team_id,user_id,display_name,role'),

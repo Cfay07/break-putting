@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Sheet } from '../components/Sheet';
 import { currentSession } from '../lib/cloud';
+import { fmtDate } from '../lib/format';
 import {
   createTeam,
   joinTeam,
@@ -22,9 +23,9 @@ const EMPTY: TeamView = { teams: [], members: [], stats: [] };
  * app knows, so they are the ones worth competing on.
  */
 const BOARDS = [
+  { key: 'sg_pr', label: 'Strokes gained', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2)) },
   { key: 'make6', label: 'Six-footers', fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
   { key: 'bleed_recovery', label: 'Bounce back', fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
-  { key: 'sg_pr', label: 'Strokes gained', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2)) },
 ] as const;
 
 type BoardKey = (typeof BOARDS)[number]['key'];
@@ -33,6 +34,9 @@ const NEW_TEAM = '__new';
 
 /** Matches the cap enforced inside join_team. The database is the one that actually holds it. */
 const MAX_PLAYERS = 50;
+
+/** Matches the cap in create_team and join_team. */
+const MAX_TEAMS = 5;
 
 /** "conor.fayard" is not a name. Turn the email local-part into something presentable. */
 function nameFromEmail(email: string): string {
@@ -78,7 +82,7 @@ function PlayerPanel({
         ['Strokes gained', stats.sg_pr !== null ? stats.sg_pr.toFixed(2) : '--'],
         ['Six-footers', stats.make6 !== null ? `${(stats.make6 * 100).toFixed(0)}%` : '--'],
         ['Bounce back', stats.bleed_recovery !== null ? `${(stats.bleed_recovery * 100).toFixed(0)}%` : '--'],
-        ['Last round', stats.last_round ?? '--'],
+        ['Last round', stats.last_round ? fmtDate(stats.last_round) : '--'],
       ]
     : [];
 
@@ -128,7 +132,7 @@ export function Team() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [pick, setPick] = useState('');
-  const [board, setBoard] = useState<BoardKey>('make6');
+  const [board, setBoard] = useState<BoardKey>('sg_pr');
   const [open, setOpen] = useState<string | null>(null);
   const [sheet, setSheet] = useState<'manage' | 'add' | null>(null);
   const [code, setCode] = useState('');
@@ -166,6 +170,12 @@ export function Team() {
     () => view.members.find((m) => m.team_id === team?.id && m.user_id === session?.userId),
     [view.members, team?.id, session?.userId],
   );
+
+  // Pin the selection once a team resolves. Leaving `pick` empty meant the page always showed
+  // whatever the server listed first, which is not stable across writes.
+  useEffect(() => {
+    if (team && !pick) setPick(team.id);
+  }, [team, pick]);
 
   // Switching teams drops any half-finished edit. Otherwise the draft name and colour from the
   // team you were looking at carry over and get saved onto the team you switched to.
@@ -282,8 +292,8 @@ export function Team() {
         </button>
       </div>
       <p className="small muted" style={{ marginTop: 10 }}>
-        Teams are private and hold up to {MAX_PLAYERS}. The code is the only way in, and you can
-        be on as many teams as you like.
+        Teams are private and hold up to {MAX_PLAYERS} players. The code is the only way in, and
+        you can be on {MAX_TEAMS} teams at once.
       </p>
     </>
   );
@@ -324,12 +334,14 @@ export function Team() {
                   {t.name}
                 </option>
               ))}
-              <option value={NEW_TEAM}>Join or start a team…</option>
+              {view.teams.length < MAX_TEAMS && (
+                <option value={NEW_TEAM}>Join or start a team…</option>
+              )}
             </select>
           </div>
           <p className="small muted" style={{ margin: 0 }}>
             {team.theme?.label ? `${team.theme.label} · ` : ''}
-            {roster.length} of {MAX_PLAYERS} players
+            {roster.length} {roster.length === 1 ? 'player' : 'players'}
           </p>
         </div>
         <button className="icon-btn" onClick={() => setSheet('manage')} aria-label="Team options">

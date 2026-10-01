@@ -680,3 +680,31 @@ select.pick {
   border-radius: 50%;
   background: var(--team, var(--accent));
 }
+
+/* This is a phone app. In a desktop window a 480px strip the same colour as the page reads as a
+   stranded column, and the fixed nav spans the whole window under it. Give the column edges and
+   keep the chrome inside them, so a browser shows an app and not a broken web page. */
+@media (min-width: 760px) {
+  body { background: #e7e3d7; }
+  .app {
+    background: var(--paper);
+    border: 1px solid rgba(20, 57, 43, 0.16);
+    border-radius: 18px;
+    min-height: calc(100vh - 48px);
+    margin: 24px auto;
+    padding-bottom: 88px;
+  }
+  .nav {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    bottom: 24px;
+    width: 480px;
+    border: 1px solid rgba(20, 57, 43, 0.16);
+    border-top-color: var(--line);
+    border-radius: 0 0 18px 18px;
+  }
+  /* A bottom sheet is a phone idiom. On a desktop window it belongs in the middle. */
+  .sheet-backdrop { align-items: center; }
+  .sheet { border-radius: 14px; max-height: 80vh; }
+}
