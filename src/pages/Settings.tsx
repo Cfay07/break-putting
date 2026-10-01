@@ -6,8 +6,9 @@ import { parsePaste } from '../lib/importer';
 import { fmtDate, today } from '../lib/format';
 import { go } from '../lib/router';
 import { newId } from '../lib/storage';
+import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { blankHoles, makeRound, useApp } from '../lib/store';
-import { DEFAULT_BASELINE, type AppState } from '../lib/types';
+import { DEFAULT_BASELINE, type AppState, type GreenSpeed } from '../lib/types';
 
 export function Settings() {
   const { state, dispatch } = useApp();
@@ -20,6 +21,7 @@ export function Settings() {
   const [pHoles, setPHoles] = useState(18);
   // A pasted round almost always came out of DECADE, and DECADE is where the competitive play lives.
   const [pComp, setPComp] = useState(true);
+  const [pGreens, setPGreens] = useState<GreenSpeed | undefined>();
   const [paste, setPaste] = useState('');
   const [pScore, setPScore] = useState('');
   const [pCard, setPCard] = useState('');
@@ -91,6 +93,7 @@ export function Settings() {
         ...round,
         holes: holes.length ? holes : blankHoles(pHoles),
         competitive: pComp || undefined,
+        greenSpeed: pGreens,
         score: pScore ? Number(pScore) : undefined,
         recordedPutts: pCard ? Number(pCard) : undefined,
         finished: true,
@@ -287,6 +290,8 @@ export function Settings() {
           </div>
         </div>
       </div>
+      <div className="field-label">Greens, by stimp</div>
+      <GreenSpeedPick value={pGreens} onPick={setPGreens} />
       <div className="field-label">Playing</div>
       <div className="seg">
         {[false, true].map((t) => (

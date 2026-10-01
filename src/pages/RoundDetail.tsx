@@ -8,6 +8,7 @@ import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { PutterTag } from '../components/PutterTag';
+import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { MissGrid } from '../components/MissGrid';
 import { SegMulti } from '../components/SegMulti';
 import { Sheet } from '../components/Sheet';
@@ -82,6 +83,12 @@ export function RoundDetail({ id }: { id: string }) {
             .join(' · ')}
         </p>
       )}
+      <div className="field-label">Greens, by stimp</div>
+      <GreenSpeedPick
+        value={round.greenSpeed}
+        onPick={(greenSpeed) => dispatch({ t: 'updateRound', id: round.id, patch: { greenSpeed } })}
+      />
+
       <div className="chips" style={{ marginTop: 8 }}>
         <button
           className={round.competitive ? 'chip chip-sel' : 'chip'}

@@ -2,6 +2,26 @@ export type MissSide = 'high' | 'low' | 'online';
 export type Speed = 'short' | 'good' | 'long';
 export type BreakDir = 'L→R' | 'R→L' | 'straight' | 'uphill' | 'downhill';
 
+export const GREEN_SPEEDS = ['slow', 'medium', 'fast', 'glass'] as const;
+export type GreenSpeed = (typeof GREEN_SPEEDS)[number];
+
+/**
+ * Stimp bands, so the pick means the same thing to everyone. A six-footer on 13 is not the
+ * putt a six-footer on 9 is, and pooling them hides it.
+ */
+export const GREEN_SPEED_LABELS: Record<GreenSpeed, string> = {
+  slow: 'Slow',
+  medium: 'Medium',
+  fast: 'Fast',
+  glass: 'Glass',
+};
+export const GREEN_SPEED_STIMP: Record<GreenSpeed, string> = {
+  slow: '8-9',
+  medium: '9-11',
+  fast: '11-13',
+  glass: '13+',
+};
+
 export interface Putt {
   d: number;
   made: boolean;
@@ -60,6 +80,8 @@ export interface Round {
     * the round and the whole point is comparing these against the casual ones later.
     */
   competitive?: boolean;
+  /** How the greens were rolling. One pick for the round, taken before the first hole. */
+  greenSpeed?: GreenSpeed;
   /** Named nines, for courses with more than eighteen holes. First is holes 1-9. */
   firstNine?: string;
   secondNine?: string;

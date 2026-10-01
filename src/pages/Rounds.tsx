@@ -5,8 +5,10 @@ import { PutterTag } from '../components/PutterTag';
 import { Sheet } from '../components/Sheet';
 import { fmtDate, signed, today } from '../lib/format';
 import { go } from '../lib/router';
+import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { currentSession } from '../lib/cloud';
 import { courseLabel, roundScale, roundStats } from '../lib/stats';
+import type { GreenSpeed } from '../lib/types';
 import { newId } from '../lib/storage';
 import { liveRound, makeRound, useApp } from '../lib/store';
 
@@ -40,6 +42,7 @@ export function Rounds() {
   const [half, setHalf] = useState<'front' | 'back'>('front');
   const [holeCount, setHoleCount] = useState(18);
   const [competitive, setCompetitive] = useState(false);
+  const [greenSpeed, setGreenSpeed] = useState<GreenSpeed | undefined>();
   const [putterId, setPutterId] = useState(usable.find((p) => p.active)?.id ?? usable[0]?.id ?? '');
   const [newPutter, setNewPutter] = useState('');
 
@@ -77,6 +80,7 @@ export function Rounds() {
         courseId: choice.courseId,
         tee: choice.tee,
         competitive: competitive || undefined,
+        greenSpeed,
         firstNine: nineNames.first.trim() || undefined,
         secondNine: nineNames.second.trim() || undefined,
       },
@@ -213,6 +217,9 @@ export function Rounds() {
               </button>
             ))}
           </div>
+
+          <div className="field-label">Greens, by stimp</div>
+          <GreenSpeedPick value={greenSpeed} onPick={setGreenSpeed} />
 
           <div className="field-label">Playing</div>
           <div className="seg">
