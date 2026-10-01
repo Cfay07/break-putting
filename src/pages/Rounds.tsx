@@ -136,6 +136,7 @@ export function Rounds() {
         </div>
       )}
 
+      <div className="round-list">
       {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s }) => (
         <button
             key={r.id}
@@ -171,6 +172,7 @@ export function Rounds() {
           </div>
         </button>
       ))}
+      </div>
 
       {finished.length > 20 && !showAll && (
         <button className="btn btn-ghost btn-wide" onClick={() => setShowAll(true)}>

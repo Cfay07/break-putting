@@ -30,8 +30,6 @@ const BOARDS = [
 
 type BoardKey = (typeof BOARDS)[number]['key'];
 
-const NEW_TEAM = '__new';
-
 /** Matches the cap enforced inside join_team. The database is the one that actually holds it. */
 const MAX_PLAYERS = 50;
 
@@ -134,7 +132,7 @@ export function Team() {
   const [pick, setPick] = useState('');
   const [board, setBoard] = useState<BoardKey>('sg_pr');
   const [open, setOpen] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<'manage' | 'add' | null>(null);
+  const [sheet, setSheet] = useState<'manage' | 'add' | 'teams' | 'board' | null>(null);
   const [code, setCode] = useState('');
   const [newName, setNewName] = useState('');
   const [copied, setCopied] = useState(false);
@@ -319,26 +317,9 @@ export function Team() {
       <div className="team-head">
         <Crest name={team.name} accent={accent} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="team-switch">
+          <button className="team-switch" onClick={() => setSheet('teams')}>
             <h2>{team.name}</h2>
-            <select
-              value={team.id}
-              aria-label="Switch team"
-              onChange={(e) => {
-                if (e.target.value === NEW_TEAM) setSheet('add');
-                else setPick(e.target.value);
-              }}
-            >
-              {view.teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-              {view.teams.length < MAX_TEAMS && (
-                <option value={NEW_TEAM}>Join or start a team…</option>
-              )}
-            </select>
-          </div>
+          </button>
           <p className="small muted" style={{ margin: 0 }}>
             {team.theme?.label ? `${team.theme.label} · ` : ''}
             {roster.length} {roster.length === 1 ? 'player' : 'players'}
@@ -356,18 +337,9 @@ export function Team() {
         <span className="field-label" style={{ margin: 0 }}>
           Leaderboard
         </span>
-        <select
-          className="pick"
-          value={board}
-          onChange={(e) => setBoard(e.target.value as BoardKey)}
-          aria-label="Rank by"
-        >
-          {BOARDS.map((b) => (
-            <option key={b.key} value={b.key}>
-              {b.label}
-            </option>
-          ))}
-        </select>
+        <button className="pick" onClick={() => setSheet('board')}>
+          {BOARDS.find((b) => b.key === board)!.label}
+        </button>
       </div>
 
       <div className="board">
@@ -395,6 +367,55 @@ export function Team() {
         Everyone scored against your baseline, so it is like for like. Tap a player for their full
         numbers.
       </p>
+
+      {sheet === 'teams' && (
+        <Sheet title="Your teams" onClose={() => setSheet(null)}>
+          <div className="menu">
+            {view.teams.map((t) => (
+              <button
+                key={t.id}
+                aria-current={t.id === team.id}
+                onClick={() => {
+                  setPick(t.id);
+                  setSheet(null);
+                }}
+              >
+                <span className="menu-row">
+                  <Crest name={t.name} accent={t.theme?.accent || '#14392b'} />
+                  {t.name}
+                </span>
+              </button>
+            ))}
+            {view.teams.length < MAX_TEAMS && (
+              <>
+                <div className="menu-sep" />
+                <button onClick={() => setSheet('add')}>
+                  <span className="menu-row">Join or start a team</span>
+                </button>
+              </>
+            )}
+          </div>
+        </Sheet>
+      )}
+
+      {sheet === 'board' && (
+        <Sheet title="Rank by" onClose={() => setSheet(null)}>
+          <div className="menu">
+            {BOARDS.map((b) => (
+              <button
+                key={b.key}
+                aria-current={b.key === board}
+                onClick={() => {
+                  setBoard(b.key);
+                  setSheet(null);
+                }}
+              >
+                <span className="menu-row">{b.label}</span>
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      )}
 
       {sheet === 'add' && (
         <Sheet title="Teams" onClose={() => setSheet(null)}>

@@ -106,7 +106,7 @@ export default function App() {
         <h1 className="wordmark">BREAK!</h1>
         <span className="sub">{sub}</span>
       </div>
-      {page}
+      <main className="main">{page}</main>
       <nav className="nav">
         {tabsFor(!!live, route).map((t) => {
           const on = t.path === '/' ? route === '/' || route.startsWith('/round/') : route === t.path;
