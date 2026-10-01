@@ -44,13 +44,20 @@ function sideFromStats(label: string, s: S, scale = 1): Side {
   };
 }
 
-const SCOPES = ['all', 'competitive', 'casual'] as const;
+/** One picker, two dimensions. They are mutually exclusive views, so a second control would
+ *  be more chrome for no more reach. */
+const SCOPES = ['all', 'competitive', 'casual', 'slow', 'medium', 'fast', 'glass'] as const;
 type Scope = (typeof SCOPES)[number];
 const SCOPE_LABELS: Record<Scope, string> = {
-  all: 'All',
+  all: 'All rounds',
   competitive: 'Competitive',
   casual: 'Casual',
+  slow: 'Slow greens',
+  medium: 'Medium greens',
+  fast: 'Fast greens',
+  glass: 'Glass greens',
 };
+const GREEN_SCOPES: Scope[] = ['slow', 'medium', 'fast', 'glass'];
 
 export function Stats() {
   const { state } = useApp();
@@ -65,14 +72,22 @@ export function Stats() {
     const picked =
       scope === 'all'
         ? finished
-        : finished.filter((r) => !!r.competitive === (scope === 'competitive'));
+        : scope === 'competitive' || scope === 'casual'
+          ? finished.filter((r) => !!r.competitive === (scope === 'competitive'))
+          : finished.filter((r) => r.greenSpeed === scope);
     return [...picked].sort((a, b) => a.date.localeCompare(b.date));
   }, [state.rounds, scope]);
 
-  const competitiveCount = useMemo(
-    () => state.rounds.filter((r) => r.finished && r.competitive).length,
-    [state.rounds],
-  );
+  // Only offer a green speed you have actually played, so the list is never full of dead ends.
+  const perScope = useMemo(() => {
+    const done = state.rounds.filter((r) => r.finished);
+    const n = {} as Record<Scope, number>;
+    n.all = done.length;
+    n.competitive = done.filter((r) => r.competitive).length;
+    n.casual = done.length - n.competitive;
+    for (const g of GREEN_SCOPES) n[g] = done.filter((r) => r.greenSpeed === g).length;
+    return n;
+  }, [state.rounds]);
 
   const o = useMemo(() => overall(rounds, state.baseline), [rounds, state.baseline]);
   const taggedRounds = useMemo(
@@ -167,7 +182,7 @@ export function Stats() {
       {scopeSheet && (
         <Sheet title="Showing" onClose={() => setScopeSheet(false)}>
           <div className="menu">
-            {SCOPES.map((sc) => (
+            {SCOPES.filter((sc) => !GREEN_SCOPES.includes(sc) || perScope[sc] > 0).map((sc) => (
               <button
                 key={sc}
                 aria-current={sc === scope}
@@ -177,13 +192,13 @@ export function Stats() {
                 }}
               >
                 <span className="menu-row">{SCOPE_LABELS[sc]}</span>
+                <span className="small muted">{perScope[sc]}</span>
               </button>
             ))}
           </div>
           <p className="small muted" style={{ marginTop: 10 }}>
-            {competitiveCount
-              ? `${competitiveCount} of your rounds are marked competitive.`
-              : 'No rounds marked competitive yet. Open a round and tap the Casual chip to flip it.'}
+            Green speed is set on the new round sheet and can be fixed afterwards on the round
+            page. Rounds without one do not appear under a green speed.
           </p>
         </Sheet>
       )}
@@ -192,7 +207,9 @@ export function Stats() {
           <p style={{ margin: 0 }}>
             {scope === 'competitive'
               ? 'No rounds marked competitive yet. Open a round and tap the Casual chip under the course name to flip it.'
-              : 'No casual rounds. Every round you have logged is marked competitive.'}
+              : scope === 'casual'
+                ? 'No casual rounds. Every round you have logged is marked competitive.'
+                : `No rounds on ${SCOPE_LABELS[scope].toLowerCase()} yet.`}
           </p>
         </div>
       ) : (

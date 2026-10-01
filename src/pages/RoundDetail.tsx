@@ -10,6 +10,7 @@ import { PatternPanel } from '../components/PatternPanel';
 import { PutterTag } from '../components/PutterTag';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { MissGrid } from '../components/MissGrid';
+import { SpeedBars } from '../components/SpeedBars';
 import { SegMulti } from '../components/SegMulti';
 import { Sheet } from '../components/Sheet';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
@@ -34,6 +35,7 @@ export function RoundDetail({ id }: { id: string }) {
   const round = state.rounds.find((r) => r.id === id);
   const [editHole, setEditHole] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
+  const [speedSheet, setSpeedSheet] = useState(false);
 
   if (!round) {
     return (
@@ -83,13 +85,10 @@ export function RoundDetail({ id }: { id: string }) {
             .join(' · ')}
         </p>
       )}
-      <div className="field-label">Greens, by stimp</div>
-      <GreenSpeedPick
-        value={round.greenSpeed}
-        onPick={(greenSpeed) => dispatch({ t: 'updateRound', id: round.id, patch: { greenSpeed } })}
-      />
-
       <div className="chips" style={{ marginTop: 8 }}>
+        <button className="chip" onClick={() => setSpeedSheet(true)}>
+          {round.greenSpeed ? <SpeedBars speed={round.greenSpeed} label /> : 'Set green speed'}
+        </button>
         <button
           className={round.competitive ? 'chip chip-sel' : 'chip'}
           aria-pressed={!!round.competitive}
@@ -114,6 +113,22 @@ export function RoundDetail({ id }: { id: string }) {
           }}
         />
       </div>
+
+      {speedSheet && (
+        <Sheet title="Greens, by stimp" onClose={() => setSpeedSheet(false)}>
+          <GreenSpeedPick
+            value={round.greenSpeed}
+            onPick={(greenSpeed) => {
+              dispatch({ t: 'updateRound', id: round.id, patch: { greenSpeed } });
+              setSpeedSheet(false);
+            }}
+          />
+          <p className="small muted" style={{ marginTop: 10 }}>
+            How the greens rolled that day. Stats can be split by this, so a fast-green round is
+            not averaged in with a slow one.
+          </p>
+        </Sheet>
+      )}
 
       <h2>The numbers</h2>
       <div className="card">

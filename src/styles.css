@@ -807,3 +807,24 @@ button.pick:active { background-color: #f4f1e8; }
 .gs-name { font-size: 13px; font-weight: 600; }
 .gs-stimp { font-size: 11px; color: var(--ink-3); }
 .gs-pick > button[aria-pressed='true'] .gs-stimp { color: rgba(247, 245, 238, 0.7); }
+
+/* Green speed meter. Four bars, filled to the band, no colour of its own. */
+.speed { display: inline-flex; align-items: center; gap: 6px; }
+.speed-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 13px; }
+.speed-bars > i { width: 3px; border-radius: 1px; background: rgba(20, 57, 43, 0.18); }
+.speed-bars > i:nth-child(1) { height: 5px; }
+.speed-bars > i:nth-child(2) { height: 8px; }
+.speed-bars > i:nth-child(3) { height: 11px; }
+.speed-bars > i:nth-child(4) { height: 13px; }
+.speed-bars > i.on { background: var(--ink-2); }
+.speed-word { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-3); }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+/* The meter rides the end of the metrics row, so the card gains a mark and not a line. */
+.metrics .metric-end { margin-left: auto; align-self: flex-end; padding-bottom: 2px; }
