@@ -751,3 +751,36 @@ button.pick:active { background-color: #f4f1e8; }
 .course-table td:first-child, .course-table th:first-child { width: auto; }
 .course-table td:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .course-table td:not(:first-child), .course-table th:not(:first-child) { width: 56px; }
+
+/* Miss grid. Laid out the way the putt finished: high above the hole, low below, short left
+   and long right. The hole itself is the middle cell, so the shape reads before the labels do. */
+.miss-grid {
+  display: grid;
+  grid-template-columns: 58px repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+.mg-head { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); text-align: center; }
+.mg-side { font-size: 12px; font-weight: 600; color: var(--ink-2); text-align: right; padding-right: 2px; }
+.mg-cell {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  cursor: pointer;
+  position: relative;
+}
+.mg-cell:active { background: #f4f1e8; }
+.mg-cell.on { background: var(--ink); border-color: var(--ink); }
+.mg-cell.on::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #f7f5ee;
+}
+.mg-read { margin: 8px 0 0; color: var(--ink-3); }
+.mg-read.on { color: var(--ink-2); font-weight: 600; }

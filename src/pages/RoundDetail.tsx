@@ -8,7 +8,7 @@ import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { PutterTag } from '../components/PutterTag';
-import { Seg } from '../components/Seg';
+import { MissGrid } from '../components/MissGrid';
 import { SegMulti } from '../components/SegMulti';
 import { Sheet } from '../components/Sheet';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
@@ -25,14 +25,8 @@ import {
   FACTOR_LABELS,
   holeVsPar,
   holedOut,
-  type MissSide,
-  type Speed,
 } from '../lib/types';
 
-const MISS_SIDES: MissSide[] = ['high', 'low', 'online'];
-const MISS_LABELS = { high: 'High', low: 'Low', online: 'On line' };
-const SPEEDS: Speed[] = ['short', 'good', 'long'];
-const SPEED_LABELS = { short: 'Short', good: 'Good', long: 'Long' };
 
 export function RoundDetail({ id }: { id: string }) {
   const { state, dispatch } = useApp();
@@ -309,33 +303,17 @@ export function RoundDetail({ id }: { id: string }) {
               />
               {!p.made && (
                 <>
-                  <div className="field-label">Miss side</div>
-                  <Seg
-                    options={MISS_SIDES}
-                    labels={MISS_LABELS}
-                    value={p.missSide}
-                    onPick={(v) =>
+                  <div className="field-label">Where it finished</div>
+                  <MissGrid
+                    side={p.missSide}
+                    speed={p.speed}
+                    onPick={(missSide, speed) =>
                       dispatch({
                         t: 'updatePutt',
                         roundId: round.id,
                         hole: hole.hole,
                         index: i,
-                        patch: { missSide: v },
-                      })
-                    }
-                  />
-                  <div className="field-label">Speed</div>
-                  <Seg
-                    options={SPEEDS}
-                    labels={SPEED_LABELS}
-                    value={p.speed}
-                    onPick={(v) =>
-                      dispatch({
-                        t: 'updatePutt',
-                        roundId: round.id,
-                        hole: hole.hole,
-                        index: i,
-                        patch: { speed: v },
+                        patch: { missSide, speed },
                       })
                     }
                   />

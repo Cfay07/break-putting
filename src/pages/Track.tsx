@@ -3,7 +3,7 @@ import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
 import { Keypad } from '../components/Keypad';
-import { Seg } from '../components/Seg';
+import { MissGrid } from '../components/MissGrid';
 import { SegMulti } from '../components/SegMulti';
 import { Sheet } from '../components/Sheet';
 import { go } from '../lib/router';
@@ -20,18 +20,12 @@ import {
   holeVsPar,
   holedOut,
   type Factor,
-  type MissSide,
   type Round,
-  type Speed,
 } from '../lib/types';
 
-const MISS_SIDES: MissSide[] = ['high', 'low', 'online'];
-const MISS_LABELS = { high: 'High', low: 'Low', online: 'On line' };
 /** Below this a made putt is a tap-in, and asking which way it broke is just friction. */
 const BREAK_PROMPT_FROM = 4;
 
-const SPEEDS: Speed[] = ['short', 'good', 'long'];
-const SPEED_LABELS = { short: 'Short', good: 'Good', long: 'Long' };
 
 function played(round: Round, hole: number): boolean {
   const h = round.holes.find((x) => x.hole === hole);
@@ -283,26 +277,17 @@ export function Track() {
 
           {!draft.made && (
             <>
-              <div className="field-label">Miss side</div>
-              <Seg
-                options={MISS_SIDES}
-                labels={MISS_LABELS}
-                value={draft.missSide}
-                onPick={(v) => setDraft({ missSide: v })}
-              />
-
-              <div className="field-label">Speed</div>
-              <Seg
-                options={SPEEDS}
-                labels={SPEED_LABELS}
-                value={draft.speed}
-                onPick={(v) => setDraft({ speed: v })}
+              <div className="field-label">Where it finished</div>
+              <MissGrid
+                side={draft.missSide}
+                speed={draft.speed}
+                onPick={(missSide, speed) => setDraft({ missSide, speed })}
               />
             </>
           )}
 
           <div className="field-label">
-            How it broke (optional)
+            How it broke
             {breakLabel(draft.breakDirs ?? []) ? (
               <span className="muted"> · {breakLabel(draft.breakDirs ?? [])}</span>
             ) : null}
