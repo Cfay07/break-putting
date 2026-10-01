@@ -235,9 +235,15 @@ export function Stats() {
                 <div className="shoot-for num">{avgIfNeutral.toFixed(1)}</div>
                 <p className="small" style={{ margin: '4px 0 12px' }}>
                   That is your scoring average of {avgScore.toFixed(1)} with a tour pro's putting
-                  dropped into the same rounds. Strokes gained is always measured against tour, so
-                  read the {Math.abs(avgScore - avgIfNeutral).toFixed(1)} as the gap to a pro's
-                  putter, not to a decent amateur one.
+                  dropped into the same rounds.{' '}
+                  {avgIfNeutral > avgScore
+                    ? `You putt better than tour, so swapping in their putter would cost you ${(
+                        avgIfNeutral - avgScore
+                      ).toFixed(1)} a round. The putter is already an asset; the strokes are
+                        somewhere else.`
+                    : `Strokes gained is always measured against tour, so read the ${(
+                        avgScore - avgIfNeutral
+                      ).toFixed(1)} as the gap to a pro's putter, not to a decent amateur one.`}
                 </p>
                 {withScore
                   .slice()
