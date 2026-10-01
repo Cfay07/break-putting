@@ -27,13 +27,14 @@ export function LearnedPanel({ model }: { model: MakeModel }) {
     <div>
       <div className="card">
         <div className="shoot-for num">{pct(six)}</div>
-        <p className="small" style={{ margin: '4px 0 0' }}>
-          How often you hole a six-footer, fitted across all {model.n} putts you have logged. This
-          is your own number, not a tour table. It moves every time you log a round.
+        <div className="shoot-cap">of your six-footers go in</div>
+        <p className="small" style={{ margin: '6px 0 0' }}>
+          Your own make rate, worked out from all {model.n} putts you have logged. A tour player
+          makes about 65% from six feet. This number moves every time you add a round.
         </p>
       </div>
 
-      <div className="field-label">By distance</div>
+      <div className="field-label">What you make, by distance</div>
       <div className="table-wrap">
         <table>
           <thead>
@@ -52,6 +53,10 @@ export function LearnedPanel({ model }: { model: MakeModel }) {
           </tbody>
         </table>
       </div>
+      <p className="small muted" style={{ margin: '6px 0 0' }}>
+        These come from one curve through all your putts at once, not from counting each distance
+        on its own. That is why they still read sensibly at distances you have rarely faced.
+      </p>
 
       <div className="field-label">What the break costs you</div>
       {model.ready ? (

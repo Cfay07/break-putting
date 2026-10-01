@@ -116,8 +116,8 @@ export function Account() {
   return (
     <>
       <p className="small muted">
-        Optional. Sign in and your rounds follow you between devices. Skip it and everything stays
-        on this phone exactly as it is now.
+        Without an account your rounds live on this phone only, and a team needs one. Sign in and
+        they back up, follow you to a new phone, and show up on your team's board.
       </p>
       {!storedOwner() && state.rounds.length > 0 && (
         <p className="small muted">

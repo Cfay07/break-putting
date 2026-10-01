@@ -267,9 +267,17 @@ export function Team() {
 
   if (!session) {
     return (
-      <div className="empty">
-        <p>Sign in on the Settings tab to use teams.</p>
-      </div>
+      <>
+        <h2 style={{ marginTop: 0 }}>Teams</h2>
+        <p className="small muted" style={{ margin: '0 0 12px' }}>
+          A team puts your putting next to the people you actually play with: who holes the most
+          six-footers, who stops the bleeding after a three-putt, who is out on the course right
+          now. Teams are private and you join with a code.
+        </p>
+        <a className="btn btn-primary btn-wide" href="#/settings" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+          Set up an account to join
+        </a>
+      </>
     );
   }
   if (loading) {

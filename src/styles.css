@@ -738,3 +738,9 @@ button.pick:active { background-color: #f4f1e8; }
   border-radius: 50%;
   background: var(--team, var(--accent));
 }
+
+.shoot-cap { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-top: -2px; }
+
+.signin-lead { margin-bottom: 10px; }
+.signin-lead > strong { font-size: 15px; }
+.signin-lead > .btn { display: block; text-align: center; text-decoration: none; }

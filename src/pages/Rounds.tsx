@@ -5,6 +5,7 @@ import { PutterTag } from '../components/PutterTag';
 import { Sheet } from '../components/Sheet';
 import { fmtDate, signed, today } from '../lib/format';
 import { go } from '../lib/router';
+import { currentSession } from '../lib/cloud';
 import { courseLabel, roundScale, roundStats } from '../lib/stats';
 import { newId } from '../lib/storage';
 import { liveRound, makeRound, useApp } from '../lib/store';
@@ -130,9 +131,26 @@ export function Rounds() {
           </div>
         )}
       </div>
+      {!currentSession() && (
+        <div className="card signin-lead">
+          <strong>Your rounds only live on this phone</strong>
+          <p className="small" style={{ margin: '4px 0 10px' }}>
+            Make an account and they back up, follow you to a new phone, and let you join your
+            team. It takes an email and a password.
+          </p>
+          <a className="btn btn-primary btn-wide" href="#/settings">
+            Set up an account
+          </a>
+        </div>
+      )}
+
       {finished.length === 0 && (
         <div className="empty">
-          <p style={{ margin: 0 }}>No finished rounds yet. Log one and the stats fill in.</p>
+          <p style={{ margin: 0 }}>
+            Nothing here yet. Tap New round, pick your course, then log the distance of every putt
+            as you go. One round turns on your make rates and strokes gained; a handful turns on
+            the rest.
+          </p>
         </div>
       )}
 

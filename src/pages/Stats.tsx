@@ -6,6 +6,7 @@ import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
+import { Sheet } from '../components/Sheet';
 import { Trend } from '../components/Trend';
 import { fmtDate, pctText, signed } from '../lib/format';
 import { Bar } from '../components/Bar';
@@ -57,6 +58,7 @@ export function Stats() {
   const [rightId, setRightId] = useState(AVG);
 
   const [scope, setScope] = useState<Scope>('all');
+  const [scopeSheet, setScopeSheet] = useState(false);
 
   const rounds = useMemo(() => {
     const finished = state.rounds.filter((r) => r.finished);
@@ -67,9 +69,8 @@ export function Stats() {
     return [...picked].sort((a, b) => a.date.localeCompare(b.date));
   }, [state.rounds, scope]);
 
-  // No point offering the split until a round has actually been marked as one.
-  const hasCompetitive = useMemo(
-    () => state.rounds.some((r) => r.finished && r.competitive),
+  const competitiveCount = useMemo(
+    () => state.rounds.filter((r) => r.finished && r.competitive).length,
     [state.rounds],
   );
 
@@ -100,7 +101,10 @@ export function Stats() {
   if (state.rounds.filter((r) => r.finished).length === 0) {
     return (
       <div className="empty">
-        <p>Nothing to compare yet. Finish a round and this page turns on.</p>
+        <p>
+          Finish a round and this page turns on: strokes gained, your make rate at every distance,
+          where your misses go, and what a three-putt costs you over the holes that follow.
+        </p>
       </div>
     );
   }
@@ -151,18 +155,45 @@ export function Stats() {
 
   return (
     <>
-      {hasCompetitive && (
-        <div className="seg seg-quiet" style={{ marginBottom: 12 }}>
-          {SCOPES.map((sc) => (
-            <button key={sc} type="button" aria-pressed={scope === sc} onClick={() => setScope(sc)}>
-              {SCOPE_LABELS[sc]}
-            </button>
-          ))}
-        </div>
+      <div className="board-bar" style={{ marginTop: 0 }}>
+        <span className="field-label" style={{ margin: 0 }}>
+          Showing
+        </span>
+        <button className="pick" onClick={() => setScopeSheet(true)}>
+          {SCOPE_LABELS[scope]}
+        </button>
+      </div>
+
+      {scopeSheet && (
+        <Sheet title="Showing" onClose={() => setScopeSheet(false)}>
+          <div className="menu">
+            {SCOPES.map((sc) => (
+              <button
+                key={sc}
+                aria-current={sc === scope}
+                onClick={() => {
+                  setScope(sc);
+                  setScopeSheet(false);
+                }}
+              >
+                <span className="menu-row">{SCOPE_LABELS[sc]}</span>
+              </button>
+            ))}
+          </div>
+          <p className="small muted" style={{ marginTop: 10 }}>
+            {competitiveCount
+              ? `${competitiveCount} of your rounds are marked competitive.`
+              : 'No rounds marked competitive yet. Open a round and tap the Casual chip to flip it.'}
+          </p>
+        </Sheet>
       )}
       {o.rounds === 0 ? (
         <div className="empty">
-          <p style={{ margin: 0 }}>No rounds match those filters.</p>
+          <p style={{ margin: 0 }}>
+            {scope === 'competitive'
+              ? 'No rounds marked competitive yet. Open a round and tap the Casual chip under the course name to flip it.'
+              : 'No casual rounds. Every round you have logged is marked competitive.'}
+          </p>
         </div>
       ) : (
         <>
