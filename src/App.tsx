@@ -4,7 +4,7 @@ import { Settings } from './pages/Settings';
 import { Stats } from './pages/Stats';
 import { Team } from './pages/Team';
 import { Track } from './pages/Track';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { bleedSummary } from './lib/bleed';
 import { fitMakeModel, makeability } from './lib/makeability';
 import { useRoute } from './lib/router';
@@ -63,11 +63,26 @@ export default function App() {
   const { state, dispatch } = useApp();
   const live = liveRound(state);
 
+  // Installed to a home screen, the app resumes rather than reloads, so mounting once is not
+  // the same as opening the app. Sync whenever it comes back to the foreground too, and keep
+  // the latest state in a ref so these listeners never push a stale snapshot.
+  const latest = useRef(state);
+  latest.current = state;
+
   useEffect(() => {
-    void syncQuietly(state, dispatch);
-    const onBack = () => void syncQuietly(state, dispatch);
-    window.addEventListener('online', onBack);
-    return () => window.removeEventListener('online', onBack);
+    const run = () => void syncQuietly(latest.current, dispatch);
+    run();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') run();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    window.addEventListener('online', run);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+      window.removeEventListener('online', run);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

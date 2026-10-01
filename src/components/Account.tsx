@@ -24,20 +24,6 @@ export function Account() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
 
-  const runSync = async () => {
-    setBusy(true);
-    setNote('Syncing...');
-    try {
-      const { result, incoming } = await sync(state);
-      dispatch({ t: 'applyIncoming', incoming });
-      setNote(`Sent ${result.pushed}, received ${result.pulled}.`);
-    } catch (e) {
-      setNote((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const enter = async (mode: 'in' | 'up') => {
     if (!email.trim() || password.length < 6) {
       setNote('Email, and a password of at least six characters.');
@@ -114,9 +100,6 @@ export function Account() {
           </div>
         </div>
         <div className="btn-row" style={{ marginTop: 10 }}>
-          <button className="btn btn-primary" disabled={busy} onClick={runSync}>
-            {busy ? 'Syncing...' : 'Sync now'}
-          </button>
           <button className="btn btn-ghost" disabled={busy} onClick={leave}>
             Sign out
           </button>
