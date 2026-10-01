@@ -541,6 +541,42 @@ details > *:last-child { margin-bottom: 16px; }
   letter-spacing: 0.02em;
 }
 .team-head { display: flex; align-items: center; gap: 12px; }
+/* A hairline is all the team colour the page needs. Painting every element in it turned the
+   leaderboard into a wall of one hue and told you nothing about any individual player. */
+.team-rule { height: 2px; background: var(--team, var(--ink)); border-radius: 2px; margin: 10px 0 2px; }
+.code-chip {
+  flex: 0 0 auto;
+  border: 1px dashed var(--line);
+  background: none;
+  border-radius: 8px;
+  padding: 6px 9px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.code-chip:active { background: #f4f1e8; }
+.team-scope .seg > button[aria-pressed='true'] {
+  background: var(--team, var(--ink));
+  border-color: var(--team, var(--ink));
+  color: #fff;
+}
+.manage { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 6px; }
+.manage > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 8px 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.manage > summary::-webkit-details-marker { display: none; }
+.manage > summary::after { content: ' +'; }
+.manage[open] > summary::after { content: ' −'; }
 .player-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .player-row {
   display: flex;
@@ -559,10 +595,20 @@ details > *:last-child { margin-bottom: 16px; }
   min-height: var(--tap);
 }
 .player-row:active { background: #f4f1e8; }
-.player-row > .place { flex: 0 0 18px; color: var(--ink-3); font-size: 13px; font-weight: 700; }
-.player-row > .who { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.player-row > .who > .nm { font-weight: 600; }
-.player-row > .big { flex: 0 0 auto; font-size: 19px; font-weight: 700; }
+.player-row > .place {
+  flex: 0 0 20px;
+  color: var(--ink-3);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+.player-row.lead { box-shadow: inset 3px 0 0 var(--team, var(--ink)); padding-left: 15px; }
+.player-row.lead > .place { color: var(--team, var(--ink)); }
+.player-row > .who { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
+.player-row > .who > .nm { font-weight: 600; font-size: 15px; }
+.player-row > .who > .sub { font-size: 12px; }
+.player-row > .big { flex: 0 0 auto; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.player-row > .big.none { color: var(--ink-3); font-weight: 600; }
 .live-dot {
   flex: 0 0 auto;
   width: 8px;

@@ -23,7 +23,7 @@ const EMPTY: TeamView = { teams: [], members: [], stats: [] };
 const BOARDS = [
   { key: 'make6', label: 'Six-footers', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, high: true },
   { key: 'bleed_recovery', label: 'Bounce back', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, high: true },
-  { key: 'sg_pr', label: 'Strokes gained', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2)), high: true },
+  { key: 'sg_pr', label: 'SG', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2)), high: true },
 ] as const;
 
 type BoardKey = (typeof BOARDS)[number]['key'];
@@ -121,6 +121,7 @@ export function Team() {
   const [code, setCode] = useState('');
   const [newName, setNewName] = useState('');
   const [editing, setEditing] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [draftAccent, setDraftAccent] = useState('#D01C2E');
 
@@ -257,7 +258,7 @@ export function Team() {
   const openMember = roster.find((r) => r.member.user_id === open);
 
   return (
-    <div style={{ '--team': accent } as React.CSSProperties}>
+    <div className="team-scope" style={{ '--team': accent } as React.CSSProperties}>
       {view.teams.length > 1 && (
         <div className="seg seg-quiet" style={{ marginBottom: 12 }}>
           {view.teams.map((t) => (
@@ -270,15 +271,26 @@ export function Team() {
 
       <div className="team-head">
         <Crest name={team.name} accent={accent} />
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ margin: 0 }}>{team.name}</h2>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h2 style={{ margin: 0, lineHeight: 1.15 }}>{team.name}</h2>
           <p className="small muted" style={{ margin: 0 }}>
             {team.theme?.label ? `${team.theme.label} · ` : ''}
-            {roster.length} {roster.length === 1 ? 'player' : 'players'} · code{' '}
-            <strong style={{ letterSpacing: '0.12em' }}>{team.join_code}</strong>
+            {roster.length} {roster.length === 1 ? 'player' : 'players'}
           </p>
         </div>
+        <button
+          className="code-chip"
+          onClick={() => {
+            void navigator.clipboard?.writeText(team.join_code);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1400);
+          }}
+          aria-label={`Copy join code ${team.join_code}`}
+        >
+          {copied ? 'Copied' : team.join_code}
+        </button>
       </div>
+      <div className="team-rule" />
 
       {err && <p className="small" style={{ color: 'var(--red)' }}>{err}</p>}
 
@@ -294,30 +306,36 @@ export function Team() {
         const rank = BOARDS.find((b) => b.key === board)!;
         const v = stats?.[rank.key] ?? null;
         const name = member.display_name ?? 'Unnamed player';
+        const ranked = v !== null;
         return (
-          <button key={member.user_id} className="player-row" onClick={() => setOpen(member.user_id)}>
-            <span className="place num">{v === null ? '--' : i + 1}</span>
-            <Crest name={name} accent={accent} />
+          <button
+            key={member.user_id}
+            className={ranked && i === 0 ? 'player-row lead' : 'player-row'}
+            onClick={() => setOpen(member.user_id)}
+          >
+            <span className="place num">{ranked ? i + 1 : ''}</span>
             <span className="who">
               <span className="nm">{name}</span>
-              <span className="small muted">
+              <span className="sub small muted">
                 {stats?.live
-                  ? `Out now · hole ${stats.live.hole}`
+                  ? `thru ${stats.live.thru}`
                   : stats?.rounds
                     ? `${stats.rounds} round${stats.rounds === 1 ? '' : 's'}`
-                    : 'No rounds yet'}
+                    : 'no rounds yet'}
               </span>
             </span>
             {stats?.live && <span className="live-dot" aria-label="playing now" />}
-            <span className="big num">{v === null ? '--' : rank.fmt(v)}</span>
+            <span className={ranked ? 'big num' : 'big num none'}>{ranked ? rank.fmt(v) : '--'}</span>
           </button>
         );
       })}
 
       <p className="small muted" style={{ marginTop: 10 }}>
-        Everyone is scored against your own expected-putts table, so the ranking is like for like.
+        Everyone scored against your baseline, so it is like for like.
       </p>
 
+      <details className="manage">
+        <summary>Manage</summary>
       {team.owner_id === session.userId && (
         <>
           <div className="field-label">Team page</div>
@@ -382,11 +400,8 @@ export function Team() {
         Leave {team.name}
       </button>
 
-      {!!view.teams.length && (
-        <div style={{ marginTop: 18 }}>
-          {joinBlock}
-        </div>
-      )}
+      <div style={{ marginTop: 18 }}>{joinBlock}</div>
+      </details>
 
       {openMember && (
         <PlayerPanel
