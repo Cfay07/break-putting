@@ -34,6 +34,8 @@ export interface PlayerStats {
   make6: number | null;
   /** Shots dropped per round after a putting mistake. Lower is better. */
   bleed_pr: number | null;
+  /** Par or better on the hole right after a mistake. Higher is better. */
+  bounce_back: number | null;
   /** Make rate from 3 to 10 feet. */
   scoring_pct: number | null;
   last_round: string | null;
@@ -53,6 +55,8 @@ export interface TeamRound {
   three_putts: number | null;
   sg: number | null;
   competitive: boolean;
+  /** Per hole: h hole, p putts, d first putt distance, v strokes against par. */
+  detail: { h: number; p: number; d: number | null; v: number | null }[] | null;
 }
 
 export interface TeamView {

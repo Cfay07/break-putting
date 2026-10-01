@@ -12,7 +12,7 @@ import { courseLabel, overall, roundStats } from './lib/stats';
 import { publishRounds, publishStats } from './lib/teams';
 import { syncQuietly } from './lib/sync';
 import { liveRound, useApp } from './lib/store';
-import type { AppState } from './lib/types';
+import { holeVsPar, type AppState } from './lib/types';
 
 /**
  * What this player shares with their teams. Only these numbers leave the device; the rounds
@@ -32,6 +32,7 @@ function summarise(state: AppState) {
     sg_pr: o.sgPerRound,
     make6: makeability(model, 6),
     bleed_pr: bleedSummary(done).shotsPerRound,
+    bounce_back: bleedSummary(done).afterRate,
     scoring_pct: o.scoringPct !== null ? o.scoringPct / 100 : null,
     last_round: done.length ? done.reduce((a, b) => (b.date > a.date ? b : a)).date : null,
     live: live && played
@@ -105,6 +106,14 @@ export default function App() {
               three_putts: s.threePlus,
               sg: Number(s.sg.toFixed(3)),
               competitive: !!r.competitive,
+              detail: r.holes
+                .filter((h) => h.putts.length || holeVsPar(h) !== undefined)
+                .map((h) => ({
+                  h: h.hole,
+                  p: h.putts.length,
+                  d: h.putts[0]?.d ?? null,
+                  v: holeVsPar(h) ?? null,
+                })),
             };
           }),
       );

@@ -31,6 +31,7 @@ const BOARDS = [
   { key: 'make6', label: 'Six-footers', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
   { key: 'three_pr', label: '3-putts per round', fmt: (v: number) => v.toFixed(2), lowBetter: true },
   { key: 'bleed_pr', label: 'Bleed', fmt: (v: number) => `-${v.toFixed(2)}`, lowBetter: true },
+  { key: 'bounce_back', label: 'Bounce back', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
 ] as const;
 
 type BoardKey = (typeof BOARDS)[number]['key'];
@@ -64,6 +65,74 @@ function Crest({ name, accent }: { name: string; accent: string }) {
   );
 }
 
+function RoundCard({ round, onClose }: { round: TeamRound; onClose: () => void }) {
+  const holes = round.detail ?? [];
+  const title = `${round.played_on ? fmtDate(round.played_on) : 'Round'}${round.course ? ` · ${round.course}` : ''}`;
+  const worst = holes.filter((h) => h.p >= 3).map((h) => h.h);
+
+  return (
+    <Sheet title={title} onClose={onClose}>
+      <div className="card">
+        <div className="stat-row">
+          <span className="k">Putts</span>
+          <span className="v num">{round.putts ?? '--'}</span>
+        </div>
+        <div className="stat-row">
+          <span className="k">3-putts</span>
+          <span className={round.three_putts ? 'v num neg' : 'v num'}>{round.three_putts ?? '--'}</span>
+        </div>
+        <div className="stat-row">
+          <span className="k">Strokes gained</span>
+          <span className={(round.sg ?? 0) < 0 ? 'v num neg' : 'v num pos'}>
+            {round.sg === null ? '--' : round.sg >= 0 ? `+${round.sg.toFixed(2)}` : round.sg.toFixed(2)}
+          </span>
+        </div>
+        <div className="stat-row">
+          <span className="k">Score</span>
+          <span className="v num">{round.score ?? '--'}</span>
+        </div>
+      </div>
+
+      {holes.length > 0 ? (
+        <>
+          <div className="field-label">Hole by hole</div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Hole</th>
+                  <th>First putt</th>
+                  <th>Putts</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {holes.map((h) => (
+                  <tr key={h.h}>
+                    <td>{h.h}</td>
+                    <td className="num">{h.d === null ? '--' : `${h.d} ft`}</td>
+                    <td className={h.p >= 3 ? 'num neg' : 'num'}>{h.p || '--'}</td>
+                    <td className="num">{h.v === null ? '--' : h.v === 0 ? 'E' : h.v > 0 ? `+${h.v}` : h.v}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="small muted" style={{ margin: '6px 0 0' }}>
+            {worst.length
+              ? `Three-putts on ${worst.length === 1 ? 'hole' : 'holes'} ${worst.join(', ')}.`
+              : 'No three-putts in this round.'}
+          </p>
+        </>
+      ) : (
+        <p className="small muted">
+          This round was logged before hole detail was shared. It appears on their next round.
+        </p>
+      )}
+    </Sheet>
+  );
+}
+
 function PlayerPanel({
   member,
   stats,
@@ -77,6 +146,7 @@ function PlayerPanel({
 }) {
   const name = member.display_name ?? 'Unnamed player';
   const [rounds, setRounds] = useState<TeamRound[] | null>(null);
+  const [openRound, setOpenRound] = useState<TeamRound | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -96,6 +166,7 @@ function PlayerPanel({
         ['Scoring range (3-10 ft)', stats.scoring_pct !== null ? `${(stats.scoring_pct * 100).toFixed(0)}%` : '--'],
         ['Six-footers', stats.make6 !== null ? `${(stats.make6 * 100).toFixed(0)}%` : '--'],
         ['Bleed, shots a round', stats.bleed_pr !== null ? `-${stats.bleed_pr.toFixed(2)}` : '--'],
+        ['Bounce back', stats.bounce_back !== null ? `${(stats.bounce_back * 100).toFixed(0)}%` : '--'],
         ['Last round', stats.last_round ? fmtDate(stats.last_round) : '--'],
       ]
     : [];
@@ -137,7 +208,11 @@ function PlayerPanel({
           <div className="field-label">Rounds</div>
           <div className="board">
             {rounds.map((r) => (
-              <div key={r.round_id} className={r.competitive ? 'lb-row comp' : 'lb-row'}>
+              <button
+                key={r.round_id}
+                className={r.competitive ? 'lb-row comp' : 'lb-row'}
+                onClick={() => setOpenRound(r)}
+              >
                 <span className="nm">
                   {r.played_on ? fmtDate(r.played_on) : '--'}
                   {r.course ? <span className="small muted"> · {r.course}</span> : ''}
@@ -146,11 +221,11 @@ function PlayerPanel({
                 <span className={(r.sg ?? 0) < 0 ? 'val num neg' : 'val num pos'}>
                   {r.sg === null ? '--' : r.sg >= 0 ? `+${r.sg.toFixed(2)}` : r.sg.toFixed(2)}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
           <p className="small muted" style={{ margin: '6px 0 0' }}>
-            Putts and strokes gained per round. Putt-by-putt detail stays with the player.
+            Putts and strokes gained per round. Tap one to see the card.
           </p>
         </>
       )}
@@ -159,6 +234,8 @@ function PlayerPanel({
           No rounds published yet.
         </p>
       )}
+
+      {openRound && <RoundCard round={openRound} onClose={() => setOpenRound(null)} />}
     </Sheet>
   );
 }
