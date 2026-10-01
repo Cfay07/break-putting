@@ -6,12 +6,14 @@ import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
+import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
 import { Trend } from '../components/Trend';
 import { fmtDate, pctText, signed } from '../lib/format';
 import { Bar } from '../components/Bar';
 import {
   byCourse,
+  byGreenSpeed,
   courseLabel,
   overall,
   pct,
@@ -59,6 +61,9 @@ const SCOPE_LABELS: Record<Scope, string> = {
 };
 const GREEN_SCOPES: Scope[] = ['slow', 'medium', 'fast', 'glass'];
 
+/** A band needs this many sided misses before its high share is worth printing. */
+const MIN_SIDED = 8;
+
 export function Stats() {
   const { state } = useApp();
   const [leftId, setLeftId] = useState('');
@@ -96,6 +101,7 @@ export function Stats() {
   );
   const makeModel = useMemo(() => fitMakeModel(rounds), [rounds]);
   const courses = useMemo(() => byCourse(rounds, state.baseline), [rounds, state.baseline]);
+  const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const bleed = useMemo(() => bleedSummary(rounds), [rounds]);
   const green = useMemo(() => splitByGreen(rounds), [rounds]);
   const withScore = useMemo(
@@ -390,6 +396,45 @@ export function Stats() {
 
           <h2>Lag control</h2>
           <LagPanel stats={o.pooled} />
+
+          {speeds.length > 1 && (
+            <>
+              <h2>By green speed</h2>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Greens</th>
+                      <th>Rds</th>
+                      <th>Putts</th>
+                      <th>SG</th>
+                      <th>Miss high</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {speeds.map((g) => (
+                      <tr key={g.speed}>
+                        <td>
+                          <SpeedBars speed={g.speed} label />
+                        </td>
+                        <td className="num">{g.rounds}</td>
+                        <td className="num">{g.putts.toFixed(1)}</td>
+                        <td className={g.sg >= 0 ? 'num pos' : 'num neg'}>{signed(g.sg, 2)}</td>
+                        <td className="num">
+                          {g.sided >= MIN_SIDED ? `${Math.round((g.high / g.sided) * 100)}%` : '--'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="small muted" style={{ margin: '6px 0 0' }}>
+                Per eighteen holes. Miss high is the share of tagged misses finishing above the
+                hole, blank until a band has {MIN_SIDED} of them. If it swings between bands your
+                read is not the problem, the greens are.
+              </p>
+            </>
+          )}
 
           {green && (
             <>

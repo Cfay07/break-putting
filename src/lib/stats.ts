@@ -8,6 +8,8 @@ import {
   type BreakBucket,
   type Hole,
   type Putt,
+  GREEN_SPEEDS,
+  type GreenSpeed,
   type Round,
 } from './types';
 
@@ -348,6 +350,41 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
       : null,
     points,
   };
+}
+
+export interface SpeedSplit {
+  speed: GreenSpeed;
+  rounds: number;
+  putts: number;
+  threePlus: number;
+  sg: number;
+  /** Tagged misses that had a side, so the high share can be read honestly. */
+  sided: number;
+  high: number;
+}
+
+/**
+ * Rounds grouped by how the greens rolled. The point is the comparison: a high-side miss on
+ * quick greens and one on slow greens are different problems, and pooled they cancel.
+ */
+export function byGreenSpeed(rounds: Round[], baseline: [number, number][]): SpeedSplit[] {
+  return GREEN_SPEEDS.map((speed) => {
+    const rs = rounds.filter((r) => r.greenSpeed === speed);
+    if (!rs.length) return null;
+    const scaled = rs.map((r) => ({ s: roundStats(r, baseline), k: roundScale(r) }));
+    const per = (pick: (x: (typeof scaled)[number]) => number) =>
+      scaled.reduce((sum, x) => sum + pick(x), 0) / rs.length;
+    const pooled = statsForHoles(rs.flatMap((r) => r.holes), baseline);
+    return {
+      speed,
+      rounds: rs.length,
+      putts: per((x) => x.s.totalPutts * x.k),
+      threePlus: per((x) => x.s.threePlus * x.k),
+      sg: per((x) => x.s.sg * x.k),
+      sided: pooled.pattern.high + pooled.pattern.low,
+      high: pooled.pattern.high,
+    };
+  }).filter((x): x is SpeedSplit => x !== null);
 }
 
 export interface CourseSplit {
