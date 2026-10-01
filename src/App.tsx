@@ -2,16 +2,53 @@ import { Rounds } from './pages/Rounds';
 import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
 import { Stats } from './pages/Stats';
+import { Team } from './pages/Team';
 import { Track } from './pages/Track';
 import { useEffect } from 'react';
+import { bleedSummary } from './lib/bleed';
+import { fitMakeModel, makeability } from './lib/makeability';
 import { useRoute } from './lib/router';
+import { overall } from './lib/stats';
+import { publishStats } from './lib/teams';
 import { syncQuietly } from './lib/sync';
 import { liveRound, useApp } from './lib/store';
+import type { AppState } from './lib/types';
+
+/**
+ * What this player shares with their teams. Only these numbers leave the device; the rounds
+ * themselves stay owner-only in the database.
+ */
+function summarise(state: AppState) {
+  const done = state.rounds.filter((r) => r.finished);
+  const o = overall(done, state.baseline);
+  const model = fitMakeModel(done);
+  const live = state.rounds.find((r) => !r.finished);
+  const played = live ? live.holes.filter((h) => h.putts.length > 0).length : 0;
+  return {
+    rounds: done.length,
+    competitive_rounds: done.filter((r) => r.competitive).length,
+    putts_pr: o.puttsPerRound,
+    three_pr: o.threePuttsPerRound,
+    sg_pr: o.sgPerRound,
+    make6: makeability(model, 6),
+    bleed_recovery: bleedSummary(done).afterRate,
+    last_round: done.length ? done.reduce((a, b) => (b.date > a.date ? b : a)).date : null,
+    live: live && played
+      ? {
+          hole: Math.max(...live.holes.filter((h) => h.putts.length).map((h) => h.hole)),
+          thru: played,
+          course: live.course,
+          started_at: live.updated ?? new Date().toISOString(),
+        }
+      : null,
+  };
+}
 
 const TABS = [
   { path: '/', label: 'Rounds' },
   { path: '/track', label: 'Track' },
   { path: '/stats', label: 'Stats' },
+  { path: '/team', label: 'Team' },
   { path: '/settings', label: 'Settings' },
 ];
 
@@ -27,6 +64,7 @@ export default function App() {
 
   useEffect(() => {
     void syncQuietly(state, dispatch);
+    void publishStats(summarise(state));
     const onBack = () => void syncQuietly(state, dispatch);
     window.addEventListener('online', onBack);
     return () => window.removeEventListener('online', onBack);
@@ -40,6 +78,8 @@ export default function App() {
     <Track />
   ) : route === '/stats' ? (
     <Stats />
+  ) : route === '/team' ? (
+    <Team />
   ) : route === '/settings' ? (
     <Settings />
   ) : (
@@ -54,9 +94,11 @@ export default function App() {
         : 'Track'
       : route === '/stats'
         ? 'All rounds'
-        : route === '/settings'
-          ? 'Settings'
-          : 'Putting';
+        : route === '/team'
+          ? 'Team'
+          : route === '/settings'
+            ? 'Settings'
+            : 'Putting';
 
   return (
     <div className="app">

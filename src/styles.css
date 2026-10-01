@@ -524,3 +524,49 @@ details > *:last-child { margin-bottom: 16px; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* Teams. The team colour is the only thing a team owner controls; paper, type and spacing
+   stay the app's, so a team page reads as their club on BREAK! and not as a different app. */
+.crest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+.team-head { display: flex; align-items: center; gap: 12px; }
+.player-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  min-height: var(--tap);
+}
+.player-row:active { background: #f4f1e8; }
+.player-row > .place { flex: 0 0 18px; color: var(--ink-3); font-size: 13px; font-weight: 700; }
+.player-row > .who { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.player-row > .who > .nm { font-weight: 600; }
+.player-row > .big { flex: 0 0 auto; font-size: 19px; font-weight: 700; }
+.live-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--team, var(--accent));
+}
