@@ -456,8 +456,12 @@ export function Stats() {
             </>
           )}
 
-          <h2>What the app has learned about you</h2>
-          <LearnedPanel model={makeModel} />
+          {makeModel.ready && (
+            <>
+              <h2>What the break costs you</h2>
+              <LearnedPanel model={makeModel} />
+            </>
+          )}
 
           <h2>Miss patterns</h2>
           <PatternPanel stats={o.pooled} taggedRounds={taggedRounds} />
@@ -576,7 +580,7 @@ export function Stats() {
             <>
               <h2>By course</h2>
               <div className="table-wrap">
-                <table>
+                <table className="course-table">
                   <thead>
                     <tr>
                       <th>Course</th>

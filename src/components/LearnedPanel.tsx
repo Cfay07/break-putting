@@ -1,7 +1,5 @@
-import { MIN_TAGGED, MIN_TERM, breakCost, makeability, type MakeModel } from '../lib/makeability';
+import { MIN_TERM, breakCost, makeability, type MakeModel } from '../lib/makeability';
 import type { BreakDir } from '../lib/types';
-
-const RUNGS = [3, 6, 10, 20, 30];
 
 const SHAPES: { label: string; dirs: BreakDir[]; term: 'lr' | 'rl' | 'double' | 'uphill' | 'downhill' }[] = [
   { label: 'L→R', dirs: ['L→R'], term: 'lr' },
@@ -13,6 +11,12 @@ const SHAPES: { label: string; dirs: BreakDir[]; term: 'lr' | 'rl' | 'double' | 
 
 const pct = (v: number | null) => (v === null ? '--' : `${(v * 100).toFixed(0)}%`);
 
+/**
+ * The break half only. Make rate by distance used to live here too, but the By distance table
+ * already shows that from real counts, and two tables of the same thing disagreeing by a point
+ * is worse than one. Stats renders this only once there are enough tagged putts to mean
+ * something, so there is no "not ready yet" state to show.
+ */
 export function LearnedPanel({ model }: { model: MakeModel }) {
   const six = makeability(model, 6);
   if (six === null) return null;
@@ -27,86 +31,51 @@ export function LearnedPanel({ model }: { model: MakeModel }) {
     <div>
       <div className="card">
         <div className="shoot-for num">{pct(six)}</div>
-        <div className="shoot-cap">of your six-footers go in</div>
+        <div className="shoot-cap">of your straight six-footers go in</div>
         <p className="small" style={{ margin: '6px 0 0' }}>
-          Your own make rate, worked out from all {model.n} putts you have logged. A tour player
-          makes about 65% from six feet. This number moves every time you add a round.
+          The flat, straight putt everything below is measured against. A tour player makes about
+          65% of these.
         </p>
       </div>
 
-      <div className="field-label">What you make, by distance</div>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Distance</th>
-              <th>You hole it</th>
+              <th>Shape</th>
+              <th>Putts</th>
+              <th>From 6 ft</th>
+              <th>Against straight</th>
             </tr>
           </thead>
           <tbody>
-            {RUNGS.map((d) => (
-              <tr key={d}>
-                <td>{d} ft</td>
-                <td className="num">{pct(makeability(model, d))}</td>
+            {shapes.map((s) => (
+              <tr key={s.label}>
+                <td>{s.label}</td>
+                <td className="num">{s.n}</td>
+                {s.n >= MIN_TERM ? (
+                  <>
+                    <td className="num">{pct(makeability(model, 6, s.dirs))}</td>
+                    <td className={s.cost! < 0 ? 'num neg' : 'num pos'}>
+                      {s.cost! >= 0 ? '+' : ''}
+                      {s.cost!.toFixed(0)} pts
+                    </td>
+                  </>
+                ) : (
+                  <td className="muted" colSpan={2}>
+                    needs {MIN_TERM - s.n} more
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <p className="small muted" style={{ margin: '6px 0 0' }}>
-        These come from one curve through all your putts at once, not from counting each distance
-        on its own. That is why they still read sensibly at distances you have rarely faced.
+        Learned from the {model.tagged} putts you tagged a break on. A shape needs {MIN_TERM} of
+        its own before it gets a number, and thin ones are pulled toward no effect on purpose, so
+        these understate rather than invent.
       </p>
-
-      <div className="field-label">What the break costs you</div>
-      {model.ready ? (
-        <>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Shape</th>
-                  <th>Putts</th>
-                  <th>From 6 ft</th>
-                  <th>Against straight</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shapes.map((s) => (
-                  <tr key={s.label}>
-                    <td>{s.label}</td>
-                    <td className="num">{s.n}</td>
-                    {s.n >= MIN_TERM ? (
-                      <>
-                        <td className="num">{pct(makeability(model, 6, s.dirs))}</td>
-                        <td className={s.cost! < 0 ? 'num neg' : 'num pos'}>
-                          {s.cost! >= 0 ? '+' : ''}
-                          {s.cost!.toFixed(0)} pts
-                        </td>
-                      </>
-                    ) : (
-                      <td className="muted" colSpan={2}>
-                        needs {MIN_TERM - s.n} more
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="small muted" style={{ margin: '6px 0 0' }}>
-            Learned from the {model.tagged} putts you tagged a break on. A shape needs{' '}
-            {MIN_TERM} of its own before it gets a number, and thin ones are pulled toward no
-            effect on purpose, so these understate rather than invent. Tag more and they sharpen.
-          </p>
-        </>
-      ) : (
-        <p className="small muted" style={{ margin: 0 }}>
-          Still off. It needs {MIN_TAGGED} putts with a break tagged and has {model.tagged}. Until
-          then every putt is priced on distance alone. Tag the break on putts you hole as well as
-          the ones you miss, or the model only ever sees the misses and reads every shape as hard.
-        </p>
-      )}
     </div>
   );
 }

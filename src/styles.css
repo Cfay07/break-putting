@@ -744,3 +744,10 @@ button.pick:active { background-color: #f4f1e8; }
 .signin-lead { margin-bottom: 10px; }
 .signin-lead > strong { font-size: 15px; }
 .signin-lead > .btn { display: block; text-align: center; text-decoration: none; }
+
+/* A course name can run long once the nines are in it. Let the name take the slack and keep the
+   numbers where the eye expects them. */
+.course-table { table-layout: fixed; width: 100%; }
+.course-table td:first-child, .course-table th:first-child { width: auto; }
+.course-table td:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.course-table td:not(:first-child), .course-table th:not(:first-child) { width: 56px; }

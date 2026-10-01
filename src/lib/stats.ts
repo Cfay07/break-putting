@@ -382,10 +382,12 @@ export function courseLabel(r: Round): string {
 
 /** Every course layout played, with the numbers put on an eighteen-hole footing. */
 export function byCourse(rounds: Round[], baseline: [number, number][]): CourseSplit[] {
+  // Group on the course alone. Keying on the nines and the hole count as well split a home
+  // course into a row per tee combination, so the place played most often looked like four
+  // different courses and none of them ranked high enough to show.
   const groups = new Map<string, Round[]>();
   for (const r of rounds) {
-    const nines = [r.firstNine, r.secondNine].filter(Boolean).join('/');
-    const key = `${courseKey(r.course ?? '')}|${nines}|${holesPlayed(r)}`;
+    const key = courseKey(r.course ?? '');
     groups.set(key, [...(groups.get(key) ?? []), r]);
   }
 
@@ -393,7 +395,7 @@ export function byCourse(rounds: Round[], baseline: [number, number][]): CourseS
     .map(([, rs]) => {
       // the fullest spelling of the name wins the label
       const best = rs.reduce((a, b) => ((b.course ?? '').length > (a.course ?? '').length ? b : a));
-      const label = courseLabel(best);
+      const label = best.course?.trim() || 'Course not named';
       const n = rs.length;
       // Each round carries its own scale, so a group holding both a full eighteen and a
       // walk-in after nine still averages to an eighteen-hole number.
