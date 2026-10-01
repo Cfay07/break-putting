@@ -308,6 +308,39 @@ export function Stats() {
             </p>
           )}
 
+          <h2>Am I improving</h2>
+          {[
+            { title: 'Putts per round', values: o.points.map((p) => p.stats.totalPutts * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
+            { title: '3-putts per round', values: o.points.map((p) => p.stats.threePlus * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
+            { title: 'Strokes gained per round', values: o.points.map((p) => p.stats.sg * p.scale), invert: false, fmt: (v: number) => signed(v, 2) },
+            {
+              title: 'Scoring make %',
+              values: o.points.map((p) => pct(p.stats.scoring) ?? 0),
+              invert: false,
+              fmt: (v: number) => `${v.toFixed(0)}%`,
+            },
+          ].map((chart) => (
+            <div className="card trend-card" key={chart.title}>
+              <div className="trend-head">
+                <span className="tiny">{chart.title}</span>
+                <span className="trend-now">
+                  <span className="num">{chart.fmt(chart.values[chart.values.length - 1])}</span>
+                  <span className="tiny muted">
+                    avg {chart.fmt(chart.values.reduce((a, b) => a + b, 0) / chart.values.length)}
+                  </span>
+                </span>
+              </div>
+              <Trend values={chart.values} invert={chart.invert} />
+            </div>
+          ))}
+          {anyShort && (
+            <p className="small muted" style={{ marginTop: 10 }}>
+              A short round is scaled up here, so it sits next to an eighteen fairly. Open the
+              round itself to see what it actually was.
+            </p>
+          )}
+
+
           <h2>By distance</h2>
           <DistanceTable stats={o.pooled} rounds={o.rounds} sgPerRound={o.bucketSgPerRound} />
           <p className="small muted" style={{ marginTop: 6 }}>
@@ -610,39 +643,7 @@ export function Stats() {
           )}
 
 
-          <p className="act">Is it working</p>
-          <h2>Am I improving</h2>
-          {[
-            { title: 'Putts per round', values: o.points.map((p) => p.stats.totalPutts * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
-            { title: '3-putts per round', values: o.points.map((p) => p.stats.threePlus * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
-            { title: 'Strokes gained per round', values: o.points.map((p) => p.stats.sg * p.scale), invert: false, fmt: (v: number) => signed(v, 2) },
-            {
-              title: 'Scoring make %',
-              values: o.points.map((p) => pct(p.stats.scoring) ?? 0),
-              invert: false,
-              fmt: (v: number) => `${v.toFixed(0)}%`,
-            },
-          ].map((chart) => (
-            <div className="card trend-card" key={chart.title}>
-              <div className="trend-head">
-                <span className="tiny">{chart.title}</span>
-                <span className="trend-now">
-                  <span className="num">{chart.fmt(chart.values[chart.values.length - 1])}</span>
-                  <span className="tiny muted">
-                    avg {chart.fmt(chart.values.reduce((a, b) => a + b, 0) / chart.values.length)}
-                  </span>
-                </span>
-              </div>
-              <Trend values={chart.values} invert={chart.invert} />
-            </div>
-          ))}
-          {anyShort && (
-            <p className="small muted" style={{ marginTop: 10 }}>
-              A short round is scaled up here, so it sits next to an eighteen fairly. Open the
-              round itself to see what it actually was.
-            </p>
-          )}
-
+          <p className="act">What now</p>
           <h2>Round vs round</h2>
           <div style={{ display: 'flex', gap: 10 }}>
             <select value={left?.id ?? ''} onChange={(e) => setLeftId(e.target.value)} aria-label="left round">
