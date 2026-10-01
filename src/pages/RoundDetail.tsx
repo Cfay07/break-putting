@@ -212,10 +212,10 @@ export function RoundDetail({ id }: { id: string }) {
       <h2>Scorecard</h2>
       {suspect.length > 0 && (
         <p className="small neg" style={{ margin: '0 0 8px' }}>
-          Check{' '}
-          {suspect.map((x) => `hole ${x.hole} (${x.from} ft then ${x.to} ft)`).join(', ')}. A putt
-          cannot finish farther from the hole than it started, so a distance there is wrong. Tap the
-          hole to fix it.
+          Worth a look:{' '}
+          {suspect.map((x) => `hole ${x.hole} (${x.from} ft then ${x.to} ft)`).join(', ')}. Running
+          a putt well past is normal, but a leave that much longer than the putt is usually a
+          mistyped distance. Tap the hole if it needs fixing.
         </p>
       )}
       <div className="sc-wrap">

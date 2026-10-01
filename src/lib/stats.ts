@@ -775,19 +775,28 @@ function greenSide(holes: Hole[], rate: Record<BucketKey, number | null>): Green
 }
 
 /**
- * A putt rolls toward the hole, so it cannot finish farther away than it started. When it does,
- * the distance was mistyped or an import read the wrong number, and every stat downstream of it
- * is wrong. Surfaced rather than silently corrected, because only the player knows the real one.
+ * A leave that is wildly longer than the putt it came from is a mistyped distance. A leave that
+ * is merely longer is golf: blow a six-footer down a fast slope and ten feet past is an ordinary
+ * Tuesday. The old rule flagged anything that failed to get closer, which called a normal
+ * downhill miss an error.
+ *
+ * So this only speaks up when the leave is both several times the original and a long way past
+ * it in absolute terms, which no stroke produces and a slipped decimal does. Surfaced rather
+ * than silently corrected, because only the player knows the real number.
  */
+/** A leave has to be this many times the putt, and this many feet longer, before it is doubted. */
+const SUSPECT_RATIO = 2.5;
+const SUSPECT_GAP = 8;
+
 export function suspectHoles(round: Round): { hole: number; from: number; to: number }[] {
   const out: { hole: number; from: number; to: number }[] = [];
   for (const h of round.holes) {
     for (let i = 0; i < h.putts.length - 1; i++) {
       const from = h.putts[i].d;
       const to = h.putts[i + 1].d;
-      // Missing a tap-in and still having a tap-in is ordinary. Anything longer that fails to
-      // get closer is not, so equal distances count too.
-      if (to >= from && to > 2) out.push({ hole: h.hole, from, to });
+      if (to > from * SUSPECT_RATIO && to - from >= SUSPECT_GAP) {
+        out.push({ hole: h.hole, from, to });
+      }
     }
   }
   return out;

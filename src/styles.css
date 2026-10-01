@@ -438,6 +438,9 @@ select {
   background: var(--card);
   padding: 0 12px;
   font: inherit;
+  /* iOS zooms the whole page in whenever a focused control is under 16px and never zooms back
+     out. The baseline editor's rows were 14px, so tapping one left you stuck zoomed mid-round. */
+  font-size: max(16px, 1em);
   color: var(--ink);
 }
 textarea { min-height: 90px; padding: 10px 12px; }
