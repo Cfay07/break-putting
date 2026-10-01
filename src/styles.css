@@ -561,6 +561,7 @@ details > *:last-child { margin-bottom: 16px; }
 /* The team name doubles as the switcher when you are on more than one. The select sits
    invisibly over the heading so the heading itself is the tap target. */
 .team-switch { position: relative; display: inline-flex; align-items: center; gap: 5px; }
+.team-switch > h2 { margin: 0; line-height: 1.15; }
 .team-switch > h2::after {
   content: '⌄';
   font-size: 0.7em;
@@ -615,37 +616,63 @@ select.pick {
 .manage > summary::after { content: ' +'; }
 .manage[open] > summary::after { content: ' −'; }
 .player-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.player-row {
+/* A roster can be thirty deep, so the board is a list and not a stack of cards. Rows are the
+   tap target height and nothing more; the detail lives in the player sheet. */
+.board { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+.lb-row {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   text-align: left;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 0 12px;
+  min-height: 46px;
   cursor: pointer;
   font: inherit;
   color: inherit;
-  min-height: var(--tap);
 }
-.player-row:active { background: #f4f1e8; }
-.player-row > .place {
-  flex: 0 0 20px;
+.lb-row:first-child { border-top: 0; }
+.lb-row:active { background: #f4f1e8; }
+.lb-row > .place {
+  flex: 0 0 18px;
   color: var(--ink-3);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  text-align: center;
+  text-align: right;
 }
-.player-row.lead { box-shadow: inset 3px 0 0 var(--team, var(--ink)); padding-left: 15px; }
-.player-row.lead > .place { color: var(--team, var(--ink)); }
-.player-row > .who { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
-.player-row > .who > .nm { font-weight: 600; font-size: 15px; }
-.player-row > .who > .sub { font-size: 12px; }
-.player-row > .big { flex: 0 0 auto; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
-.player-row > .big.none { color: var(--ink-3); font-weight: 600; }
+.lb-row > .nm {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lb-row > .val { flex: 0 0 auto; font-size: 16px; font-weight: 700; }
+.lb-row > .val.none { color: var(--ink-3); font-weight: 500; }
+.lb-row.lead > .place { color: var(--team, var(--ink)); }
+.lb-row.lead > .nm { font-weight: 700; }
+.lb-row.me { background: rgba(20, 57, 43, 0.05); }
+.lb-row.me > .nm { font-weight: 700; }
+.player-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.icon-btn {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  font-size: 17px;
+  line-height: 1;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.icon-btn:active { background: #f4f1e8; }
+.code-chip.wide { display: block; width: 100%; text-align: center; min-height: 44px; }
 .live-dot {
   flex: 0 0 auto;
   width: 8px;
