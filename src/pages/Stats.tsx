@@ -508,29 +508,30 @@ export function Stats() {
                 </p>
                 <p className="small muted" style={{ margin: '6px 0 0' }}>
                   A mistake is a three-putt, or a putt missed from three to six feet, whatever the
-                  hole ended up scoring. The bleed runs until you play one at par or better.
+                  hole ended up scoring. The bleeding runs until you bounce back, meaning the
+                  first hole after it you play at par or better.
                 </p>
 
                 {bleed.afterRate !== null && bleed.normalRate !== null && (
                   <>
-                    <div className="field-label">Par or better on the next hole</div>
+                    <div className="field-label">Bounce back</div>
                     <Bar
-                      label="After a mistake"
+                      label="Hole after a mistake"
                       value={`${(bleed.afterRate * 100).toFixed(0)}%`}
                       ratio={bleed.afterRate}
                       warn={bleed.afterRate < bleed.normalRate}
                       wide
                     />
                     <Bar
-                      label="Any other hole"
+                      label="Every other hole"
                       value={`${(bleed.normalRate * 100).toFixed(0)}%`}
                       ratio={bleed.normalRate}
                       wide
                     />
                     <p className="small muted" style={{ margin: '6px 0 0' }}>
                       {bleed.afterRate < bleed.normalRate
-                        ? `Right after a mistake you save the hole ${Math.round(bleed.afterRate * 100)} times in 100 instead of ${Math.round(bleed.normalRate * 100)}.`
-                        : 'A mistake does not follow you to the next hole.'}
+                        ? `You bounce back ${Math.round(bleed.afterRate * 100)} times in 100 after a mistake, against ${Math.round(bleed.normalRate * 100)} the rest of the time. Bleed is what the mistakes cost you. Bounce back is how fast you stop them.`
+                        : 'You bounce back as often after a mistake as on any other hole, so a mistake does not follow you.'}
                     </p>
                   </>
                 )}

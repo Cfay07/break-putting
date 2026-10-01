@@ -7,7 +7,7 @@ import { MissGrid } from '../components/MissGrid';
 import { SegMulti } from '../components/SegMulti';
 import { Sheet } from '../components/Sheet';
 import { go } from '../lib/router';
-import { liveBleed } from '../lib/bleed';
+import { bleedMarks, liveBleed } from '../lib/bleed';
 import { liveRound, useApp } from '../lib/store';
 import { syncQuietly } from '../lib/sync';
 import {
@@ -62,10 +62,26 @@ export function Track() {
   const complete =
     holedOut(hole) || (hole.putts.length > 0 && hole.putts[hole.putts.length - 1].made);
   const roundComplete = round.holes.every((h) => holedOut(h) || h.putts.some((p) => p.made));
+  const holesPlayed = round.holes.filter((h) => h.putts.length > 0 || holedOut(h)).length;
+  // Every per-round number is quoted on an eighteen-hole footing, so a short round is multiplied
+  // up. Nine keeps that at double; one hole was being counted eighteen times.
+  const MIN_FINISH = 9;
+  const canFinish = holesPlayed >= MIN_FINISH;
+  const shortBy = MIN_FINISH - holesPlayed;
   const scored = round.holes.filter((h) => holeVsPar(h) !== undefined);
   const runningScore = scored.reduce((sum, h) => sum + (holeVsPar(h) ?? 0), 0);
   const totalStrokes = round.holes.reduce((sum, h) => sum + (h.strokes ?? 0), 0);
   const bleed = liveBleed(round);
+  // "Stopped the bleed" used to fire on any par with no bleed running, including hole one. It
+  // only means something if the hole before it was actually a trigger or part of a bleed.
+  const marks = bleedMarks(round);
+  const prevPlayed = round.holes
+    .filter((h) => h.hole < hole.hole && (h.putts.length > 0 || holedOut(h)))
+    .pop();
+  const bouncedBack =
+    !!prevPlayed &&
+    (marks.triggers.has(prevPlayed.hole) || marks.bled.has(prevPlayed.hole)) &&
+    (holeVsPar(hole) ?? 1) <= 0;
   // Competitive rounds hide the score and the bleed drop without anyone remembering a setting.
   const quiet = (state.quietTrack ?? false) || !!round.competitive;
   const d = Number(track.distanceInput);
@@ -186,14 +202,18 @@ export function Track() {
               }
             />
           </div>
-          {!quiet && !bleed.bleeding && (holeVsPar(hole) ?? 1) <= 0 && (
+          {!quiet && bouncedBack && (
             <p className="small muted" style={{ margin: '10px 0 0' }}>
-              Stopped the bleed.
+              Bounced back. Bleeding stopped.
             </p>
           )}
           <div style={{ height: 14 }} />
           {roundComplete ? (
-            <button className="btn btn-primary btn-wide" onClick={() => setFinishing(true)}>
+            <button
+              className="btn btn-primary btn-wide"
+              disabled={!canFinish}
+              onClick={() => setFinishing(true)}
+            >
               Finish round
             </button>
           ) : (
@@ -347,8 +367,16 @@ export function Track() {
         </>
       )}
 
+      {!canFinish && (
+        <p className="small muted" style={{ margin: '20px 0 -14px' }}>
+          {holesPlayed === 0
+            ? 'Log a hole before finishing. Nine is the minimum a round can be saved at.'
+            : `${holesPlayed} ${holesPlayed === 1 ? 'hole' : 'holes'} in. A round needs nine before it can be saved, because every stat is quoted per eighteen and a shorter round gets multiplied up. ${shortBy} to go, or discard it.`}
+        </p>
+      )}
+
       <div className="btn-row" style={{ marginTop: 26 }}>
-        <button className="btn" onClick={() => setFinishing(true)}>
+        <button className="btn" disabled={!canFinish} onClick={() => setFinishing(true)}>
           Finish round
         </button>
         <ConfirmButton
