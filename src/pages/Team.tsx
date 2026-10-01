@@ -7,6 +7,7 @@ import {
   leaveTeam,
   loadTeams,
   saveTheme,
+  setDisplayName,
   type Member,
   type PlayerStats,
   type Team,
@@ -27,6 +28,15 @@ const BOARDS = [
 ] as const;
 
 type BoardKey = (typeof BOARDS)[number]['key'];
+
+/** "conor.fayard" is not a name. Turn the email local-part into something presentable. */
+function nameFromEmail(email: string): string {
+  return email
+    .split('@')[0]
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -124,6 +134,7 @@ export function Team() {
   const [copied, setCopied] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [draftAccent, setDraftAccent] = useState('#D01C2E');
+  const [myName, setMyName] = useState('');
 
   const refresh = async () => {
     setLoading(true);
@@ -165,6 +176,17 @@ export function Team() {
         return bv - av;
       });
   }, [view, team, board]);
+
+  const me = useMemo(
+    () => view.members.find((m) => m.team_id === team?.id && m.user_id === session?.userId),
+    [view.members, team?.id, session?.userId],
+  );
+
+  useEffect(() => {
+    setEditing(false);
+    setOpen(null);
+    setMyName(me?.display_name ?? '');
+  }, [team?.id, me?.display_name]);
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -209,7 +231,7 @@ export function Team() {
         <button
           className="btn btn-primary"
           disabled={busy || code.trim().length < 4}
-          onClick={() => run(() => joinTeam(code.trim(), session.email.split('@')[0]))}
+          onClick={() => run(() => joinTeam(code.trim(), nameFromEmail(session.email)))}
           style={{ flex: '0 0 auto' }}
         >
           Join
@@ -229,7 +251,7 @@ export function Team() {
         <button
           className="btn"
           disabled={busy || !newName.trim()}
-          onClick={() => run(() => createTeam(newName.trim(), session.email.split('@')[0]))}
+          onClick={() => run(() => createTeam(newName.trim(), nameFromEmail(session.email)))}
           style={{ flex: '0 0 auto' }}
         >
           Create
@@ -259,20 +281,23 @@ export function Team() {
 
   return (
     <div className="team-scope" style={{ '--team': accent } as React.CSSProperties}>
-      {view.teams.length > 1 && (
-        <div className="seg seg-quiet" style={{ marginBottom: 12 }}>
-          {view.teams.map((t) => (
-            <button key={t.id} type="button" aria-pressed={t.id === team.id} onClick={() => setPick(t.id)}>
-              {t.name}
-            </button>
-          ))}
-        </div>
-      )}
-
       <div className="team-head">
         <Crest name={team.name} accent={accent} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <h2 style={{ margin: 0, lineHeight: 1.15 }}>{team.name}</h2>
+          {view.teams.length > 1 ? (
+            <div className="team-switch">
+              <h2 style={{ margin: 0, lineHeight: 1.15 }}>{team.name}</h2>
+              <select value={team.id} onChange={(e) => setPick(e.target.value)} aria-label="Switch team">
+                {view.teams.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <h2 style={{ margin: 0, lineHeight: 1.15 }}>{team.name}</h2>
+          )}
           <p className="small muted" style={{ margin: 0 }}>
             {team.theme?.label ? `${team.theme.label} · ` : ''}
             {roster.length} {roster.length === 1 ? 'player' : 'players'}
@@ -294,12 +319,20 @@ export function Team() {
 
       {err && <p className="small" style={{ color: 'var(--red)' }}>{err}</p>}
 
-      <div className="seg seg-quiet" style={{ margin: '12px 0' }}>
-        {BOARDS.map((b) => (
-          <button key={b.key} type="button" aria-pressed={board === b.key} onClick={() => setBoard(b.key)}>
-            {b.label}
-          </button>
-        ))}
+      <div className="board-bar">
+        <span className="field-label" style={{ margin: 0 }}>Leaderboard</span>
+        <select
+          className="pick"
+          value={board}
+          onChange={(e) => setBoard(e.target.value as BoardKey)}
+          aria-label="Rank by"
+        >
+          {BOARDS.map((b) => (
+            <option key={b.key} value={b.key}>
+              {b.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {roster.map(({ member, stats }, i) => {
@@ -396,7 +429,30 @@ export function Team() {
       )}
 
       <div className="field-label">You</div>
-      <button className="btn btn-ghost btn-danger" disabled={busy} onClick={() => run(() => leaveTeam(team.id))}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          type="text"
+          value={myName}
+          onChange={(e) => setMyName(e.target.value)}
+          placeholder="How your name shows up"
+          maxLength={40}
+          style={{ flex: 1 }}
+        />
+        <button
+          className="btn"
+          disabled={busy || !myName.trim() || myName.trim() === me?.display_name}
+          onClick={() => run(() => setDisplayName(team.id, myName))}
+          style={{ flex: '0 0 auto' }}
+        >
+          Save
+        </button>
+      </div>
+      <button
+        className="btn btn-ghost btn-danger"
+        style={{ marginTop: 10 }}
+        disabled={busy}
+        onClick={() => run(() => leaveTeam(team.id))}
+      >
         Leave {team.name}
       </button>
 
