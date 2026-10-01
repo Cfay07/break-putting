@@ -105,9 +105,10 @@ export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; tagged
               <thead>
                 <tr>
                   <th>Break</th>
+                  <th>Putts</th>
+                  <th>Avg ft</th>
                   {rateIsReal && <th>Made</th>}
                   {rateIsReal && <th>%</th>}
-                  <th>Putts</th>
                   <th>High</th>
                   <th>Low</th>
                 </tr>
@@ -120,11 +121,18 @@ export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; tagged
                 ].map(([label, t]) => (
                   <tr key={label}>
                     <td>{label}</td>
-                    {rateIsReal && <td>{t.attempts ? `${t.makes}/${t.attempts}` : '--'}</td>}
+                    <td className="num">{t.attempts || '--'}</td>
+                    <td className="num">
+                      {t.attempts ? (t.feet / t.attempts).toFixed(0) : '--'}
+                    </td>
                     {rateIsReal && (
-                      <td>{t.attempts ? `${((t.makes / t.attempts) * 100).toFixed(0)}%` : '--'}</td>
+                      <td className="num">{t.attempts ? `${t.makes}/${t.attempts}` : '--'}</td>
                     )}
-                    <td>{t.attempts || '--'}</td>
+                    {rateIsReal && (
+                      <td className="num">
+                        {t.attempts ? `${((t.makes / t.attempts) * 100).toFixed(0)}%` : '--'}
+                      </td>
+                    )}
                     <td>{t.high || '--'}</td>
                     <td>{t.low || '--'}</td>
                   </tr>
@@ -134,7 +142,11 @@ export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; tagged
           </div>
           <p className="small muted" style={{ margin: '6px 0 0' }}>
             A double breaker counts once, in its own row, so every tagged putt sits in exactly one
-            of the top four. Uphill and downhill are a separate axis and overlap with them.
+            of the top four. Uphill and downhill are a separate axis and overlap with them. Read
+            any make rate here against the average distance beside it: these rows pool every
+            length, so a shape you happen to face from further out will look harder than it is.
+            The distance-controlled version is in What the break costs you, which compares every
+            shape at six feet.
             {!rateIsReal
               ? ` No make rate yet: you have tagged ${p.breakMisses} miss${p.breakMisses === 1 ? '' : 'es'} and ${p.breakMakes} make${p.breakMakes === 1 ? '' : 's'}. Tag the break on putts you hole too, or the rate can only ever read zero.`
               : ''}

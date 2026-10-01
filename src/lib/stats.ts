@@ -77,6 +77,8 @@ export interface BreakTally {
   makes: number;
   high: number;
   low: number;
+  /** Total feet, so a row's make rate can be read next to the distance behind it. */
+  feet: number;
 }
 
 export interface Stats {
@@ -122,7 +124,7 @@ function emptyBuckets(): Record<BucketKey, Tally> {
 }
 
 function emptyBreak(): BreakTally {
-  return { attempts: 0, makes: 0, high: 0, low: 0 };
+  return { attempts: 0, makes: 0, high: 0, low: 0, feet: 0 };
 }
 
 function emptyPattern(): Pattern {
@@ -242,6 +244,7 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
       for (const t of [bucket ? pattern.byBreak[bucket] : null, slope ? pattern[slope] : null]) {
         if (!t) continue;
         t.attempts++;
+        t.feet += p.d;
         if (p.made) t.makes++;
         else if (p.missSide === 'high') t.high++;
         else if (p.missSide === 'low') t.low++;
