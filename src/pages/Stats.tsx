@@ -4,6 +4,7 @@ import { fitMakeModel } from '../lib/makeability';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
+import { LinePacePanel } from '../components/LinePacePanel';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
@@ -14,6 +15,8 @@ import { Bar } from '../components/Bar';
 import {
   byCourse,
   byGreenSpeed,
+  lagSaves,
+  lineAndPace,
   courseLabel,
   overall,
   pct,
@@ -99,6 +102,8 @@ export function Stats() {
   const makeModel = useMemo(() => fitMakeModel(rounds), [rounds]);
   const courses = useMemo(() => byCourse(rounds, state.baseline), [rounds, state.baseline]);
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
+  const lag = useMemo(() => lagSaves(rounds), [rounds]);
+  const linePace = useMemo(() => lineAndPace(rounds), [rounds]);
   const bleed = useMemo(() => bleedSummary(rounds), [rounds]);
   const green = useMemo(() => splitByGreen(rounds), [rounds]);
   const withScore = useMemo(
@@ -392,7 +397,41 @@ export function Stats() {
           )}
 
           <h2>Lag control</h2>
-          <LagPanel stats={o.pooled} />
+          <LagPanel stats={o.pooled} lag={lag} />
+
+          <h2>Line and pace</h2>
+          <LinePacePanel lp={linePace} />
+
+          {lag.bySource.some((b) => b.threePutts > 0) && (
+            <>
+              <div className="field-label">Where your three-putts start</div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>First putt</th>
+                      <th>Holes</th>
+                      <th>3-putts</th>
+                      <th>Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lag.bySource.map((b) => {
+                      const rate = Math.round((b.threePutts / b.holes) * 100);
+                      return (
+                        <tr key={b.label}>
+                          <td>{b.label}</td>
+                          <td className="num">{b.holes}</td>
+                          <td className={b.threePutts ? 'num neg' : 'num'}>{b.threePutts}</td>
+                          <td className={rate >= 25 ? 'num neg' : 'num'}>{rate}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
 
           {speeds.length > 1 && (
             <>

@@ -354,6 +354,105 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
   };
 }
 
+/** The distance a leave stops being a tap-in and starts being a putt you can miss. */
+export const DANGER_FROM = 4;
+
+export interface LineAndPace {
+  /** Putts judged: holed ones, plus missed ones carrying the tag. */
+  readJudged: number;
+  readRight: number;
+  paceJudged: number;
+  paceRight: number;
+  short: number;
+  long: number;
+}
+
+/**
+ * Every putt is a line and a speed. Holing it means both were right; a miss that finishes on
+ * line means the read was right and only the pace was wrong. Counted over rounds that carry
+ * tags at all, since an untagged round would otherwise contribute its makes and none of its
+ * misses and read as near perfect.
+ */
+export function lineAndPace(rounds: Round[]): LineAndPace {
+  const out: LineAndPace = {
+    readJudged: 0, readRight: 0, paceJudged: 0, paceRight: 0, short: 0, long: 0,
+  };
+  for (const r of rounds) {
+    const tagged = r.holes.some((h) => h.putts.some((p) => p.missSide || p.speed));
+    if (!tagged) continue;
+    for (const h of r.holes) {
+      for (const p of h.putts) {
+        if (p.d < SCORING_MIN) continue;
+        if (p.made || p.missSide) {
+          out.readJudged++;
+          if (p.made || p.missSide === 'online') out.readRight++;
+        }
+        if (p.made || p.speed) {
+          out.paceJudged++;
+          if (p.made || p.speed === 'good') out.paceRight++;
+          if (p.speed === 'short') out.short++;
+          if (p.speed === 'long') out.long++;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+export interface LagSave {
+  lags: number;
+  /** Lags that finished outside the danger line, so the next putt could be missed. */
+  bad: number;
+  /** Of those, the ones still holed in two. */
+  saved: number;
+  avgBadLeave: number | null;
+  /** Three-putts by where the first putt came from. */
+  bySource: { label: string; holes: number; threePutts: number }[];
+}
+
+export function lagSaves(rounds: Round[]): LagSave {
+  const bands: { label: string; max: number }[] = [
+    { label: 'Inside 10 ft', max: 10 },
+    { label: '11-25 ft', max: 25 },
+    { label: '26-40 ft', max: 40 },
+    { label: '41+ ft', max: Infinity },
+  ];
+  const bySource = bands.map((b) => ({ label: b.label, holes: 0, threePutts: 0 }));
+  let lags = 0;
+  let bad = 0;
+  let saved = 0;
+  const badLeaves: number[] = [];
+
+  for (const r of rounds) {
+    for (const h of r.holes) {
+      if (!h.putts.length) continue;
+      const first = h.putts[0];
+      const band = bands.findIndex((b) => first.d <= b.max);
+      if (band >= 0) {
+        bySource[band].holes++;
+        if (h.putts.length >= 3) bySource[band].threePutts++;
+      }
+      if (first.d < LAG_FROM || first.made) continue;
+      lags++;
+      const leave = h.putts[1]?.d;
+      if (leave === undefined || leave < DANGER_FROM) continue;
+      bad++;
+      badLeaves.push(leave);
+      if (h.putts.length === 2) saved++;
+    }
+  }
+
+  return {
+    lags,
+    bad,
+    saved,
+    avgBadLeave: badLeaves.length
+      ? badLeaves.reduce((a, b) => a + b, 0) / badLeaves.length
+      : null,
+    bySource: bySource.filter((b) => b.holes > 0),
+  };
+}
+
 export interface SpeedSplit {
   speed: GreenSpeed;
   rounds: number;

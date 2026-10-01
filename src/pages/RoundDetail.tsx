@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
+import { lagSaves } from '../lib/stats';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { ScoreMark } from '../components/ScoreMark';
 import { DistanceTable } from '../components/DistanceTable';
@@ -200,7 +201,7 @@ export function RoundDetail({ id }: { id: string }) {
       <DistanceTable stats={s} />
 
       <h2>Lag control</h2>
-      <LagPanel stats={s} />
+      <LagPanel stats={s} lag={lagSaves([round])} />
 
       <h2>Miss patterns</h2>
       <PatternPanel stats={s} />
