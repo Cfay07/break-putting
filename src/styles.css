@@ -853,3 +853,13 @@ button.pick:active { background-color: #f4f1e8; }
   padding: 10px 12px;
 }
 .lp-val { font-size: 26px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; }
+
+/* Miss shapes. A bar each so concentration reads at a glance: one long bar is a fault to train,
+   five similar ones are variance and no drill will find it. */
+.shape-list { display: grid; gap: 7px; }
+.shape-row { display: grid; grid-template-columns: 1fr 86px 38px; align-items: center; gap: 10px; }
+.shape-name { font-size: 14px; }
+.shape-bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.shape-bar > i { display: block; height: 100%; background: var(--ink-2); border-radius: 4px; }
+.shape-row:first-child .shape-bar > i { background: var(--accent); }
+.shape-pct { font-size: 13px; font-weight: 600; text-align: right; color: var(--ink-2); }

@@ -5,6 +5,7 @@ import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { MissAnatomyPanel } from '../components/MissAnatomyPanel';
+import { MissShapesPanel, SecondLookPanel } from '../components/SecondLookPanel';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
@@ -17,6 +18,9 @@ import {
   byGreenSpeed,
   lagSaves,
   missAnatomy,
+  missShapes,
+  secondLook,
+  volatility,
   courseLabel,
   overall,
   pct,
@@ -104,6 +108,9 @@ export function Stats() {
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const miss = useMemo(() => missAnatomy(rounds), [rounds]);
+  const look = useMemo(() => secondLook(rounds), [rounds]);
+  const shapes = useMemo(() => missShapes(rounds), [rounds]);
+  const vol = useMemo(() => volatility(rounds, state.baseline), [rounds, state.baseline]);
   const bleed = useMemo(() => bleedSummary(rounds), [rounds]);
   const green = useMemo(() => splitByGreen(rounds), [rounds]);
   const withScore = useMemo(
@@ -259,6 +266,15 @@ export function Stats() {
 
           <h2>Averages</h2>
           <div className="card">
+            {vol && (
+              <div className="stat-row">
+                <span className="k">
+                  Round to round swing
+                  <span className="small muted"> · best {signed(vol.best, 1)}, worst {signed(vol.worst, 1)}</span>
+                </span>
+                <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(2)}</span>
+              </div>
+            )}
             <div className="stat-row">
               <span className="k">Putts per round</span>
               <span className="v num">{o.puttsPerRound?.toFixed(1)}</span>
@@ -401,6 +417,12 @@ export function Stats() {
 
           <h2>When you miss, why</h2>
           <MissAnatomyPanel miss={miss} />
+
+          <div className="field-label">Your most common miss</div>
+          <MissShapesPanel shapes={shapes} />
+
+          <h2>Second look</h2>
+          <SecondLookPanel rows={look} />
 
           {lag.bySource.some((b) => b.threePutts > 0) && (
             <>

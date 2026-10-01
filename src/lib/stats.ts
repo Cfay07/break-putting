@@ -357,6 +357,87 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
 /** The distance a leave stops being a tap-in and starts being a putt you can miss. */
 export const DANGER_FROM = 4;
 
+export interface SecondLook {
+  band: string;
+  firstPutts: number;
+  firstMade: number;
+  comebacks: number;
+  comebackMade: number;
+}
+
+/**
+ * A first putt and a comeback from the same distance are the same stroke on the same green. The
+ * only thing that differs is having watched a ball roll on that line, so a gap between them is
+ * information rather than mechanics.
+ */
+export function secondLook(rounds: Round[]): SecondLook[] {
+  const bands = [
+    { band: '1-2 ft', max: 2 },
+    { band: '3-5 ft', max: 5 },
+    { band: '6-10 ft', max: 10 },
+    { band: '11+ ft', max: Infinity },
+  ];
+  const out: SecondLook[] = bands.map((b) => ({
+    band: b.band, firstPutts: 0, firstMade: 0, comebacks: 0, comebackMade: 0,
+  }));
+  for (const r of rounds) {
+    for (const h of r.holes) {
+      h.putts.forEach((p, i) => {
+        const k = bands.findIndex((b) => p.d <= b.max);
+        if (k < 0) return;
+        if (i === 0) {
+          out[k].firstPutts++;
+          if (p.made) out[k].firstMade++;
+        } else {
+          out[k].comebacks++;
+          if (p.made) out[k].comebackMade++;
+        }
+      });
+    }
+  }
+  return out;
+}
+
+export interface MissShape {
+  label: string;
+  n: number;
+  share: number;
+}
+
+/**
+ * How concentrated the misses are. A player with one mechanical fault puts half their misses in
+ * a single shape; scattered misses mean there is no one thing to train, which is worth saying
+ * before any drill gets prescribed.
+ */
+export function missShapes(rounds: Round[]): MissShape[] {
+  const counts = new Map<string, number>();
+  let total = 0;
+  const SIDE: Record<string, string> = { high: 'High', low: 'Low', online: 'On line' };
+  const PACE: Record<string, string> = { short: 'short', good: 'right pace', long: 'long' };
+  for (const r of rounds) {
+    for (const h of r.holes) {
+      for (const p of h.putts) {
+        if (p.made || p.d < SCORING_MIN || !p.missSide || !p.speed) continue;
+        const label = `${SIDE[p.missSide]} and ${PACE[p.speed]}`;
+        counts.set(label, (counts.get(label) ?? 0) + 1);
+        total++;
+      }
+    }
+  }
+  return [...counts.entries()]
+    .map(([label, n]) => ({ label, n, share: n / total }))
+    .sort((a, b) => b.n - a.n);
+}
+
+/** Round-to-round spread of strokes gained. Two players can share a mean and not a game. */
+export function volatility(rounds: Round[], baseline: [number, number][]) {
+  const per = rounds.map((r) => roundStats(r, baseline).sg * roundScale(r));
+  if (per.length < 3) return null;
+  const mean = per.reduce((a, b) => a + b, 0) / per.length;
+  const sd = Math.sqrt(per.reduce((s, v) => s + (v - mean) ** 2, 0) / (per.length - 1));
+  return { rounds: per.length, mean, sd, best: Math.max(...per), worst: Math.min(...per) };
+}
+
 export interface MissAnatomy {
   /** Misses carrying both a side and a pace, so each one can be classified. */
   judged: number;
