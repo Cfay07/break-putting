@@ -329,15 +329,21 @@ export function RoundDetail({ id }: { id: string }) {
                   <MissGrid
                     side={p.missSide}
                     speed={p.speed}
-                    onPick={(missSide, speed) =>
+                    onPick={(missSide, speed) => {
+                      const wasLipCell = p.missSide === 'online' && p.speed === 'good';
+                      const isLipCell = missSide === 'online' && speed === 'good';
                       dispatch({
                         t: 'updatePutt',
                         roundId: round.id,
                         hole: hole.hole,
                         index: i,
-                        patch: { missSide, speed },
-                      })
-                    }
+                        patch: {
+                          missSide,
+                          speed,
+                          ...(isLipCell ? { lip: true } : wasLipCell ? { lip: false } : {}),
+                        },
+                      });
+                    }}
                   />
                   <div className="field-label">
                     How it broke

@@ -281,7 +281,15 @@ export function Track() {
               <MissGrid
                 side={draft.missSide}
                 speed={draft.speed}
-                onPick={(missSide, speed) => setDraft({ missSide, speed })}
+                onPick={(missSide, speed) => {
+                  const wasLipCell = draft.missSide === 'online' && draft.speed === 'good';
+                  const isLipCell = missSide === 'online' && speed === 'good';
+                  setDraft({
+                    missSide,
+                    speed,
+                    ...(isLipCell ? { lip: true } : wasLipCell ? { lip: false } : {}),
+                  });
+                }}
               />
             </>
           )}

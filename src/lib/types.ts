@@ -34,6 +34,8 @@ export interface Putt {
   lip?: boolean;
   push?: boolean;
   pull?: boolean;
+  /** Quit on it. A tempo fault rather than a face or path one, so it stands on its own. */
+  decel?: boolean;
 }
 
 export interface Hole {
@@ -179,13 +181,14 @@ export function brandPill(name: string): { bg: string; ink: string } | null {
   return BRAND_PILLS.find((b) => b.match.test(name)) ?? null;
 }
 
-export const FACTORS = ['lip', 'push', 'pull'] as const;
+export const FACTORS = ['lip', 'push', 'pull', 'decel'] as const;
 export type Factor = (typeof FACTORS)[number];
 
 export const FACTOR_LABELS: Record<Factor, string> = {
   lip: 'Lipped',
   push: 'Pushed',
   pull: 'Pulled',
+  decel: 'Decel',
 };
 
 export const BREAK_DIRS: BreakDir[] = ['L→R', 'R→L', 'straight', 'uphill', 'downhill'];
