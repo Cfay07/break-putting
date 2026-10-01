@@ -361,6 +361,14 @@ export interface SpeedSplit {
   /** Tagged misses that had a side, so the high share can be read honestly. */
   sided: number;
   high: number;
+  /** Tagged misses that had a pace on them. Green speed shows up here most of all. */
+  paced: number;
+  short: number;
+  /** Make rate from three to ten feet, the range that decides a score. */
+  scoring: Tally;
+  /** Average leave on lag putts, and how many there were to average over. */
+  avgLeave: number | null;
+  lagAttempts: number;
 }
 
 /**
@@ -383,6 +391,11 @@ export function byGreenSpeed(rounds: Round[], baseline: [number, number][]): Spe
       sg: per((x) => x.s.sg * x.k),
       sided: pooled.pattern.high + pooled.pattern.low,
       high: pooled.pattern.high,
+      paced: pooled.pattern.short + pooled.pattern.long,
+      short: pooled.pattern.short,
+      scoring: pooled.scoring,
+      avgLeave: pooled.avgLeave,
+      lagAttempts: pooled.lagAttempts,
     };
   }).filter((x): x is SpeedSplit => x !== null);
 }

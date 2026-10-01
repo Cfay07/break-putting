@@ -828,3 +828,14 @@ button.pick:active { background-color: #f4f1e8; }
 }
 /* The meter rides the end of the metrics row, so the card gains a mark and not a line. */
 .metrics .metric-end { margin-left: auto; align-self: flex-end; padding-bottom: 2px; }
+
+/* Green speed, one block per band. Stacked rather than an eight-column table, which no phone
+   can hold, and the question is whether a band behaves differently and not which cell is biggest. */
+.speed-band { border-top: 1px solid var(--line); padding: 12px 0 10px; }
+.speed-band:first-child { border-top: 0; padding-top: 2px; }
+.speed-band-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.band-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.band-cell { display: flex; flex-direction: column; gap: 1px; }
+.band-cell > .val { font-size: 17px; font-weight: 700; }
+.band-read { margin: 8px 0 0; color: var(--ink-2); }
+.band-read > strong { color: var(--ink); }
