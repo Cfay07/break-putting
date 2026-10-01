@@ -357,47 +357,6 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
 /** The distance a leave stops being a tap-in and starts being a putt you can miss. */
 export const DANGER_FROM = 4;
 
-export interface SecondLook {
-  band: string;
-  firstPutts: number;
-  firstMade: number;
-  comebacks: number;
-  comebackMade: number;
-}
-
-/**
- * A first putt and a comeback from the same distance are the same stroke on the same green. The
- * only thing that differs is having watched a ball roll on that line, so a gap between them is
- * information rather than mechanics.
- */
-export function secondLook(rounds: Round[]): SecondLook[] {
-  const bands = [
-    { band: '1-2 ft', max: 2 },
-    { band: '3-5 ft', max: 5 },
-    { band: '6-10 ft', max: 10 },
-    { band: '11+ ft', max: Infinity },
-  ];
-  const out: SecondLook[] = bands.map((b) => ({
-    band: b.band, firstPutts: 0, firstMade: 0, comebacks: 0, comebackMade: 0,
-  }));
-  for (const r of rounds) {
-    for (const h of r.holes) {
-      h.putts.forEach((p, i) => {
-        const k = bands.findIndex((b) => p.d <= b.max);
-        if (k < 0) return;
-        if (i === 0) {
-          out[k].firstPutts++;
-          if (p.made) out[k].firstMade++;
-        } else {
-          out[k].comebacks++;
-          if (p.made) out[k].comebackMade++;
-        }
-      });
-    }
-  }
-  return out;
-}
-
 export interface MissShape {
   label: string;
   n: number;

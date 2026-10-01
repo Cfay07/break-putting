@@ -27,15 +27,22 @@ export function LagPanel({ stats, lag }: { stats: Stats; lag: LagSave }) {
       {lag.bad > 0 && (
         <>
           <div className="stat-row">
-            <span className="k">Left outside {DANGER_FROM} ft</span>
+            <span className="k">Left yourself {DANGER_FROM}+ ft</span>
             <span className={lag.lags && lag.bad / lag.lags > 0.3 ? 'v num neg' : 'v num'}>
               {lag.bad} of {lag.lags}
             </span>
           </div>
+          {lag.avgBadLeave !== null && (
+            <div className="stat-row">
+              <span className="k">The comeback you faced</span>
+              <span className="v num">{lag.avgBadLeave.toFixed(1)} ft</span>
+            </div>
+          )}
           <div className="stat-row">
-            <span className="k">Two-putt saved from there</span>
+            <span className="k">Holed that comeback</span>
             <span className={lag.saved / lag.bad < 0.6 ? 'v num neg' : 'v num pos'}>
               {Math.round((lag.saved / lag.bad) * 100)}%
+              <span className="small muted"> · {lag.saved} of {lag.bad}</span>
             </span>
           </div>
         </>

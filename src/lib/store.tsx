@@ -288,7 +288,13 @@ export function reducer(state: AppState, a: Action): AppState {
       // Whichever copy changed last wins, so a phone that was offline mid-round is not
       // overwritten by an older copy sitting on another device.
       const byId = new Map(state.rounds.map((r) => [r.id, r]));
+      // A local tombstone outranks any copy of the round that is older than the deletion.
+      // Without this a pull quietly resurrects whatever you just deleted, which is exactly
+      // what another device re-uploading a stale copy will hand back.
+      const graves = new Map(state.tombstones.map((t) => [t.id, t.at]));
       for (const incoming of rounds) {
+        const grave = graves.get(incoming.id);
+        if (grave !== undefined && grave >= (incoming.updated ?? '')) continue;
         const mine = byId.get(incoming.id);
         if (!mine || (mine.updated ?? '') < (incoming.updated ?? '')) byId.set(incoming.id, incoming);
       }

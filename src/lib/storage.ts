@@ -21,12 +21,24 @@ export function emptyState(): AppState {
   };
 }
 
+/**
+ * A round with no `updated` was treated as "changed" by every sync, so a device holding a stale
+ * copy re-uploaded it forever and overwrote newer edits made anywhere else. Stamping one on load
+ * stops that. It is dated to the round itself rather than now, so an unknown-provenance copy
+ * loses to any real edit instead of winning by being loaded most recently.
+ */
+function stamped(rounds: AppState['rounds'] | undefined): AppState['rounds'] {
+  return (rounds ?? []).map((r) =>
+    r.updated ? r : { ...r, updated: `${r.date}T00:00:00.000Z` },
+  );
+}
+
 export function load(): AppState {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    return { ...emptyState(), ...parsed, version: STATE_VERSION };
+    return { ...emptyState(), ...parsed, version: STATE_VERSION, rounds: stamped(parsed.rounds) };
   } catch {
     return emptyState();
   }

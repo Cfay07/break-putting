@@ -5,7 +5,7 @@ import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { MissAnatomyPanel } from '../components/MissAnatomyPanel';
-import { MissShapesPanel, SecondLookPanel } from '../components/SecondLookPanel';
+import { MissShapesPanel } from '../components/MissShapesPanel';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
@@ -19,7 +19,6 @@ import {
   lagSaves,
   missAnatomy,
   missShapes,
-  secondLook,
   volatility,
   courseLabel,
   overall,
@@ -108,7 +107,6 @@ export function Stats() {
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const miss = useMemo(() => missAnatomy(rounds), [rounds]);
-  const look = useMemo(() => secondLook(rounds), [rounds]);
   const shapes = useMemo(() => missShapes(rounds), [rounds]);
   const vol = useMemo(() => volatility(rounds, state.baseline), [rounds, state.baseline]);
   const bleed = useMemo(() => bleedSummary(rounds), [rounds]);
@@ -324,9 +322,6 @@ export function Stats() {
 
           <div className="field-label">Your most common miss</div>
           <MissShapesPanel shapes={shapes} />
-
-          <h2>Second look</h2>
-          <SecondLookPanel rows={look} />
 
           <h2>Miss patterns</h2>
           <PatternPanel stats={o.pooled} taggedRounds={taggedRounds} />
