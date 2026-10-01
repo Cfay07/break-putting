@@ -268,7 +268,7 @@ export function Stats() {
             {vol && (
               <div className="stat-row">
                 <span className="k">
-                  Round to round swing
+                  Typical round is this far off your average
                   <span className="small muted"> · best {signed(vol.best, 1)}, worst {signed(vol.worst, 1)}</span>
                 </span>
                 <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(2)}</span>
