@@ -9,6 +9,9 @@ import {
   loadTeams,
   saveTheme,
   setDisplayName,
+  loadPlayerRounds,
+  starTeam,
+  type TeamRound,
   type Member,
   type PlayerStats,
   type Team as TeamRow,
@@ -23,9 +26,11 @@ const EMPTY: TeamView = { teams: [], members: [], stats: [] };
  * app knows, so they are the ones worth competing on.
  */
 const BOARDS = [
-  { key: 'sg_pr', label: 'Strokes gained', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2)) },
-  { key: 'make6', label: 'Six-footers', fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
-  { key: 'bleed_recovery', label: 'Bounce back', fmt: (v: number) => `${(v * 100).toFixed(0)}%` },
+  { key: 'sg_pr', label: 'Strokes gained', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2)), lowBetter: false },
+  { key: 'scoring_pct', label: 'Scoring range (3-10 ft)', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
+  { key: 'make6', label: 'Six-footers', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
+  { key: 'three_pr', label: '3-putts per round', fmt: (v: number) => v.toFixed(2), lowBetter: true },
+  { key: 'bleed_pr', label: 'Bleed', fmt: (v: number) => `-${v.toFixed(2)}`, lowBetter: true },
 ] as const;
 
 type BoardKey = (typeof BOARDS)[number]['key'];
@@ -71,15 +76,26 @@ function PlayerPanel({
   onClose: () => void;
 }) {
   const name = member.display_name ?? 'Unnamed player';
+  const [rounds, setRounds] = useState<TeamRound[] | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void loadPlayerRounds(member.user_id)
+      .then((r) => live && setRounds(r))
+      .catch(() => live && setRounds([]));
+    return () => {
+      live = false;
+    };
+  }, [member.user_id]);
   const rows: [string, string][] = stats
     ? [
         ['Rounds logged', String(stats.rounds)],
-        ['Competitive', String(stats.competitive_rounds)],
         ['Putts per round', stats.putts_pr?.toFixed(1) ?? '--'],
         ['3-putts per round', stats.three_pr?.toFixed(2) ?? '--'],
         ['Strokes gained', stats.sg_pr !== null ? stats.sg_pr.toFixed(2) : '--'],
+        ['Scoring range (3-10 ft)', stats.scoring_pct !== null ? `${(stats.scoring_pct * 100).toFixed(0)}%` : '--'],
         ['Six-footers', stats.make6 !== null ? `${(stats.make6 * 100).toFixed(0)}%` : '--'],
-        ['Bounce back', stats.bleed_recovery !== null ? `${(stats.bleed_recovery * 100).toFixed(0)}%` : '--'],
+        ['Bleed, shots a round', stats.bleed_pr !== null ? `-${stats.bleed_pr.toFixed(2)}` : '--'],
         ['Last round', stats.last_round ? fmtDate(stats.last_round) : '--'],
       ]
     : [];
@@ -116,9 +132,33 @@ function PlayerPanel({
         </p>
       )}
 
-      <p className="small muted" style={{ marginTop: 10 }}>
-        Individual rounds stay private to the player who logged them.
-      </p>
+      {!!rounds?.length && (
+        <>
+          <div className="field-label">Rounds</div>
+          <div className="board">
+            {rounds.map((r) => (
+              <div key={r.round_id} className={r.competitive ? 'lb-row comp' : 'lb-row'}>
+                <span className="nm">
+                  {r.played_on ? fmtDate(r.played_on) : '--'}
+                  {r.course ? <span className="small muted"> · {r.course}</span> : ''}
+                </span>
+                <span className="val num">{r.putts ?? '--'}</span>
+                <span className={(r.sg ?? 0) < 0 ? 'val num neg' : 'val num pos'}>
+                  {r.sg === null ? '--' : r.sg >= 0 ? `+${r.sg.toFixed(2)}` : r.sg.toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="small muted" style={{ margin: '6px 0 0' }}>
+            Putts and strokes gained per round. Putt-by-putt detail stays with the player.
+          </p>
+        </>
+      )}
+      {rounds !== null && !rounds.length && (
+        <p className="small muted" style={{ marginTop: 10 }}>
+          No rounds published yet.
+        </p>
+      )}
     </Sheet>
   );
 }
@@ -157,9 +197,17 @@ export function Team() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const starredId = useMemo(
+    () => view.members.find((m) => m.user_id === session?.userId && m.starred)?.team_id,
+    [view.members, session?.userId],
+  );
+
   const team: TeamRow | undefined = useMemo(
-    () => view.teams.find((t) => t.id === pick) ?? view.teams[0],
-    [view.teams, pick],
+    () =>
+      view.teams.find((t) => t.id === pick) ??
+      view.teams.find((t) => t.id === starredId) ??
+      view.teams[0],
+    [view.teams, pick, starredId],
   );
   const accent = team?.theme?.accent || '#14392b';
   const isOwner = !!team && team.owner_id === session?.userId;
@@ -200,7 +248,7 @@ export function Team() {
           return (a.member.display_name ?? '').localeCompare(b.member.display_name ?? '');
         if (av === null) return 1;
         if (bv === null) return -1;
-        return bv - av;
+        return BOARDS.find((x) => x.key === board)!.lowBetter ? av - bv : bv - av;
       });
   }, [view, team, board]);
 
@@ -370,21 +418,34 @@ export function Team() {
 
       {sheet === 'teams' && (
         <Sheet title="Your teams" onClose={() => setSheet(null)}>
+          <p className="small muted" style={{ margin: '0 0 8px' }}>
+            The starred team is the one this tab opens on.
+          </p>
           <div className="menu">
             {view.teams.map((t) => (
-              <button
-                key={t.id}
-                aria-current={t.id === team.id}
-                onClick={() => {
-                  setPick(t.id);
-                  setSheet(null);
-                }}
-              >
-                <span className="menu-row">
-                  <Crest name={t.name} accent={t.theme?.accent || '#14392b'} />
-                  {t.name}
-                </span>
-              </button>
+              <div className="menu-pair" key={t.id}>
+                <button
+                  aria-current={t.id === team.id}
+                  onClick={() => {
+                    setPick(t.id);
+                    setSheet(null);
+                  }}
+                >
+                  <span className="menu-row">
+                    <Crest name={t.name} accent={t.theme?.accent || '#14392b'} />
+                    {t.name}
+                  </span>
+                </button>
+                <button
+                  className={t.id === starredId ? 'star on' : 'star'}
+                  disabled={busy}
+                  aria-pressed={t.id === starredId}
+                  aria-label={t.id === starredId ? `${t.name} is your main team` : `Make ${t.name} your main team`}
+                  onClick={() => run(() => starTeam(t.id))}
+                >
+                  ★
+                </button>
+              </div>
             ))}
             {view.teams.length < MAX_TEAMS && (
               <>

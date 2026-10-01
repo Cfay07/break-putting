@@ -19,6 +19,8 @@ export interface Member {
   user_id: string;
   display_name: string | null;
   role: 'owner' | 'member';
+  /** The team this player lands on. At most one of their rows carries it. */
+  starred: boolean;
 }
 
 /** What a player publishes about themselves. Raw rounds never leave their owner. */
@@ -30,10 +32,27 @@ export interface PlayerStats {
   three_pr: number | null;
   sg_pr: number | null;
   make6: number | null;
-  bleed_recovery: number | null;
+  /** Shots dropped per round after a putting mistake. Lower is better. */
+  bleed_pr: number | null;
+  /** Make rate from 3 to 10 feet. */
+  scoring_pct: number | null;
   last_round: string | null;
   live: { hole: number; thru: number; course?: string; started_at: string } | null;
   updated_at?: string;
+}
+
+/** A scorecard line a teammate can see. The putt-by-putt detail stays with its owner. */
+export interface TeamRound {
+  user_id: string;
+  round_id: string;
+  played_on: string | null;
+  course: string | null;
+  holes_played: number | null;
+  score: number | null;
+  putts: number | null;
+  three_putts: number | null;
+  sg: number | null;
+  competitive: boolean;
 }
 
 export interface TeamView {
@@ -64,7 +83,7 @@ export async function loadTeams(): Promise<TeamView> {
   );
   if (!teams.length) return { teams: [], members: [], stats: [] };
   const [members, stats] = await Promise.all([
-    rows<Member>('team_members?select=team_id,user_id,display_name,role'),
+    rows<Member>('team_members?select=team_id,user_id,display_name,role,starred'),
     rows<PlayerStats>('team_stats?select=*'),
   ]);
   return { teams, members, stats };
@@ -100,13 +119,53 @@ export async function saveTheme(teamId: string, theme: TeamTheme, name?: string)
 export async function setDisplayName(teamId: string, name: string): Promise<void> {
   const session = currentSession();
   if (!session) return;
-  await table(`team_members?team_id=eq.${teamId}&user_id=eq.${session.userId}`, {
+  const res = await table(`team_members?team_id=eq.${teamId}&user_id=eq.${session.userId}`, {
     method: 'PATCH',
     body: JSON.stringify({ display_name: name.trim() || null }),
   });
+  if (!res.ok) throw new Error(`Could not save your name (${res.status}).`);
+}
+
+/** Star one team and clear the rest, so exactly one is the landing team. */
+export async function starTeam(teamId: string): Promise<void> {
+  const session = currentSession();
+  if (!session) throw new Error('Not signed in.');
+  const clear = await table(`team_members?user_id=eq.${session.userId}&team_id=neq.${teamId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ starred: false }),
+  });
+  if (!clear.ok) throw new Error(`Could not save (${clear.status}).`);
+  const set = await table(`team_members?user_id=eq.${session.userId}&team_id=eq.${teamId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ starred: true }),
+  });
+  if (!set.ok) throw new Error(`Could not save (${set.status}).`);
 }
 
 /** Publish my own summary. Fire and forget: a failed publish is not worth an error on screen. */
+/** Round list for one player, newest first. */
+export async function loadPlayerRounds(userId: string): Promise<TeamRound[]> {
+  return rows<TeamRound>(
+    `team_rounds?select=*&user_id=eq.${userId}&order=played_on.desc&limit=40`,
+  );
+}
+
+export async function publishRounds(mine: Omit<TeamRound, 'user_id'>[]): Promise<void> {
+  const session = currentSession();
+  if (!session || !online() || !mine.length) return;
+  try {
+    await table('team_rounds?on_conflict=user_id,round_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify(
+        mine.map((r) => ({ user_id: session.userId, ...r, updated_at: new Date().toISOString() })),
+      ),
+    });
+  } catch {
+    // next open will try again
+  }
+}
+
 export async function publishStats(mine: Omit<PlayerStats, 'user_id'>): Promise<void> {
   const session = currentSession();
   if (!session || !online()) return;

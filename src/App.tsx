@@ -8,8 +8,8 @@ import { useEffect } from 'react';
 import { bleedSummary } from './lib/bleed';
 import { fitMakeModel, makeability } from './lib/makeability';
 import { useRoute } from './lib/router';
-import { overall } from './lib/stats';
-import { publishStats } from './lib/teams';
+import { courseLabel, overall, roundStats } from './lib/stats';
+import { publishRounds, publishStats } from './lib/teams';
 import { syncQuietly } from './lib/sync';
 import { liveRound, useApp } from './lib/store';
 import type { AppState } from './lib/types';
@@ -31,7 +31,8 @@ function summarise(state: AppState) {
     three_pr: o.threePuttsPerRound,
     sg_pr: o.sgPerRound,
     make6: makeability(model, 6),
-    bleed_recovery: bleedSummary(done).afterRate,
+    bleed_pr: bleedSummary(done).shotsPerRound,
+    scoring_pct: o.scoringPct !== null ? o.scoringPct / 100 : null,
     last_round: done.length ? done.reduce((a, b) => (b.date > a.date ? b : a)).date : null,
     live: live && played
       ? {
@@ -64,12 +65,37 @@ export default function App() {
 
   useEffect(() => {
     void syncQuietly(state, dispatch);
-    void publishStats(summarise(state));
     const onBack = () => void syncQuietly(state, dispatch);
     window.addEventListener('online', onBack);
     return () => window.removeEventListener('online', onBack);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!state.rounds.some((r) => r.finished)) return;
+    const id = setTimeout(() => {
+      void publishStats(summarise(state));
+      void publishRounds(
+        state.rounds
+          .filter((r) => r.finished)
+          .map((r) => {
+            const s = roundStats(r, state.baseline);
+            return {
+              round_id: r.id,
+              played_on: r.date,
+              course: courseLabel(r),
+              holes_played: s.holesPlayed,
+              score: r.score ?? null,
+              putts: s.totalPutts,
+              three_putts: s.threePlus,
+              sg: Number(s.sg.toFixed(3)),
+              competitive: !!r.competitive,
+            };
+          }),
+      );
+    }, 1200);
+    return () => clearTimeout(id);
+  }, [state]);
 
   const roundMatch = route.match(/^\/round\/(.+)$/);
   const page = roundMatch ? (
