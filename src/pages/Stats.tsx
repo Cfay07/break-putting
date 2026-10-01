@@ -4,7 +4,7 @@ import { fitMakeModel } from '../lib/makeability';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
-import { LinePacePanel } from '../components/LinePacePanel';
+import { MissAnatomyPanel } from '../components/MissAnatomyPanel';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
@@ -16,7 +16,7 @@ import {
   byCourse,
   byGreenSpeed,
   lagSaves,
-  lineAndPace,
+  missAnatomy,
   courseLabel,
   overall,
   pct,
@@ -103,7 +103,7 @@ export function Stats() {
   const courses = useMemo(() => byCourse(rounds, state.baseline), [rounds, state.baseline]);
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
-  const linePace = useMemo(() => lineAndPace(rounds), [rounds]);
+  const miss = useMemo(() => missAnatomy(rounds), [rounds]);
   const bleed = useMemo(() => bleedSummary(rounds), [rounds]);
   const green = useMemo(() => splitByGreen(rounds), [rounds]);
   const withScore = useMemo(
@@ -399,8 +399,8 @@ export function Stats() {
           <h2>Lag control</h2>
           <LagPanel stats={o.pooled} lag={lag} />
 
-          <h2>Line and pace</h2>
-          <LinePacePanel lp={linePace} />
+          <h2>When you miss, why</h2>
+          <MissAnatomyPanel miss={miss} />
 
           {lag.bySource.some((b) => b.threePutts > 0) && (
             <>

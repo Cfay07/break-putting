@@ -357,42 +357,45 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
 /** The distance a leave stops being a tap-in and starts being a putt you can miss. */
 export const DANGER_FROM = 4;
 
-export interface LineAndPace {
-  /** Putts judged: holed ones, plus missed ones carrying the tag. */
-  readJudged: number;
-  readRight: number;
-  paceJudged: number;
-  paceRight: number;
-  short: number;
-  long: number;
+export interface MissAnatomy {
+  /** Misses carrying both a side and a pace, so each one can be classified. */
+  judged: number;
+  lineWrong: number;
+  paceWrong: number;
+  bothWrong: number;
+  lineOnly: number;
+  paceOnly: number;
+  lipOut: number;
 }
 
 /**
- * Every putt is a line and a speed. Holing it means both were right; a miss that finishes on
- * line means the read was right and only the pace was wrong. Counted over rounds that carry
- * tags at all, since an untagged round would otherwise contribute its makes and none of its
- * misses and read as near perfect.
+ * Why a miss missed, measured on misses only.
+ *
+ * The first cut of this counted holed putts too and came out barely different from the make
+ * rate: from three to six feet he holes 48% and it read 52%, because a short miss is almost
+ * never tagged on line. A stat that shadows an existing stat is not a stat. Restricted to
+ * misses it answers the question the make rate cannot: when it did not go in, was it the read
+ * or the stroke.
+ *
+ * Both halves can be wrong at once, so lineWrong and paceWrong overlap by design.
  */
-export function lineAndPace(rounds: Round[]): LineAndPace {
-  const out: LineAndPace = {
-    readJudged: 0, readRight: 0, paceJudged: 0, paceRight: 0, short: 0, long: 0,
+export function missAnatomy(rounds: Round[]): MissAnatomy {
+  const out: MissAnatomy = {
+    judged: 0, lineWrong: 0, paceWrong: 0, bothWrong: 0, lineOnly: 0, paceOnly: 0, lipOut: 0,
   };
   for (const r of rounds) {
-    const tagged = r.holes.some((h) => h.putts.some((p) => p.missSide || p.speed));
-    if (!tagged) continue;
     for (const h of r.holes) {
       for (const p of h.putts) {
-        if (p.d < SCORING_MIN) continue;
-        if (p.made || p.missSide) {
-          out.readJudged++;
-          if (p.made || p.missSide === 'online') out.readRight++;
-        }
-        if (p.made || p.speed) {
-          out.paceJudged++;
-          if (p.made || p.speed === 'good') out.paceRight++;
-          if (p.speed === 'short') out.short++;
-          if (p.speed === 'long') out.long++;
-        }
+        if (p.made || p.d < SCORING_MIN || !p.missSide || !p.speed) continue;
+        out.judged++;
+        const line = p.missSide !== 'online';
+        const pace = p.speed !== 'good';
+        if (line) out.lineWrong++;
+        if (pace) out.paceWrong++;
+        if (line && pace) out.bothWrong++;
+        else if (line) out.lineOnly++;
+        else if (pace) out.paceOnly++;
+        else out.lipOut++;
       }
     }
   }
