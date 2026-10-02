@@ -9,7 +9,7 @@ import { bleedSummary } from './lib/bleed';
 import { fitMakeModel, makeability } from './lib/makeability';
 import { useRoute } from './lib/router';
 import { courseLabel, overall, roundStats } from './lib/stats';
-import { publishRounds, publishStats } from './lib/teams';
+import { publishRounds, publishStats, unpublishRounds } from './lib/teams';
 import { syncQuietly } from './lib/sync';
 import { liveRound, useApp } from './lib/store';
 import { holeVsPar, type AppState } from './lib/types';
@@ -91,6 +91,15 @@ export default function App() {
     if (!state.rounds.some((r) => r.finished)) return;
     const id = setTimeout(() => {
       void publishStats(summarise(state));
+      // Bounded on purpose. Anything older than the last fifty deletions went up long ago, and
+      // an unbounded list would eventually outgrow the request line.
+      void unpublishRounds(
+        state.tombstones
+          .filter((t) => t.kind === 'round')
+          .sort((a, b) => b.at.localeCompare(a.at))
+          .slice(0, 50)
+          .map((t) => t.id),
+      );
       void publishRounds(
         state.rounds
           .filter((r) => r.finished)

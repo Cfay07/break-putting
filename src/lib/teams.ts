@@ -176,6 +176,25 @@ export async function publishRounds(mine: Omit<TeamRound, 'user_id'>[]): Promise
   }
 }
 
+/**
+ * Deleting a round took it off the phone and out of `rounds`, but the copy published for the
+ * team was never touched, so teammates kept seeing a round its owner could not. Tombstones are
+ * the same signal the round sync already uses, and the delete is idempotent, so resending the
+ * recent ones costs nothing and heals a device that was offline when the deletion happened.
+ */
+export async function unpublishRounds(ids: string[]): Promise<void> {
+  const session = currentSession();
+  if (!session || !online() || !ids.length) return;
+  try {
+    const list = ids.map((id) => `"${id}"`).join(',');
+    await table(`team_rounds?user_id=eq.${session.userId}&round_id=in.(${list})`, {
+      method: 'DELETE',
+    });
+  } catch {
+    // next open will try again
+  }
+}
+
 export async function publishStats(mine: Omit<PlayerStats, 'user_id'>): Promise<void> {
   const session = currentSession();
   if (!session || !online()) return;
