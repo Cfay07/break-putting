@@ -272,15 +272,6 @@ export function Stats() {
 
           <h2>Averages</h2>
           <div className="card">
-            {vol && (
-              <div className="stat-row">
-                <span className="k">
-                  Typical round is this far off your average
-                  <span className="small muted"> · best {signed(vol.best, 1)}, worst {signed(vol.worst, 1)}</span>
-                </span>
-                <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(2)}</span>
-              </div>
-            )}
             <div className="stat-row">
               <span className="k">Putts per round</span>
               <span className="v num">{o.puttsPerRound?.toFixed(1)}</span>
@@ -307,7 +298,21 @@ export function Stats() {
                 <span className="v num">{o.girPerRound.toFixed(1)}</span>
               </div>
             )}
+            {vol && (
+              <div className="stat-row">
+                <span className="k">Round-to-round swing</span>
+                <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(1)}</span>
+              </div>
+            )}
           </div>
+
+          {vol && (
+            <p className="small muted" style={{ marginTop: 8 }}>
+              Strokes gained has run from {signed(vol.best, 1)} at your best to{' '}
+              {signed(vol.worst, 1)} at your worst, and most rounds land within {vol.sd.toFixed(1)}
+              {' '}of the average. That spread is why one round tells you almost nothing.
+            </p>
+          )}
 
           {anyShort && (
             <p className="small muted" style={{ marginTop: -4 }}>
