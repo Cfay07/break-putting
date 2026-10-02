@@ -674,7 +674,6 @@ button.pick:active { background-color: #f4f1e8; }
 .manage > summary::-webkit-details-marker { display: none; }
 .manage > summary::after { content: ' +'; }
 .manage[open] > summary::after { content: ' −'; }
-.player-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 /* A roster can be thirty deep, so the board is a list and not a stack of cards. Rows are the
    tap target height and nothing more; the detail lives in the player sheet. */
 .board { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--card); }
@@ -719,7 +718,6 @@ button.pick:active { background-color: #f4f1e8; }
 .lb-row.comp { box-shadow: inset 3px 0 0 var(--team, var(--ink)); padding-left: 9px; }
 .lb-row > .val + .val { min-width: 62px; text-align: right; }
 .lb-row.me > .nm { font-weight: 700; }
-.player-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .icon-btn {
   flex: 0 0 auto;
   width: 36px;

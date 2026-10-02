@@ -164,12 +164,13 @@ function PlayerPanel({
 
   return (
     <Sheet title={name} onClose={onClose}>
-      <div className="player-head">
-        <Crest name={name} accent={accent} />
-        <p className="small muted" style={{ margin: 0 }}>
-          {member.role === 'owner' ? 'Team owner' : 'Player'}
+      {/* Everyone on the board is a player, so saying so is filler. Owner is the only role
+          worth printing, and the numbers start right away for everybody else. */}
+      {member.role === 'owner' && (
+        <p className="small muted" style={{ margin: '0 0 10px' }}>
+          Team owner
         </p>
-      </div>
+      )}
 
       {stats?.live && (
         <p className="small" style={{ margin: '0 0 10px', color: accent, fontWeight: 600 }}>
