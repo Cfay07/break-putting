@@ -1,4 +1,4 @@
-import { currentSession, online, table } from './cloud';
+import { currentSession, online, saveAccountName, table } from './cloud';
 
 export interface TeamTheme {
   accent?: string;
@@ -120,12 +120,18 @@ export async function saveTheme(teamId: string, theme: TeamTheme, name?: string)
   if (!res.ok) throw new Error(`Could not save (${res.status}).`);
 }
 
-export async function setDisplayName(teamId: string, name: string): Promise<void> {
+/**
+ * One name for the account, not one per team. It is saved on the auth user so a new phone picks
+ * it up, then copied onto every roster row because that is the only copy a teammate can read.
+ */
+export async function setDisplayName(name: string): Promise<void> {
   const session = currentSession();
   if (!session) return;
-  const res = await table(`team_members?team_id=eq.${teamId}&user_id=eq.${session.userId}`, {
+  const clean = name.trim();
+  await saveAccountName(clean);
+  const res = await table(`team_members?user_id=eq.${session.userId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ display_name: name.trim() || null }),
+    body: JSON.stringify({ display_name: clean || null }),
   });
   if (!res.ok) throw new Error(`Could not save your name (${res.status}).`);
 }

@@ -16,6 +16,8 @@ export interface Session {
   expiresAt: number;
   email: string;
   userId: string;
+  /** What teams show you as. Stored on the auth user so it follows the account, not the phone. */
+  name?: string;
 }
 
 export function currentSession(): Session | null {
@@ -40,7 +42,7 @@ interface TokenResponse {
   access_token?: string;
   refresh_token?: string;
   expires_in?: number;
-  user?: { id: string; email: string };
+  user?: { id: string; email: string; user_metadata?: { name?: string } };
   error_description?: string;
   msg?: string;
   message?: string;
@@ -56,7 +58,51 @@ function sessionFrom(data: TokenResponse): Session {
     expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
     email: data.user.email,
     userId: data.user.id,
+    name: data.user.user_metadata?.name || undefined,
   };
+}
+
+/** "conor.fayard" is not a name. Make the email local-part presentable as a last resort. */
+export function nameFromEmail(email: string): string {
+  return email
+    .split('@')[0]
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+/** The name this account shows up under. What they set wins, the email is the fallback. */
+export function accountName(): string {
+  const s = currentSession();
+  if (!s) return '';
+  return s.name?.trim() || nameFromEmail(s.email);
+}
+
+/** Empty until they actually set one, which is how the UI knows the fallback is still showing. */
+export function storedName(): string {
+  return currentSession()?.name?.trim() ?? '';
+}
+
+export async function saveAccountName(name: string): Promise<void> {
+  let session = currentSession();
+  if (!session) throw new Error('Not signed in.');
+  if (session.expiresAt < Date.now() + 60_000 && session.refreshToken) {
+    session = await refresh(session);
+  }
+  const res = await fetch(`${URL}/auth/v1/user`, {
+    method: 'PUT',
+    headers: {
+      apikey: ANON,
+      Authorization: `Bearer ${session.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ data: { name: name.trim() } }),
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as TokenResponse | null;
+    throw new Error(data?.msg || data?.message || `Could not save your name (${res.status}).`);
+  }
+  keepSession({ ...session, name: name.trim() });
 }
 
 async function auth(path: string, body: unknown): Promise<TokenResponse> {

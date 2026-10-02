@@ -12,6 +12,7 @@ import {
 import { lastSyncedAt, resetSyncClock, sync } from '../lib/sync';
 import { claimStored, emptyState, storedOwner } from '../lib/storage';
 import { useApp } from '../lib/store';
+import { NameField } from './NameField';
 import { fmtDate } from '../lib/format';
 
 function whenSynced(): string {
@@ -145,7 +146,8 @@ export function Account() {
             </span>
           </div>
         </div>
-        <div className="btn-row" style={{ marginTop: 10 }}>
+        <NameField />
+        <div className="btn-row" style={{ marginTop: 14 }}>
           <button className="btn btn-ghost" disabled={busy} onClick={leave}>
             Sign out
           </button>

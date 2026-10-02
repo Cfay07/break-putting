@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { NameField } from '../components/NameField';
 import { Sheet } from '../components/Sheet';
-import { currentSession } from '../lib/cloud';
+import { accountName, currentSession } from '../lib/cloud';
 import { fmtDate } from '../lib/format';
 import {
   createTeam,
@@ -8,7 +9,6 @@ import {
   leaveTeam,
   loadTeams,
   saveTheme,
-  setDisplayName,
   loadPlayerRounds,
   starTeam,
   type TeamRound,
@@ -41,15 +41,6 @@ const MAX_PLAYERS = 50;
 
 /** Matches the cap in create_team and join_team. */
 const MAX_TEAMS = 5;
-
-/** "conor.fayard" is not a name. Turn the email local-part into something presentable. */
-function nameFromEmail(email: string): string {
-  return email
-    .split('@')[0]
-    .replace(/[._-]+/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .trim();
-}
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -253,7 +244,6 @@ export function Team() {
   const [code, setCode] = useState('');
   const [newName, setNewName] = useState('');
   const [copied, setCopied] = useState(false);
-  const [myName, setMyName] = useState('');
   const [draftName, setDraftName] = useState('');
   const [draftAccent, setDraftAccent] = useState('#D01C2E');
 
@@ -289,11 +279,6 @@ export function Team() {
   const accent = team?.theme?.accent || '#14392b';
   const isOwner = !!team && team.owner_id === session?.userId;
 
-  const me = useMemo(
-    () => view.members.find((m) => m.team_id === team?.id && m.user_id === session?.userId),
-    [view.members, team?.id, session?.userId],
-  );
-
   // Pin the selection once a team resolves. Leaving `pick` empty meant the page always showed
   // whatever the server listed first, which is not stable across writes.
   useEffect(() => {
@@ -305,10 +290,9 @@ export function Team() {
   useEffect(() => {
     setSheet(null);
     setOpen(null);
-    setMyName(me?.display_name ?? '');
     setDraftName(team?.name ?? '');
     setDraftAccent(team?.theme?.accent ?? '#D01C2E');
-  }, [team?.id, team?.name, team?.theme?.accent, me?.display_name]);
+  }, [team?.id, team?.name, team?.theme?.accent]);
 
   const roster = useMemo(() => {
     if (!team) return [];
@@ -385,7 +369,7 @@ export function Team() {
           style={{ flex: '0 0 auto' }}
           onClick={() =>
             run(async () => {
-              const t = await joinTeam(code.trim(), nameFromEmail(session.email));
+              const t = await joinTeam(code.trim(), accountName());
               setCode('');
               setPick(t.id);
               setSheet(null);
@@ -412,7 +396,7 @@ export function Team() {
           style={{ flex: '0 0 auto' }}
           onClick={() =>
             run(async () => {
-              const t = await createTeam(newName.trim(), nameFromEmail(session.email));
+              const t = await createTeam(newName.trim(), accountName());
               setNewName('');
               setPick(t.id);
               setSheet(null);
@@ -571,27 +555,7 @@ export function Team() {
 
       {sheet === 'manage' && (
         <Sheet title={team.name} onClose={() => setSheet(null)}>
-          <div className="field-label" style={{ marginTop: 0 }}>
-            Your name on this team
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="text"
-              value={myName}
-              onChange={(e) => setMyName(e.target.value)}
-              maxLength={40}
-              placeholder="How you show up"
-              style={{ flex: 1 }}
-            />
-            <button
-              className="btn"
-              style={{ flex: '0 0 auto' }}
-              disabled={busy || !myName.trim() || myName.trim() === me?.display_name}
-              onClick={() => run(() => setDisplayName(team.id, myName))}
-            >
-              Save
-            </button>
-          </div>
+          <NameField onSaved={refresh} first />
 
           <div className="field-label">Join code</div>
           <button
