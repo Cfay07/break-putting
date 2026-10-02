@@ -164,7 +164,7 @@ export function RoundDetail({ id }: { id: string }) {
           </div>
         )}
         <div className="stat-row">
-          <span className="k">Scoring range (3-10 ft)</span>
+          <span className="k">Make % from 3 to 10 ft</span>
           <span className="v num">
             {pctText(scoringPct)} <span className="small muted">{s.scoring.makes}/{s.scoring.attempts}</span>
           </span>

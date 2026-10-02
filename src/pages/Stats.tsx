@@ -172,7 +172,7 @@ export function Stats() {
     { k: 'Putts', get: (s) => s.putts, lowerBetter: true, fmt: (v) => v.toFixed(1), dfmt: (v) => v.toFixed(1) },
     { k: '3-putts', get: (s) => s.three, lowerBetter: true, fmt: (v) => v.toFixed(1), dfmt: (v) => v.toFixed(1) },
     {
-      k: 'Scoring make %',
+      k: 'Make % from 3 to 10 ft',
       get: (s) => s.scoring,
       lowerBetter: false,
       fmt: (v) => `${v.toFixed(0)}%`,
@@ -283,7 +283,7 @@ export function Stats() {
               </span>
             </div>
             <div className="stat-row">
-              <span className="k">Scoring make % (3-10 ft)</span>
+              <span className="k">Make % from 3 to 10 ft</span>
               <span className="v num">{pctText(o.scoringPct)}</span>
             </div>
             <div className="stat-row">
@@ -326,7 +326,7 @@ export function Stats() {
             { title: '3-putts per round', values: o.points.map((p) => p.stats.threePlus * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
             { title: 'Strokes gained per round', values: o.points.map((p) => p.stats.sg * p.scale), invert: false, fmt: (v: number) => signed(v, 2) },
             {
-              title: 'Scoring make %',
+              title: 'Make % from 3 to 10 ft',
               values: o.points.map((p) => pct(p.stats.scoring) ?? 0),
               invert: false,
               fmt: (v: number) => `${v.toFixed(0)}%`,
@@ -544,7 +544,12 @@ export function Stats() {
                   const floor = ((2 * m.se) / m.attempts) * 100;
                   return (
                     <>
-                      <div className="field-label">Same putts, matched foot for foot</div>
+                      <div className="field-label">Scrambling putts, matched for distance</div>
+                      <p className="small muted" style={{ margin: '0 0 8px' }}>
+                        Only the putts after a missed green. The second bar is what your own make
+                        rate from those exact distances says you should have made, so the two bars
+                        are the same putts held to your own standard.
+                      </p>
                       <Bar
                         label="What you made"
                         value={`${made.toFixed(1)}%`}
@@ -553,7 +558,7 @@ export function Stats() {
                         wide
                       />
                       <Bar
-                        label="Your normal"
+                        label="What you normally make from there"
                         value={`${normal.toFixed(1)}%`}
                         ratio={normal / 100}
                         wide
@@ -566,9 +571,8 @@ export function Stats() {
                             : `You make ${gap.toFixed(1)} points more when you are scrambling. You putt better with something to save.`}
                       </p>
                       <p className="small muted" style={{ margin: '6px 0 0' }}>
-                        Your normal is what your own make rate from those exact distances says
-                        you should have made. The gap has to clear {floor.toFixed(1)} points before
-                        it means anything, off {m.attempts} putts. This test is weak either way:
+                        The gap has to clear {floor.toFixed(1)} points before it means anything,
+                        off {m.attempts} putts. This test is weak either way:
                         the two groups barely sit at the same distances, so there is not much to
                         match on.
                       </p>
@@ -660,7 +664,7 @@ export function Stats() {
 
 
           <p className="act">What now</p>
-          <h2>Round vs round</h2>
+          <h2>Compare two rounds</h2>
           <div style={{ display: 'flex', gap: 10 }}>
             <select value={left?.id ?? ''} onChange={(e) => setLeftId(e.target.value)} aria-label="left round">
               {rounds

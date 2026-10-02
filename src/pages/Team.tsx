@@ -27,7 +27,7 @@ const EMPTY: TeamView = { teams: [], members: [], stats: [] };
  */
 const BOARDS = [
   { key: 'sg_pr', label: 'Strokes gained', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2)), lowBetter: false },
-  { key: 'scoring_pct', label: 'Scoring range (3-10 ft)', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
+  { key: 'scoring_pct', label: 'Make % (3-10 ft)', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
   { key: 'make6', label: 'Six-footers', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
   { key: 'three_pr', label: '3-putts per round', fmt: (v: number) => v.toFixed(2), lowBetter: true },
   { key: 'bleed_pr', label: 'Bleed', fmt: (v: number) => `-${v.toFixed(2)}`, lowBetter: true },
@@ -154,7 +154,7 @@ function PlayerPanel({
         ['Putts per round', stats.putts_pr?.toFixed(1) ?? '--'],
         ['3-putts per round', stats.three_pr?.toFixed(2) ?? '--'],
         ['Strokes gained', stats.sg_pr !== null ? stats.sg_pr.toFixed(2) : '--'],
-        ['Scoring range (3-10 ft)', stats.scoring_pct !== null ? `${(stats.scoring_pct * 100).toFixed(0)}%` : '--'],
+        ['Make % from 3 to 10 ft', stats.scoring_pct !== null ? `${(stats.scoring_pct * 100).toFixed(0)}%` : '--'],
         ['Six-footers', stats.make6 !== null ? `${(stats.make6 * 100).toFixed(0)}%` : '--'],
         ['Bleed, shots a round', stats.bleed_pr !== null ? `-${stats.bleed_pr.toFixed(2)}` : '--'],
         ['Bounce back', stats.bounce_back !== null ? `${(stats.bounce_back * 100).toFixed(0)}%` : '--'],
