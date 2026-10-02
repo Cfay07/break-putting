@@ -16,6 +16,7 @@ import { Bar } from '../components/Bar';
 import {
   byCourse,
   byGreenSpeed,
+  DANGER_FROM,
   lagSaves,
   missAnatomy,
   missShapes,
@@ -375,7 +376,11 @@ export function Stats() {
 
           <p className="act">What it costs you</p>
           <h2>Lag control</h2>
-          <LagPanel stats={o.pooled} lag={lag} />
+          <LagPanel lag={lag} />
+          <p className="small muted" style={{ margin: '8px 0 0' }}>
+            The bottom rows only count lags that finished {DANGER_FROM}+ feet away. A lag you
+            holed or tapped in is not a comeback, so it does not drag the average down.
+          </p>
 
           {lag.bySource.some((b) => b.threePutts > 0) && (
             <>

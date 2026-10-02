@@ -446,6 +446,7 @@ export function missAnatomy(rounds: Round[]): MissAnatomy {
 }
 
 export interface LagSave {
+  /** Every first putt from the lag line out, holed ones included. */
   lags: number;
   /** Lags that finished outside the danger line, so the next putt could be missed. */
   bad: number;
@@ -478,8 +479,11 @@ export function lagSaves(rounds: Round[]): LagSave {
         bySource[band].holes++;
         if (h.putts.length >= 3) bySource[band].threePutts++;
       }
-      if (first.d < LAG_FROM || first.made) continue;
+      if (first.d < LAG_FROM) continue;
       lags++;
+      // Holing the lag counts as a lag you did not leave yourself anything on. Skipping it
+      // entirely shrank the denominator and quietly inflated the trouble rate.
+      if (first.made) continue;
       const leave = h.putts[1]?.d;
       if (leave === undefined || leave < DANGER_FROM) continue;
       bad++;
