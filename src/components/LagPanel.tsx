@@ -1,12 +1,11 @@
-import { DANGER_FROM, LAG_FROM, type LagSave } from '../lib/stats';
+import { DANGER_FROM, LAG_FROM, type LagSave, type Stats } from '../lib/stats';
 
 /**
- * One definition of a bad lag, not two. This card used to carry the tour standard (inside a
- * tenth of the putt) and the danger line (4 feet) side by side, plus an average leave that
- * included the lags you holed. Three numbers answering nearly the same question, disagreeing.
- * The danger line is the one tied to three-putts, so it is the one that stayed.
+ * Reads top to bottom as one sequence: what you typically leave, how often that is trouble, how
+ * bad it is when it is, whether you save it. The order is what tells you the leave and the
+ * comeback are not the same number, which two flat rows labelled "average" never did.
  */
-export function LagPanel({ lag }: { lag: LagSave }) {
+export function LagPanel({ stats, lag }: { stats: Stats; lag: LagSave }) {
   const badPct = lag.lags ? Math.round((lag.bad / lag.lags) * 100) : null;
   const savePct = lag.bad ? Math.round((lag.saved / lag.bad) * 100) : null;
 
@@ -17,6 +16,17 @@ export function LagPanel({ lag }: { lag: LagSave }) {
         <span className="v num">{lag.lags}</span>
       </div>
       <div className="stat-row">
+        <span className="k">Typical leave</span>
+        <span className="v num">
+          {stats.avgLeave === null ? '--' : `${stats.avgLeave.toFixed(1)} ft`}
+          {stats.avgLeavePct !== null && (
+            <span className={stats.avgLeavePct > 10 ? 'small neg' : 'small muted'}>
+              {' '}· {stats.avgLeavePct.toFixed(0)}% of the putt
+            </span>
+          )}
+        </span>
+      </div>
+      <div className="stat-row">
         <span className="k">Left yourself {DANGER_FROM}+ ft</span>
         <span className={badPct !== null && badPct > 30 ? 'v num neg' : 'v num'}>
           {badPct === null ? '--' : `${badPct}%`}
@@ -25,7 +35,7 @@ export function LagPanel({ lag }: { lag: LagSave }) {
       </div>
       {lag.avgBadLeave !== null && (
         <div className="stat-row">
-          <span className="k">Average comeback</span>
+          <span className="k">When you did, the comeback</span>
           <span className="v num">{lag.avgBadLeave.toFixed(1)} ft</span>
         </div>
       )}

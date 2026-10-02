@@ -381,10 +381,10 @@ export function Stats() {
 
           <p className="act">What it costs you</p>
           <h2>Lag control</h2>
-          <LagPanel lag={lag} />
+          <LagPanel stats={o.pooled} lag={lag} />
           <p className="small muted" style={{ margin: '8px 0 0' }}>
-            The bottom rows only count lags that finished {DANGER_FROM}+ feet away. A lag you
-            holed or tapped in is not a comeback, so it does not drag the average down.
+            Typical leave is every lag you hit. The comeback is only the ones that finished{' '}
+            {DANGER_FROM}+ feet away, which is why it is the bigger number.
           </p>
 
           {lag.bySource.some((b) => b.threePutts > 0) && (

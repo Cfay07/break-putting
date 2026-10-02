@@ -201,7 +201,7 @@ export function RoundDetail({ id }: { id: string }) {
       <DistanceTable stats={s} />
 
       <h2>Lag control</h2>
-      <LagPanel lag={lagSaves([round])} />
+      <LagPanel stats={s} lag={lagSaves([round])} />
 
       <h2>Miss patterns</h2>
       <PatternPanel stats={s} />
