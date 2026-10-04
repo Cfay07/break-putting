@@ -73,15 +73,15 @@ export default function App() {
   useEffect(() => {
     const run = () => void syncQuietly(latest.current, dispatch);
     run();
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') run();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', onVisible);
+    // Both directions. Pushing only on the way in meant the hole you just logged sat on the
+    // phone until the next time you opened the app, so anything reading the round off the
+    // server was permanently one visit behind.
+    document.addEventListener('visibilitychange', run);
+    window.addEventListener('focus', run);
     window.addEventListener('online', run);
     return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', onVisible);
+      document.removeEventListener('visibilitychange', run);
+      window.removeEventListener('focus', run);
       window.removeEventListener('online', run);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

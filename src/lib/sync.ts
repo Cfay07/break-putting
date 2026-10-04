@@ -152,17 +152,23 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
   };
 }
 
+/** Hiding and showing in quick succession fires twice, and the second has nothing new to push. */
+let running = false;
+
 /** Fire and forget. A sync that fails offline is not an error worth interrupting a round for. */
 export async function syncQuietly(
   state: AppState,
   dispatch: (a: { t: 'applyIncoming'; incoming: Incoming }) => void,
 ): Promise<void> {
-  if (!currentSession() || !online()) return;
+  if (running || !currentSession() || !online()) return;
+  running = true;
   try {
     const { incoming } = await sync(state);
     dispatch({ t: 'applyIncoming', incoming });
   } catch {
     // try again next time the app opens
+  } finally {
+    running = false;
   }
 }
 
