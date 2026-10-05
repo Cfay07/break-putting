@@ -282,7 +282,9 @@ export function RoundDetail({ id }: { id: string }) {
             }
           />
           <div style={{ height: 16 }} />
-          {hole.putts.length === 0 && <p className="small muted">No putts logged on this hole.</p>}
+          {hole.putts.length === 0 && (
+            <p className="small muted">No putts logged on this hole.</p>
+          )}
           {hole.putts.map((p, i) => (
             <PuttEditor
               key={i}
@@ -296,6 +298,34 @@ export function RoundDetail({ id }: { id: string }) {
               }
             />
           ))}
+
+          {/* Removing a putt used to be a one-way door: nothing could put one back, so a hole
+              logged a putt short could not be finished out. */}
+          <button
+            className="btn btn-wide"
+            onClick={() =>
+              dispatch({
+                t: 'insertPutt',
+                roundId: round.id,
+                hole: hole.hole,
+                putt: { d: 2, made: true },
+              })
+            }
+          >
+            Add a putt
+          </button>
+          <p className="small muted" style={{ margin: '8px 0 0' }}>
+            Goes on the end as the one you holed, so set its distance and you are done. Anything
+            already marked as holed flips to missed, because you cannot hole out and keep putting.
+          </p>
+
+          <button
+            className="btn btn-primary btn-wide"
+            style={{ marginTop: 14 }}
+            onClick={() => setEditHole(null)}
+          >
+            Done
+          </button>
         </Sheet>
       )}
 

@@ -15,6 +15,7 @@ export type Action =
   | { t: 'deleteCourse'; id: string }
   | { t: 'newRound'; round: Round }
   | { t: 'addPutt'; putt: Putt }
+  | { t: 'insertPutt'; roundId: string; hole: number; putt: Putt }
   | { t: 'removePutt'; roundId: string; hole: number; index: number }
   | { t: 'updatePutt'; roundId: string; hole: number; index: number; patch: Partial<Putt> }
   | { t: 'setHoleScore'; roundId: string; hole: number; patch: Partial<Pick<Hole, 'par' | 'strokes' | 'vsPar' | 'holedOut'>> }
@@ -138,6 +139,22 @@ export function reducer(state: AppState, a: Action): AppState {
       }));
       return { ...next, track: { ...freshTrack, hole: h } };
     }
+
+    /** addPutt only ever touches the live round's current hole. Editing a finished one needs this. */
+    case 'insertPutt':
+      return mapRound(state, a.roundId, (r) => ({
+        ...r,
+        holes: r.holes.map((hole) =>
+          hole.hole === a.hole
+            ? {
+                ...hole,
+                // You cannot hole out and then putt again, so adding one after a holed putt
+                // means that putt actually missed.
+                putts: [...hole.putts.map((p) => (p.made ? { ...p, made: false } : p)), a.putt],
+              }
+            : hole,
+        ),
+      }));
 
     case 'removePutt':
       return mapRound(state, a.roundId, (r) => ({

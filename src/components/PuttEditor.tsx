@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MissGrid } from './MissGrid';
 import { SegMulti } from './SegMulti';
 import {
@@ -21,11 +21,29 @@ function Feet({ value, onCommit }: { value: number; onCommit: (ft: number) => vo
   const [draft, setDraft] = useState(String(value));
   useEffect(() => setDraft(String(value)), [value]);
 
+  const clean = (text: string) => {
+    const n = Math.round(Number(text));
+    return text.trim() && Number.isFinite(n) && n >= 1 ? n : null;
+  };
+
   const commit = () => {
-    const n = Math.round(Number(draft));
-    if (draft.trim() && Number.isFinite(n) && n >= 1) onCommit(n);
+    const n = clean(draft);
+    if (n !== null) onCommit(n);
     else setDraft(String(value));
   };
+
+  // Closing the sheet can take the field away before it ever blurs, which would drop the
+  // number that was just typed. Save it on the way out.
+  const pending = useRef({ draft, value, onCommit });
+  pending.current = { draft, value, onCommit };
+  useEffect(
+    () => () => {
+      const last = pending.current;
+      const n = clean(last.draft);
+      if (n !== null && n !== last.value) last.onCommit(n);
+    },
+    [],
+  );
 
   return (
     <input
