@@ -1,7 +1,11 @@
 import { holeVsPar, type Hole, type Round } from './types';
 
-/** How close a putt has to be before missing it counts as a mistake worth tracking. */
-export const MAKEABLE = { min: 3, max: 6 };
+/**
+ * How close a putt has to be before missing it counts as a mistake worth tracking. There used
+ * to be a three foot floor under this, which excluded the one miss that tilts you most: a
+ * two-footer missed is a worse mistake than a six-footer missed, not a lesser one.
+ */
+export const MAKEABLE = { max: 6 };
 
 export interface Bleed {
   date: string;
@@ -25,7 +29,7 @@ export function triggerOn(h: Hole): string | null {
   if (h.putts.length >= 3) return 'three-putt';
   const missed = h.putts
     .slice(0, -1)
-    .find((p) => !p.made && p.d >= MAKEABLE.min && p.d <= MAKEABLE.max);
+    .find((p) => !p.made && p.d <= MAKEABLE.max);
   return missed ? `missed ${missed.d} ft` : null;
 }
 

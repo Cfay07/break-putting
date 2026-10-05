@@ -225,7 +225,13 @@ export function RoundDetail({ id }: { id: string }) {
               {h.putts.length ? puttSequence(h.putts) : holedOut(h) ? 'chipped in' : '--'}
             </span>
             <span className="drop-cell">
-              {marks.triggers.has(h.hole) || marks.bled.has(h.hole) ? '🩸' : ''}
+              {marks.triggers.has(h.hole) ? (
+                '🩸'
+              ) : marks.bled.has(h.hole) ? (
+                <span className="bled-dot" aria-label="bled into" />
+              ) : (
+                ''
+              )}
             </span>
             <ScoreMark strokes={h.strokes} vsPar={holeVsPar(h)} />
             <span className={(running.get(h.hole) ?? 0) < 0 ? 'rel num pos' : 'rel num'}>
@@ -272,7 +278,8 @@ export function RoundDetail({ id }: { id: string }) {
 
       {bleeds.length > 0 && (
         <p className="small muted" style={{ marginTop: 8 }}>
-          🩸 marks a putting mistake and the holes it bled into.{' '}
+          🩸 is the mistake itself. A dot is a hole it bled into, not a hole that did anything
+          wrong on the green.{' '}
           {bleeds.map((b) => `Hole ${b.triggerHole}, ${b.why}, ${b.shots} shot${b.shots === 1 ? '' : 's'}`).join('. ')}.
         </p>
       )}

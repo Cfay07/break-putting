@@ -334,6 +334,17 @@ p { line-height: 1.45; }
 .sc-row .par-cell { width: 12px; font-size: 11px; color: var(--ink-3); text-align: right; }
 .sc-row .seq { flex: 1 1 auto; min-width: 0; font-size: 14px; }
 .drop-cell { width: 16px; text-align: center; font-size: 12px; line-height: 1; }
+/* The mistake and the holes it cost you are different things. One symbol for both read as
+   though every marked hole had putted badly. */
+.bled-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  opacity: 0.4;
+  vertical-align: middle;
+}
 .sc-row .sc {
   width: 34px;
   display: flex;
