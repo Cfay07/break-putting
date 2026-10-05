@@ -173,7 +173,15 @@ export function reducer(state: AppState, a: Action): AppState {
           hole.hole === a.hole
             ? {
                 ...hole,
-                putts: hole.putts.map((p, i) => (i === a.index ? { ...p, ...a.patch } : p)),
+                putts: hole.putts.map((p, i) =>
+                  i === a.index
+                    ? { ...p, ...a.patch }
+                    : // At most one putt a hole goes in. Without this, marking an earlier one
+                      // holed left two makes on the hole and the make rate counted both.
+                      a.patch.made === true && p.made
+                      ? { ...p, made: false }
+                      : p,
+                ),
               }
             : hole,
         ),

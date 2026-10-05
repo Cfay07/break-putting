@@ -17,13 +17,14 @@ import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
 import { go } from '../lib/router';
 import { pct, roundStats, suspectHoles } from '../lib/stats';
 import { useApp } from '../lib/store';
-import { holeVsPar, holedOut } from '../lib/types';
+import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
 
 
 export function RoundDetail({ id }: { id: string }) {
   const { state, dispatch } = useApp();
   const round = state.rounds.find((r) => r.id === id);
   const [editHole, setEditHole] = useState<number | null>(null);
+  const [editPutt, setEditPutt] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const [speedSheet, setSpeedSheet] = useState(false);
 
@@ -213,7 +214,10 @@ export function RoundDetail({ id }: { id: string }) {
           <button
             key={h.hole}
             className={h.putts.length >= 3 ? 'sc-row three' : 'sc-row'}
-            onClick={() => setEditHole(h.hole)}
+            onClick={() => {
+              setEditPutt(null);
+              setEditHole(h.hole);
+            }}
           >
             <span className="h">{h.hole}</span>
             <span className="par-cell">{h.par ?? ''}</span>
@@ -274,58 +278,106 @@ export function RoundDetail({ id }: { id: string }) {
       )}
 
       {hole && (
-        <Sheet title={`Hole ${hole.hole}`} onClose={() => setEditHole(null)}>
-          <HoleScore
-            hole={hole}
-            onChange={(patch) =>
-              dispatch({ t: 'setHoleScore', roundId: round.id, hole: hole.hole, patch })
-            }
-          />
-          <div style={{ height: 16 }} />
-          {hole.putts.length === 0 && (
-            <p className="small muted">No putts logged on this hole.</p>
+        <Sheet
+          title={editPutt === null ? `Hole ${hole.hole}` : `Hole ${hole.hole} · Putt ${editPutt + 1}`}
+          onClose={() => (editPutt === null ? setEditHole(null) : setEditPutt(null))}
+        >
+          {/* Two levels. All the putts on a hole opened at once put three miss grids and three
+              break pickers on one screen, and finding the putt you meant was a scroll. */}
+          {editPutt === null || !hole.putts[editPutt] ? (
+            <>
+              <HoleScore
+                hole={hole}
+                onChange={(patch) =>
+                  dispatch({ t: 'setHoleScore', roundId: round.id, hole: hole.hole, patch })
+                }
+              />
+
+              <div className="field-label">Putts</div>
+              {hole.putts.length === 0 ? (
+                <p className="small muted" style={{ margin: 0 }}>
+                  No putts logged on this hole.
+                </p>
+              ) : (
+                <div className="board">
+                  {hole.putts.map((p, i) => (
+                    <button className="lb-row" key={i} onClick={() => setEditPutt(i)}>
+                      <span className="place num">{i + 1}</span>
+                      <span className="nm">
+                        {p.d} ft
+                        {breakLabel(breakDirsOf(p)) ? (
+                          <span className="small muted"> · {breakLabel(breakDirsOf(p))}</span>
+                        ) : null}
+                      </span>
+                      <span className={p.made ? 'val num pos' : 'val num none'}>
+                        {p.made ? 'holed' : 'missed'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <button
+                className="btn btn-wide"
+                style={{ marginTop: 12 }}
+                onClick={() => {
+                  // The new putt lands on the end, so that is the one to open.
+                  const at = hole.putts.length;
+                  dispatch({
+                    t: 'insertPutt',
+                    roundId: round.id,
+                    hole: hole.hole,
+                    putt: { d: 2, made: true },
+                  });
+                  setEditPutt(at);
+                }}
+              >
+                Add a putt
+              </button>
+
+              <button
+                className="btn btn-primary btn-wide"
+                style={{ marginTop: 10 }}
+                onClick={() => setEditHole(null)}
+              >
+                Save
+              </button>
+              <p className="small muted" style={{ margin: '8px 0 0' }}>
+                Every edit is kept as you make it. Save just takes you back to the card.
+              </p>
+            </>
+          ) : (
+            <>
+              <PuttEditor
+                putt={hole.putts[editPutt]}
+                n={editPutt + 1}
+                onPatch={(patch) =>
+                  dispatch({
+                    t: 'updatePutt',
+                    roundId: round.id,
+                    hole: hole.hole,
+                    index: editPutt,
+                    patch,
+                  })
+                }
+                onRemove={() => {
+                  dispatch({
+                    t: 'removePutt',
+                    roundId: round.id,
+                    hole: hole.hole,
+                    index: editPutt,
+                  });
+                  setEditPutt(null);
+                }}
+              />
+              <button
+                className="btn btn-primary btn-wide"
+                onClick={() => setEditPutt(null)}
+              >
+                Done
+              </button>
+            </>
           )}
-          {hole.putts.map((p, i) => (
-            <PuttEditor
-              key={i}
-              putt={p}
-              n={i + 1}
-              onPatch={(patch) =>
-                dispatch({ t: 'updatePutt', roundId: round.id, hole: hole.hole, index: i, patch })
-              }
-              onRemove={() =>
-                dispatch({ t: 'removePutt', roundId: round.id, hole: hole.hole, index: i })
-              }
-            />
-          ))}
-
-          {/* Removing a putt used to be a one-way door: nothing could put one back, so a hole
-              logged a putt short could not be finished out. */}
-          <button
-            className="btn btn-wide"
-            onClick={() =>
-              dispatch({
-                t: 'insertPutt',
-                roundId: round.id,
-                hole: hole.hole,
-                putt: { d: 2, made: true },
-              })
-            }
-          >
-            Add a putt
-          </button>
-          <p className="small muted" style={{ margin: '8px 0 0' }}>
-            Goes on the end as the one you holed, so set its distance and you are done. Anything
-            already marked as holed flips to missed, because you cannot hole out and keep putting.
-          </p>
-
-          <button
-            className="btn btn-primary btn-wide"
-            style={{ marginTop: 14 }}
-            onClick={() => setEditHole(null)}
-          >
-            Done
-          </button>
         </Sheet>
       )}
 
