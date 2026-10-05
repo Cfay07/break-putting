@@ -10,25 +10,14 @@ import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { PutterTag } from '../components/PutterTag';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
-import { MissGrid } from '../components/MissGrid';
+import { PuttEditor } from '../components/PuttEditor';
 import { SpeedBars } from '../components/SpeedBars';
-import { SegMulti } from '../components/SegMulti';
 import { Sheet } from '../components/Sheet';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
 import { go } from '../lib/router';
 import { pct, roundStats, suspectHoles } from '../lib/stats';
 import { useApp } from '../lib/store';
-import {
-  BREAK_DIRS,
-  BREAK_LABELS,
-  breakDirsOf,
-  breakLabel,
-  toggleBreak,
-  FACTORS,
-  FACTOR_LABELS,
-  holeVsPar,
-  holedOut,
-} from '../lib/types';
+import { holeVsPar, holedOut } from '../lib/types';
 
 
 export function RoundDetail({ id }: { id: string }) {
@@ -295,103 +284,17 @@ export function RoundDetail({ id }: { id: string }) {
           <div style={{ height: 16 }} />
           {hole.putts.length === 0 && <p className="small muted">No putts logged on this hole.</p>}
           {hole.putts.map((p, i) => (
-            <div className="card" key={i} style={{ marginBottom: 12 }}>
-              <div className="round-head">
-                <h3>
-                  Putt {i + 1} · {p.d} ft {p.made ? 'in' : 'missed'}
-                </h3>
-                <button
-                  className="linkish tiny"
-                  onClick={() =>
-                    dispatch({ t: 'removePutt', roundId: round.id, hole: hole.hole, index: i })
-                  }
-                >
-                  Remove
-                </button>
-              </div>
-              <div className="field-label">Distance (ft)</div>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={p.d}
-                onChange={(e) =>
-                  dispatch({
-                    t: 'updatePutt',
-                    roundId: round.id,
-                    hole: hole.hole,
-                    index: i,
-                    patch: { d: Math.max(1, Number(e.target.value) || 1) },
-                  })
-                }
-              />
-              {!p.made && (
-                <>
-                  <div className="field-label">Where it finished</div>
-                  <MissGrid
-                    side={p.missSide}
-                    speed={p.speed}
-                    onPick={(missSide, speed) => {
-                      const wasLipCell = p.missSide === 'online' && p.speed === 'good';
-                      const isLipCell = missSide === 'online' && speed === 'good';
-                      dispatch({
-                        t: 'updatePutt',
-                        roundId: round.id,
-                        hole: hole.hole,
-                        index: i,
-                        patch: {
-                          missSide,
-                          speed,
-                          ...(isLipCell ? { lip: true } : wasLipCell ? { lip: false } : {}),
-                        },
-                      });
-                    }}
-                  />
-                  <div className="field-label">
-                    How it broke
-                    {breakLabel(breakDirsOf(p)) ? (
-                      <span className="muted"> · {breakLabel(breakDirsOf(p))}</span>
-                    ) : null}
-                  </div>
-                  <SegMulti
-                    quiet
-                    options={BREAK_DIRS}
-                    labels={BREAK_LABELS}
-                    values={breakDirsOf(p)}
-                    onToggle={(v) =>
-                      dispatch({
-                        t: 'updatePutt',
-                        roundId: round.id,
-                        hole: hole.hole,
-                        index: i,
-                        patch: { breakDirs: toggleBreak(breakDirsOf(p), v), breakDir: undefined },
-                      })
-                    }
-                  />
-                </>
-              )}
-              <div className="field-label">Factors</div>
-              <div className="chips">
-                {FACTORS.map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    className={p[f] ? 'chip chip-sel' : 'chip'}
-                    aria-pressed={!!p[f]}
-                    onClick={() =>
-                      dispatch({
-                        t: 'updatePutt',
-                        roundId: round.id,
-                        hole: hole.hole,
-                        index: i,
-                        patch: { [f]: !p[f] },
-                      })
-                    }
-                  >
-                    {FACTOR_LABELS[f]}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <PuttEditor
+              key={i}
+              putt={p}
+              n={i + 1}
+              onPatch={(patch) =>
+                dispatch({ t: 'updatePutt', roundId: round.id, hole: hole.hole, index: i, patch })
+              }
+              onRemove={() =>
+                dispatch({ t: 'removePutt', roundId: round.id, hole: hole.hole, index: i })
+              }
+            />
           ))}
         </Sheet>
       )}
