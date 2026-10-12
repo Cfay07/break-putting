@@ -26,6 +26,9 @@ function combinations(nines: Record<string, number[]>) {
  */
 const PETRIFYING_PARS = [4, 3, 4, 3, 4, 4, 4, 5, 5, 4, 4, 3, 4, 4, 4, 3, 4, 4];
 
+/** Out 35, in 37, par 72. Off the 18Birdies card, which GolfPass matches hole for hole. */
+const BROWNS_LAKE_PARS = [4, 4, 3, 4, 4, 5, 4, 3, 4, 4, 4, 4, 3, 5, 5, 4, 3, 5];
+
 export const BUILT_IN_COURSES: SavedCourse[] = [
   {
     id: 'builtin-ives-grove',
@@ -42,6 +45,16 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     tees: [
       { name: 'White', yards: 5979, pars: PETRIFYING_PARS },
       { name: 'Orange', yards: 5588, pars: PETRIFYING_PARS },
+    ],
+  },
+  {
+    id: 'builtin-browns-lake',
+    name: 'Browns Lake Golf Course',
+    place: 'Burlington, WI',
+    tees: [
+      { name: 'White', yards: 6386, pars: BROWNS_LAKE_PARS },
+      { name: 'Yellow', yards: 5391, pars: BROWNS_LAKE_PARS },
+      { name: 'Red', yards: 5119, pars: BROWNS_LAKE_PARS },
     ],
   },
 ];
