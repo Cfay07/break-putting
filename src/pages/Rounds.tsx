@@ -176,8 +176,8 @@ export function Rounds() {
             {/* Only when it cost something, so a card without one is a round that did not let a
                 putting mistake run on. */}
             {bled > 0 && (
-              <span className="tag bleed-tag">
-                −{bled} bled
+              <span className="bleed-tag" aria-label={`${bled} shot${bled === 1 ? '' : 's'} bled`}>
+                🩸{bled}
               </span>
             )}
             <PutterTag putterId={r.putterId} />
