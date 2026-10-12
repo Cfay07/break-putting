@@ -236,6 +236,20 @@ export async function table(
   return res;
 }
 
+/**
+ * A call that carries only the anon key, for the handful of things a signed-out visitor is
+ * allowed to do. Row level security decides what that is, not this function.
+ */
+export async function anonRpc<T>(fn: string, args: unknown): Promise<T> {
+  const res = await fetch(`${URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  });
+  if (!res.ok) throw new Error(`Could not load that round (${res.status}).`);
+  return (await res.json()) as T;
+}
+
 export function online(): boolean {
   return typeof navigator === 'undefined' || navigator.onLine;
 }

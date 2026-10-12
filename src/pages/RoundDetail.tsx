@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { lagSaves } from '../lib/stats';
 import { holeSG } from '../lib/sg';
-import { canShareFiles, shareRoundCard } from '../lib/shareCard';
+import { drawRoundSheet, pngFile } from '../lib/shareCard';
+import { publishRound, shareUrl } from '../lib/shareLink';
+import { currentSession } from '../lib/cloud';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { ScoreMark } from '../components/ScoreMark';
 import { DistanceTable } from '../components/DistanceTable';
@@ -44,9 +46,7 @@ export function RoundDetail({ id }: { id: string }) {
   const [editHole, setEditHole] = useState<number | null>(null);
   const [editPutt, setEditPutt] = useState<number | null>(null);
   const [shareNote, setShareNote] = useState('');
-  // A phone thing. Desktop browsers cannot hand a file to a share sheet, so there is nothing
-  // useful behind the button there and it does not appear.
-  const sharable = useMemo(canShareFiles, []);
+  const [sharing, setSharing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [speedSheet, setSpeedSheet] = useState(false);
 
@@ -102,24 +102,52 @@ export function RoundDetail({ id }: { id: string }) {
         </p>
       )}
       <div className="chips" style={{ marginTop: 8 }}>
-        {sharable && (
         <button
           className="chip"
+          disabled={sharing}
           onClick={() => {
-            setShareNote('');
-            void shareRoundCard({
-              round,
-              stats: s,
-              putter: state.putters.find((p) => p.id === round.putterId)?.name,
-              bled: bleeds.reduce((n, b) => n + b.shots, 0),
-            })
-              .then((r) => setShareNote(r === 'saved' ? 'Saved to your downloads.' : ''))
-              .catch((e) => setShareNote((e as Error).message));
+            if (!currentSession()) {
+              setShareNote('Sign in first so the link has somewhere to live.');
+              return;
+            }
+            setSharing(true);
+            setShareNote('Making a link…');
+            const card = pngFile(
+              drawRoundSheet({
+                round,
+                stats: s,
+                baseline: state.baseline,
+                putter: state.putters.find((p) => p.id === round.putterId)?.name,
+              }),
+              `break-${round.date}.png`,
+            );
+            void publishRound(round, state.baseline)
+              .then(async (token) => {
+                const url = shareUrl(token);
+                const title = `${fmtDateLong(round.date)}${round.course ? ` · ${round.course}` : ''}`;
+                // The picture is the hook, the link is the whole round. Send both where the
+                // sheet takes them, and the link alone where it will not.
+                const withCard = { title, text: title, url, files: [card] };
+                if (navigator.canShare?.(withCard)) {
+                  await navigator.share(withCard);
+                } else if (navigator.canShare?.({ title, text: title, url })) {
+                  await navigator.share({ title, text: title, url });
+                } else {
+                  await navigator.clipboard.writeText(url);
+                  setShareNote('Link copied. Anyone with it sees the whole round.');
+                  return;
+                }
+                setShareNote('');
+              })
+              .catch((e) => {
+                const err = e as Error;
+                setShareNote(err.name === 'AbortError' ? '' : err.message);
+              })
+              .finally(() => setSharing(false));
           }}
         >
-          Share
+          {sharing ? 'Sharing…' : 'Share'}
         </button>
-        )}
         <button className="chip" onClick={() => setSpeedSheet(true)}>
           {round.greenSpeed ? <SpeedBars speed={round.greenSpeed} label /> : 'Set green speed'}
         </button>

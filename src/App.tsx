@@ -1,6 +1,7 @@
 import { Rounds } from './pages/Rounds';
 import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
+import { SharedRound } from './pages/SharedRound';
 import { Stats } from './pages/Stats';
 import { Team } from './pages/Team';
 import { Track } from './pages/Track';
@@ -129,6 +130,23 @@ export default function App() {
     }, 1200);
     return () => clearTimeout(id);
   }, [state]);
+
+  // A shared round is for someone with no account, so it gets the wordmark and nothing else:
+  // no tab bar, since there is nowhere for a visitor to go.
+  const sharedMatch = route.match(/^\/s\/(.+)$/);
+  if (sharedMatch) {
+    return (
+      <div className="app">
+        <div className="topbar">
+          <h1 className="wordmark">BREAK!</h1>
+          <span className="sub">Shared round</span>
+        </div>
+        <main className="main">
+          <SharedRound token={decodeURIComponent(sharedMatch[1])} />
+        </main>
+      </div>
+    );
+  }
 
   const roundMatch = route.match(/^\/round\/(.+)$/);
   const page = roundMatch ? (
