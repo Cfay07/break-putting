@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { lagSaves } from '../lib/stats';
 import { holeSG } from '../lib/sg';
-import { shareRoundCard } from '../lib/shareCard';
+import { canShareFiles, shareRoundCard } from '../lib/shareCard';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { ScoreMark } from '../components/ScoreMark';
 import { DistanceTable } from '../components/DistanceTable';
@@ -44,6 +44,9 @@ export function RoundDetail({ id }: { id: string }) {
   const [editHole, setEditHole] = useState<number | null>(null);
   const [editPutt, setEditPutt] = useState<number | null>(null);
   const [shareNote, setShareNote] = useState('');
+  // A phone thing. Desktop browsers cannot hand a file to a share sheet, so there is nothing
+  // useful behind the button there and it does not appear.
+  const sharable = useMemo(canShareFiles, []);
   const [editing, setEditing] = useState(false);
   const [speedSheet, setSpeedSheet] = useState(false);
 
@@ -99,6 +102,7 @@ export function RoundDetail({ id }: { id: string }) {
         </p>
       )}
       <div className="chips" style={{ marginTop: 8 }}>
+        {sharable && (
         <button
           className="chip"
           onClick={() => {
@@ -115,6 +119,7 @@ export function RoundDetail({ id }: { id: string }) {
         >
           Share
         </button>
+        )}
         <button className="chip" onClick={() => setSpeedSheet(true)}>
           {round.greenSpeed ? <SpeedBars speed={round.greenSpeed} label /> : 'Set green speed'}
         </button>

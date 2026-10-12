@@ -171,28 +171,52 @@ export function drawRoundCard({ round, stats, putter, bled }: CardInput): HTMLCa
 
 export type ShareResult = 'shared' | 'saved' | 'cancelled';
 
-export async function shareRoundCard(input: CardInput): Promise<ShareResult> {
-  const canvas = drawRoundCard(input);
-  const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-  if (!blob) throw new Error('Could not draw the card.');
+/**
+ * Whether this device can hand a file to a share sheet. Android Chrome and iOS Safari can,
+ * desktop browsers generally cannot, which is the real test rather than reading the user agent.
+ */
+export function canShareFiles(): boolean {
+  if (typeof navigator === 'undefined' || typeof navigator.canShare !== 'function') return false;
+  try {
+    const probe = new File([new Uint8Array(1)], 'probe.png', { type: 'image/png' });
+    return navigator.canShare({ files: [probe] });
+  } catch {
+    return false;
+  }
+}
 
-  const file = new File([blob], `break-${input.round.date}.png`, { type: 'image/png' });
+/**
+ * Synchronous on purpose. iOS drops the user gesture if anything is awaited before share is
+ * called, and canvas.toBlob is a callback, so the PNG is decoded out of a data URL instead.
+ */
+function pngFile(canvas: HTMLCanvasElement, name: string): File {
+  const url = canvas.toDataURL('image/png');
+  const binary = atob(url.slice(url.indexOf(',') + 1));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], name, { type: 'image/png' });
+}
+
+export function shareRoundCard(input: CardInput): Promise<ShareResult> {
+  const file = pngFile(drawRoundCard(input), `break-${input.round.date}.png`);
+
   if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file] });
-      return 'shared';
-    } catch (e) {
-      // Dismissing the sheet throws, and that is not a failure worth reporting.
-      if ((e as Error).name === 'AbortError') return 'cancelled';
-      throw e;
-    }
+    // Not awaited before this point, so the tap is still live when the sheet opens.
+    return navigator.share({ files: [file] }).then(
+      () => 'shared' as const,
+      (e: Error) => {
+        // Dismissing the sheet throws, and that is not a failure worth reporting.
+        if (e.name === 'AbortError') return 'cancelled' as const;
+        throw e;
+      },
+    );
   }
 
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(file);
   const a = document.createElement('a');
   a.href = url;
   a.download = file.name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  return 'saved';
+  return Promise.resolve('saved');
 }
