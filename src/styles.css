@@ -177,6 +177,8 @@ p { line-height: 1.45; }
   color: var(--red);
   font-variant-numeric: tabular-nums;
 }
+/* A mistake you bounced back from. Worth showing, not worth shouting. */
+.bleed-tag.clean { color: var(--ink-3); font-weight: 600; opacity: 0.75; }
 .tag {
   font-size: 11px;
   text-transform: uppercase;

@@ -28,6 +28,9 @@ export function Rounds() {
       .map((r) => ({
         round: r,
         stats: roundStats(r, state.baseline),
+        // Two numbers, because a mistake that cost nothing is not the same as no mistake and
+        // the card could not tell them apart when it only counted shots.
+        mistakes: bleedsIn(r).length,
         bled: bleedsIn(r).reduce((n, b) => n + b.shots, 0),
       }));
     rows.sort((a, b) => b.round.date.localeCompare(a.round.date));
@@ -165,7 +168,7 @@ export function Rounds() {
       )}
 
       <div className="round-list">
-      {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s, bled }) => (
+      {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s, mistakes, bled }) => (
         <button
             key={r.id}
             className={r.competitive ? 'round-row comp' : 'round-row'}
@@ -173,10 +176,18 @@ export function Rounds() {
           >
           <div className="round-head">
             <span className="round-date">{fmtDate(r.date)}</span>
-            {/* Only when it cost something, so a card without one is a round that did not let a
-                putting mistake run on. */}
-            {bled > 0 && (
-              <span className="bleed-tag" aria-label={`${bled} shot${bled === 1 ? '' : 's'} bled`}>
+            {/* Drawn whenever a putting mistake happened, same as the drop on the scorecard,
+                so no drop means no mistake. The number is what it went on to cost, and a zero
+                sits quiet because getting away with one is not damage. */}
+            {mistakes > 0 && (
+              <span
+                className={bled > 0 ? 'bleed-tag' : 'bleed-tag clean'}
+                aria-label={
+                  bled > 0
+                    ? `${bled} shot${bled === 1 ? '' : 's'} lost after a putting mistake`
+                    : 'a putting mistake that cost nothing'
+                }
+              >
                 🩸{bled}
               </span>
             )}
