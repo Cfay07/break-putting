@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BUILT_IN_COURSES } from '../lib/builtInCourses';
 import { loadCourse, searchCourses, type CourseHit } from '../lib/courseApi';
 import { newId } from '../lib/storage';
@@ -31,6 +31,16 @@ export function CoursePicker({
   const [mName, setMName] = useState('');
   const [mTee, setMTee] = useState('');
   const [mPars, setMPars] = useState<number[]>(() => Array(18).fill(4));
+
+  // The courses already on the phone are nearly always the one you want, and they used to be
+  // invisible until you thought to run a search.
+  const known = useMemo(
+    () => [
+      ...state.courses,
+      ...BUILT_IN_COURSES.filter((b) => !state.courses.some((c) => c.id === b.id)),
+    ],
+    [state.courses],
+  );
 
   const pick = (course: SavedCourse, tee: SavedTee) => {
     onChange({
@@ -166,6 +176,27 @@ export function CoursePicker({
           {busy ? '...' : 'Search'}
         </button>
       </div>
+
+      {!hits && known.length > 0 && (
+        <>
+          <div className="field-label">On your phone</div>
+          {known.map((c) => (
+            <button key={c.id} className="round-row" style={{ marginTop: 8 }} onClick={() => openCourse(c)}>
+              <span className="round-date" style={{ fontSize: 15 }}>
+                {c.name}
+              </span>
+              <span className="small muted" style={{ display: 'block' }}>
+                {[c.place, `${c.tees.length} tee${c.tees.length === 1 ? '' : 's'}`]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </span>
+            </button>
+          ))}
+          <p className="small muted" style={{ margin: '10px 0 0' }}>
+            Search above for anywhere else.
+          </p>
+        </>
+      )}
 
       {hits?.map((h) => (
         <button key={h.id} className="round-row" style={{ marginTop: 8 }} onClick={() => openHit(h)}>
