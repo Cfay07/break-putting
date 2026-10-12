@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { lagSaves } from '../lib/stats';
 import { holeSG } from '../lib/sg';
+import { shareRoundCard } from '../lib/shareCard';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { ScoreMark } from '../components/ScoreMark';
 import { DistanceTable } from '../components/DistanceTable';
@@ -42,6 +43,7 @@ export function RoundDetail({ id }: { id: string }) {
   const round = state.rounds.find((r) => r.id === id);
   const [editHole, setEditHole] = useState<number | null>(null);
   const [editPutt, setEditPutt] = useState<number | null>(null);
+  const [shareNote, setShareNote] = useState('');
   const [editing, setEditing] = useState(false);
   const [speedSheet, setSpeedSheet] = useState(false);
 
@@ -97,6 +99,22 @@ export function RoundDetail({ id }: { id: string }) {
         </p>
       )}
       <div className="chips" style={{ marginTop: 8 }}>
+        <button
+          className="chip"
+          onClick={() => {
+            setShareNote('');
+            void shareRoundCard({
+              round,
+              stats: s,
+              putter: state.putters.find((p) => p.id === round.putterId)?.name,
+              bled: bleeds.reduce((n, b) => n + b.shots, 0),
+            })
+              .then((r) => setShareNote(r === 'saved' ? 'Saved to your downloads.' : ''))
+              .catch((e) => setShareNote((e as Error).message));
+          }}
+        >
+          Share
+        </button>
         <button className="chip" onClick={() => setSpeedSheet(true)}>
           {round.greenSpeed ? <SpeedBars speed={round.greenSpeed} label /> : 'Set green speed'}
         </button>
@@ -139,6 +157,12 @@ export function RoundDetail({ id }: { id: string }) {
             not averaged in with a slow one.
           </p>
         </Sheet>
+      )}
+
+      {shareNote && (
+        <p className="small muted" style={{ margin: '8px 0 0' }}>
+          {shareNote}
+        </p>
       )}
 
       <h2>The numbers</h2>
