@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { lagSaves } from '../lib/stats';
+import { holeSG } from '../lib/sg';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { ScoreMark } from '../components/ScoreMark';
 import { DistanceTable } from '../components/DistanceTable';
@@ -19,6 +20,22 @@ import { pct, roundStats, suspectHoles } from '../lib/stats';
 import { useApp } from '../lib/store';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
 
+
+/**
+ * Putting strokes gained on one hole. Half a shot is the line where a hole stops being a bad
+ * break and starts being the reason the round went: those get the weight so the eye finds them
+ * without reading every number.
+ */
+function SgCell({ value }: { value: number | null }) {
+  if (value === null) return <span className="sg" />;
+  const cls =
+    value <= -0.5 ? 'sg down big' : value < 0 ? 'sg down' : value > 0 ? 'sg up' : 'sg';
+  return (
+    <span className={cls}>
+      {value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2)}
+    </span>
+  );
+}
 
 export function RoundDetail({ id }: { id: string }) {
   const { state, dispatch } = useApp();
@@ -43,6 +60,9 @@ export function RoundDetail({ id }: { id: string }) {
   const scoringPct = pct(s.scoring);
   const mismatch = round.recordedPutts && round.recordedPutts !== s.totalPutts;
   const hole = editHole !== null ? round.holes.find((h) => h.hole === editHole) : undefined;
+
+  const sgOf = (h: { putts: { d: number }[] }) =>
+    h.putts.length ? holeSG(state.baseline, h.putts.map((p) => p.d), h.putts.length) : null;
   const marks = bleedMarks(round);
   const bleeds = bleedsIn(round);
   const suspect = suspectHoles(round);
@@ -238,6 +258,7 @@ export function RoundDetail({ id }: { id: string }) {
               {running.has(h.hole) ? fmtVsPar(running.get(h.hole)!) : ''}
             </span>
             <span className="n num">{h.putts.length || ''}</span>
+            <SgCell value={sgOf(h)} />
           </button>
         ))}
 
@@ -271,10 +292,18 @@ export function RoundDetail({ id }: { id: string }) {
                 {scored ? fmtVsPar(rel) : ''}
               </span>
               <span className="n num">{putts || ''}</span>
+              <SgCell
+                value={inBand.some((h) => h.putts.length) ? inBand.reduce((n, h) => n + (sgOf(h) ?? 0), 0) : null}
+              />
             </div>
           );
         })}
       </div>
+
+      <p className="small muted" style={{ margin: '8px 0 0' }}>
+        The last column is putting strokes gained on that hole, against what the average putt from
+        your first putt's distance is worth. The bold reds are where the round went.
+      </p>
 
       {bleeds.length > 0 && (
         <p className="small muted" style={{ marginTop: 8 }}>
