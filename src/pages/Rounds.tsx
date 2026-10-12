@@ -8,6 +8,7 @@ import { go } from '../lib/router';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { SpeedBars } from '../components/SpeedBars';
 import { currentSession } from '../lib/cloud';
+import { bleedsIn } from '../lib/bleed';
 import { courseLabel, roundScale, roundStats } from '../lib/stats';
 import type { GreenSpeed } from '../lib/types';
 import { newId } from '../lib/storage';
@@ -24,7 +25,11 @@ export function Rounds() {
   const finished = useMemo(() => {
     const rows = state.rounds
       .filter((r) => r.finished)
-      .map((r) => ({ round: r, stats: roundStats(r, state.baseline) }));
+      .map((r) => ({
+        round: r,
+        stats: roundStats(r, state.baseline),
+        bled: bleedsIn(r).reduce((n, b) => n + b.shots, 0),
+      }));
     rows.sort((a, b) => b.round.date.localeCompare(a.round.date));
     if (sort !== 'recent') {
       // Nine-hole rounds double, so a tidy nine cannot outrank a good eighteen on volume alone.
@@ -160,7 +165,7 @@ export function Rounds() {
       )}
 
       <div className="round-list">
-      {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s }) => (
+      {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s, bled }) => (
         <button
             key={r.id}
             className={r.competitive ? 'round-row comp' : 'round-row'}
@@ -168,6 +173,13 @@ export function Rounds() {
           >
           <div className="round-head">
             <span className="round-date">{fmtDate(r.date)}</span>
+            {/* Only when it cost something, so a card without one is a round that did not let a
+                putting mistake run on. */}
+            {bled > 0 && (
+              <span className="tag bleed-tag">
+                −{bled} bled
+              </span>
+            )}
             <PutterTag putterId={r.putterId} />
           </div>
           {r.course && (
