@@ -75,6 +75,42 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
         </>
       )}
 
+      {read.sides.length === 2 && (
+        <>
+          <div className="field-label">Which way it breaks</div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Break</th>
+                  <th>Putts</th>
+                  <th>Read right</th>
+                  <th>Too little</th>
+                  <th>Too much</th>
+                </tr>
+              </thead>
+              <tbody>
+                {read.sides.map((d) => (
+                  <tr key={d.key}>
+                    <td>{d.label}</td>
+                    <td className="num">{d.putts}</td>
+                    <td className="num">{Math.round((d.right / d.putts) * 100)}%</td>
+                    <td className={d.under > d.right ? 'num neg' : 'num'}>
+                      {Math.round((d.under / d.putts) * 100)}%
+                    </td>
+                    <td className="num">{Math.round((d.over / d.putts) * 100)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="small muted" style={{ margin: '6px 0 0' }}>
+            Most right-handers miss one of these two far more than the other. Double breakers are
+            left out, because the error does not belong to either side.
+          </p>
+        </>
+      )}
+
       {read.leaveWhenRight !== null && read.leaveWhenWrong !== null && (
         <p className="small" style={{ margin: '10px 0 0' }}>
           A miss with the read right finishes {read.leaveWhenRight.toFixed(1)} ft away. With the

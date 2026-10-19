@@ -1,4 +1,4 @@
-import type { Hole, Putt, Round } from './types';
+import { breakBucket, breakDirsOf, type Hole, type Putt, type Round } from './types';
 
 export interface ReadBand {
   /** 1 slight to 4 severe, how much the putt actually moved. */
@@ -11,6 +11,16 @@ export interface ReadBand {
   avgLeave: number | null;
 }
 
+/** One side of the break on its own. Double breakers sit out: the error belongs to neither. */
+export interface ReadSide {
+  key: 'lr' | 'rl';
+  label: string;
+  putts: number;
+  right: number;
+  under: number;
+  over: number;
+}
+
 export interface ReadSummary {
   /** Putts carrying both halves of the read. */
   judged: number;
@@ -18,6 +28,7 @@ export interface ReadSummary {
   under: number;
   over: number;
   bands: ReadBand[];
+  sides: ReadSide[];
   /** Missed putts split the only way the three tags allow. */
   blameRead: number;
   blameStroke: number;
@@ -50,6 +61,7 @@ export function readError(rounds: Round[]): ReadSummary {
   let blameSpeed = 0;
   const rightLeaves: number[] = [];
   const wrongLeaves: number[] = [];
+  const sides = new Map<'lr' | 'rl', { putts: number; right: number; under: number; over: number }>();
 
   for (const round of rounds) {
     for (const hole of round.holes) {
@@ -75,6 +87,16 @@ export function readError(rounds: Round[]): ReadSummary {
         }
         bands.set(broke, band);
 
+        const bucket = breakBucket(breakDirsOf(p));
+        if (bucket === 'lr' || bucket === 'rl') {
+          const side = sides.get(bucket) ?? { putts: 0, right: 0, under: 0, over: 0 };
+          side.putts++;
+          if (delta === 0) side.right++;
+          else if (delta > 0) side.under++;
+          else side.over++;
+          sides.set(bucket, side);
+        }
+
         if (p.made) return;
         const offLine = !!p.push || !!p.pull;
         if (delta !== 0) blameRead++;
@@ -99,6 +121,12 @@ export function readError(rounds: Round[]): ReadSummary {
         avgLeave: mean(b.leaves),
       }))
       .sort((a, b) => a.amount - b.amount),
+    sides: (['lr', 'rl'] as const)
+      .map((key) => {
+        const v = sides.get(key);
+        return v ? { key, label: key === 'lr' ? 'L→R' : 'L←R', ...v } : null;
+      })
+      .filter((x): x is ReadSide => x !== null),
     blameRead,
     blameStroke,
     blameSpeed,
