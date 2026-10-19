@@ -1,5 +1,4 @@
 import { pct, roundScale, roundStats } from './stats';
-import { RAIN_FLOOR } from './weather';
 import type { Round } from './types';
 
 export interface ConditionSplit {
@@ -11,10 +10,9 @@ export interface ConditionSplit {
 }
 
 export interface ConditionSplits {
-  rain: ConditionSplit[];
   aeration: ConditionSplit[];
   surface: ConditionSplit[];
-  tagged: { rain: number; aeration: number; surface: number };
+  tagged: { aeration: number; surface: number };
 }
 
 /** Both sides need this many rounds before a split is worth drawing at all. */
@@ -60,12 +58,6 @@ function split(
 export function byConditions(rounds: Round[], baseline: [number, number][]): ConditionSplits {
   const played = rounds.filter((r) => r.finished);
   return {
-    rain: split(
-      played,
-      baseline,
-      (r) => (r.rainMm === undefined ? null : r.rainMm >= RAIN_FLOOR ? 'Wet' : 'Dry'),
-      ['Dry', 'Wet'],
-    ),
     aeration: split(
       played,
       baseline,
@@ -79,7 +71,6 @@ export function byConditions(rounds: Round[], baseline: [number, number][]): Con
       ['Smooth', 'Average', 'Bumpy'],
     ),
     tagged: {
-      rain: played.filter((r) => r.rainMm !== undefined).length,
       aeration: played.filter((r) => r.aerated !== undefined).length,
       surface: played.filter((r) => r.bumpy !== undefined).length,
     },

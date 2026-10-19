@@ -38,11 +38,11 @@ function Table({ title, rows }: { title: string; rows: ConditionSplit[] }) {
 }
 
 export function ConditionPanel({ splits }: { splits: ConditionSplits }) {
-  const any = splits.rain.length || splits.aeration.length || splits.surface.length;
+  const any = splits.aeration.length || splits.surface.length;
   const { tagged } = splits;
 
   if (!any) {
-    const some = tagged.rain + tagged.aeration + tagged.surface;
+    const some = tagged.aeration + tagged.surface;
     return (
       <p className="small muted">
         {some
@@ -54,7 +54,6 @@ export function ConditionPanel({ splits }: { splits: ConditionSplits }) {
 
   return (
     <>
-      <Table title="Rain that day" rows={splits.rain} />
       <Table title="Aeration" rows={splits.aeration} />
       <Table title="How true it rolled" rows={splits.surface} />
       <p className="small muted" style={{ margin: '8px 0 0' }}>

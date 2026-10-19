@@ -8,6 +8,8 @@ import { MissAnatomyPanel } from '../components/MissAnatomyPanel';
 import { MissShapesPanel } from '../components/MissShapesPanel';
 import { ReadPanel } from '../components/ReadPanel';
 import { ConditionPanel } from '../components/ConditionPanel';
+import { ConvertedPanel } from '../components/ConvertedPanel';
+import { converted } from '../lib/expected';
 import { byConditions } from '../lib/conditions';
 import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
@@ -114,6 +116,7 @@ export function Stats() {
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const read = useMemo(() => readError(rounds), [rounds]);
   const conditions = useMemo(() => byConditions(rounds, state.baseline), [rounds, state.baseline]);
+  const convert = useMemo(() => converted(rounds, state.baseline), [rounds, state.baseline]);
   // One dot a round, so the spread shows whether a season average hides two different games.
   const perRoundBlame = useMemo(
     () =>
@@ -523,6 +526,13 @@ export function Stats() {
                 Per eighteen holes. If the miss line swings between bands, the greens moved your
                 miss and not your read.
               </p>
+            </>
+          )}
+
+          {convert && convert.bands.length > 1 && (
+            <>
+              <h2>What you hole, against tour</h2>
+              <ConvertedPanel c={convert} />
             </>
           )}
 

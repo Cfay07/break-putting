@@ -198,10 +198,6 @@ export function RoundDetail({ id }: { id: string }) {
           <Conditions
             aerated={round.aerated}
             bumpy={round.bumpy}
-            rainMm={round.rainMm}
-            date={round.date}
-            lat={state.courses.find((c) => c.id === round.courseId)?.lat}
-            lon={state.courses.find((c) => c.id === round.courseId)?.lon}
             onChange={(patch) => dispatch({ t: 'updateRound', id: round.id, patch })}
           />
         </Sheet>

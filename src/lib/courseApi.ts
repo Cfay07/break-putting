@@ -38,7 +38,7 @@ export async function loadCourse(id: string): Promise<SavedCourse> {
     course?: {
       club_name?: string;
       course_name?: string;
-      location?: { city?: string; state?: string; latitude?: number; longitude?: number };
+      location?: { city?: string; state?: string };
       tees?: Record<string, ApiTee[]>;
     };
   };
@@ -59,8 +59,6 @@ export async function loadCourse(id: string): Promise<SavedCourse> {
     id: String(id),
     name: c.course_name && c.course_name !== c.club_name ? `${c.club_name} · ${c.course_name}` : (c.club_name ?? 'Unnamed'),
     place: [c.location?.city, c.location?.state].filter(Boolean).join(', '),
-    lat: c.location?.latitude,
-    lon: c.location?.longitude,
     tees: tees.sort((a, b) => (b.yards ?? 0) - (a.yards ?? 0)),
   };
 }

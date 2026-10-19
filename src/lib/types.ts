@@ -110,8 +110,6 @@ export interface Round {
   aerated?: boolean;
   /** 1 smooth, 2 average, 3 bumpy. How true the surface rolled. */
   bumpy?: number;
-  /** Millimetres of rain on the day, from the weather archive. Recorded, never scored against. */
-  rainMm?: number;
   /** When this round last changed, so two devices can merge by taking the newer copy. */
   updated?: string;
   holeCount: number;
@@ -130,9 +128,6 @@ export interface SavedCourse {
   id: string;
   name: string;
   place?: string;
-  /** Only used to ask the weather archive what fell that day. Town resolution is plenty. */
-  lat?: number;
-  lon?: number;
   tees: SavedTee[];
 }
 
