@@ -1,21 +1,20 @@
 import { CONVERT_MAX_FT, type ConvertSummary } from '../lib/expected';
 
-export function ConvertedPanel({ c }: { c: ConvertSummary }) {
+export function ConvertedPanel({ c, rounds }: { c: ConvertSummary; rounds: number }) {
   if (!c.bands.length) return null;
   const lost = c.made - c.expected;
+  const perRound = rounds > 0 ? lost / rounds : null;
 
   return (
     <>
       <div className="card">
-        <div className="stat-row">
-          <span className="k">Holed, against tour</span>
-          <span className={c.vsTour >= 100 ? 'v num pos' : 'v num neg'}>
-            {c.vsTour.toFixed(0)}%
-            <span className="small muted"> ± {c.se.toFixed(0)}</span>
-          </span>
-        </div>
-        <div className="stat-row">
-          <span className="k">Putts holed</span>
+        <div className="shoot-for num neg">{lost.toFixed(0)}</div>
+        <p className="small" style={{ margin: '4px 0 0' }}>
+          Putts you did not hole that a tour player would have, from the same distances, inside{' '}
+          {CONVERT_MAX_FT} feet. {perRound !== null && `About ${Math.abs(perRound).toFixed(1)} a round.`}
+        </p>
+        <div className="stat-row" style={{ marginTop: 8 }}>
+          <span className="k">Holed</span>
           <span className="v num">
             {c.made}
             <span className="small muted"> of {c.putts}</span>
@@ -24,10 +23,6 @@ export function ConvertedPanel({ c }: { c: ConvertSummary }) {
         <div className="stat-row">
           <span className="k">Tour would have holed</span>
           <span className="v num">{c.expected.toFixed(0)}</span>
-        </div>
-        <div className="stat-row">
-          <span className="k">Putts given away</span>
-          <span className={lost < 0 ? 'v num neg' : 'v num pos'}>{lost.toFixed(0)}</span>
         </div>
       </div>
 
@@ -65,8 +60,8 @@ export function ConvertedPanel({ c }: { c: ConvertSummary }) {
       )}
       <p className="small muted" style={{ margin: '6px 0 0' }}>
         Tour make rates come out of the expected-strokes table this app already scores you
-        against, so this is the same yardstick as strokes gained asking a different question: not
-        what your putting cost, but how often you hole what a tour player holes. It stops at{' '}
+        against, so it is the same yardstick strokes gained uses, asked a different way: not what
+        the putting cost in strokes, but how many putts went unholed. It stops at{' '}
         {CONVERT_MAX_FT} feet, where the maths behind the tour rate stops being reliable and lag
         control becomes the right panel.
       </p>

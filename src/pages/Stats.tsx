@@ -531,8 +531,8 @@ export function Stats() {
 
           {convert && convert.bands.length > 1 && (
             <>
-              <h2>What you hole, against tour</h2>
-              <ConvertedPanel c={convert} />
+              <h2>Putts left out there</h2>
+              <ConvertedPanel c={convert} rounds={rounds.length} />
             </>
           )}
 
