@@ -7,6 +7,8 @@ import { LagPanel } from '../components/LagPanel';
 import { MissAnatomyPanel } from '../components/MissAnatomyPanel';
 import { MissShapesPanel } from '../components/MissShapesPanel';
 import { ReadPanel } from '../components/ReadPanel';
+import { ConditionPanel } from '../components/ConditionPanel';
+import { byConditions } from '../lib/conditions';
 import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
 import { LearnedPanel } from '../components/LearnedPanel';
@@ -111,6 +113,7 @@ export function Stats() {
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const read = useMemo(() => readError(rounds), [rounds]);
+  const conditions = useMemo(() => byConditions(rounds, state.baseline), [rounds, state.baseline]);
   // One dot a round, so the spread shows whether a season average hides two different games.
   const perRoundBlame = useMemo(
     () =>
@@ -522,6 +525,9 @@ export function Stats() {
               </p>
             </>
           )}
+
+          <h2>Greens, beyond speed</h2>
+          <ConditionPanel splits={conditions} />
 
           {green && (
             <>
