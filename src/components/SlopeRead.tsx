@@ -2,7 +2,9 @@ const STOPS = [0, 1, 2, 3, 4, 5];
 
 /** Walks you through it a step at a time, because six bare numbers explain nothing. */
 function wording(readAs: number | undefined, playedAs: number | undefined): string {
-  if (readAs === undefined) return 'Tap the number you read it as';
+  // Says out loud that it is skippable. A guessed read looks identical to a real one in the
+  // data, so someone who does not put a number on the slope should leave it alone.
+  if (readAs === undefined) return 'Tap what you read it as, or skip it if you do not read by number';
   if (playedAs === undefined || playedAs === readAs) {
     return `Read a ${readAs}. Tap again if it played different.`;
   }
