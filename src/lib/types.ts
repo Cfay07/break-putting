@@ -36,6 +36,14 @@ export interface Putt {
   pull?: boolean;
   /** Quit on it. A tempo fault rather than a face or path one, so it stands on its own. */
   decel?: boolean;
+  /**
+   * AimPoint numbers, 0 to 5. `readAs` is what the slope read as through the feet, `playedAs`
+   * what it turned out to be. Held apart rather than as a single error, because the pair also
+   * says what slopes a course actually throws at you. The finger method already scales the aim
+   * with the length of the putt, so the number means the same thing at 6 feet and at 40.
+   */
+  readAs?: number;
+  playedAs?: number;
 }
 
 export interface Hole {

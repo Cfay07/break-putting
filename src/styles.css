@@ -796,6 +796,37 @@ button.pick:active { background-color: #f4f1e8; }
 
 /* Miss grid. Laid out the way the putt finished: high above the hole, low below, short left
    and long right. The hole itself is the middle cell, so the shape reads before the labels do. */
+/* AimPoint read. One strip: the read, what it played, and the gap between them drawn in. */
+.slope-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.slope-stop {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.slope-stop.span { background: rgba(20, 57, 43, 0.07); border-color: transparent; }
+.slope-stop.read { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+/* What it actually played is the answer, so it carries the accent and the read goes quiet. */
+.slope-stop.actual { background: var(--accent); border-color: var(--accent); color: #fff; }
+.slope-stop.read.actual { background: var(--ink); border-color: var(--ink); }
+/* The strip is six bare numbers without these. Same job the axis labels do on the miss grid. */
+.slope-ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.slope-read { color: var(--ink-3); margin: 6px 0 0; }
+.slope-read.on { color: var(--ink-2); }
+
 .miss-grid {
   display: grid;
   grid-template-columns: 58px repeat(3, minmax(0, 1fr));

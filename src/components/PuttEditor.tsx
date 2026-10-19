@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { MissGrid } from './MissGrid';
 import { SegMulti } from './SegMulti';
+import { SlopeRead } from './SlopeRead';
 import {
   BREAK_DIRS,
   BREAK_LABELS,
@@ -129,6 +130,17 @@ export function PuttEditor({
         values={dirs}
         onToggle={(v) => onPatch({ breakDirs: toggleBreak(dirs, v), breakDir: undefined })}
       />
+
+      {dirs.some((d) => d === 'L→R' || d === 'R→L') && (
+        <>
+          <div className="field-label">How you read the slope</div>
+          <SlopeRead
+            readAs={putt.readAs}
+            playedAs={putt.playedAs}
+            onPick={(readAs, playedAs) => onPatch({ readAs, playedAs })}
+          />
+        </>
+      )}
 
       <div className="field-label">Factors</div>
       <div className="chips">

@@ -5,6 +5,7 @@ import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
 import { Keypad } from '../components/Keypad';
 import { MissGrid } from '../components/MissGrid';
 import { SegMulti } from '../components/SegMulti';
+import { SlopeRead } from '../components/SlopeRead';
 import { Sheet } from '../components/Sheet';
 import { go } from '../lib/router';
 import { bleedMarks, liveBleed } from '../lib/bleed';
@@ -327,6 +328,19 @@ export function Track() {
             values={draft.breakDirs ?? []}
             onToggle={(v) => setDraft({ breakDirs: toggleBreak(draft.breakDirs ?? [], v) })}
           />
+
+          {/* Only on a putt that actually turned. There is no read to be wrong about on a
+              straight one. */}
+          {(draft.breakDirs ?? []).some((d) => d === 'L→R' || d === 'R→L') && (
+            <>
+              <div className="field-label">How you read the slope</div>
+              <SlopeRead
+                readAs={draft.readAs}
+                playedAs={draft.playedAs}
+                onPick={(readAs, playedAs) => setDraft({ readAs, playedAs })}
+              />
+            </>
+          )}
 
           {!draft.made && <div className="field-label">Factors</div>}
           <div className="chips" style={draft.made ? { display: 'none' } : undefined}>
