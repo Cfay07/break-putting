@@ -17,7 +17,7 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
           <span className="v num">{read.judged}</span>
         </div>
         <div className="stat-row">
-          <span className="k">Had it</span>
+          <span className="k">Read it right</span>
           <span className="v num pos">
             {pct(read.hadIt)}
             <span className="small muted"> · {read.hadIt}</span>
@@ -48,9 +48,9 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
                 <tr>
                   <th>Break</th>
                   <th>Putts</th>
-                  <th>Had it</th>
+                  <th>Read right</th>
                   <th>Too little</th>
-                  <th>Miss</th>
+                  <th>Miss by</th>
                 </tr>
               </thead>
               <tbody>
@@ -70,7 +70,7 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
           </div>
           <p className="small muted" style={{ margin: '6px 0 0' }}>
             If the too-little column climbs as the break gets bigger, you are under-reading the
-            severe ones. Miss is how far the ball finished from the hole when it did not drop.
+            severe ones. Miss by is how far the ball finished from the hole when it did not drop.
           </p>
         </>
       )}
