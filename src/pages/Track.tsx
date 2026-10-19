@@ -5,7 +5,7 @@ import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
 import { Keypad } from '../components/Keypad';
 import { MissGrid } from '../components/MissGrid';
 import { SegMulti } from '../components/SegMulti';
-import { SlopeRead } from '../components/SlopeRead';
+import { ReadBreak } from '../components/ReadBreak';
 import { Sheet } from '../components/Sheet';
 import { go } from '../lib/router';
 import { bleedMarks, liveBleed } from '../lib/bleed';
@@ -333,11 +333,11 @@ export function Track() {
               straight one. */}
           {(draft.breakDirs ?? []).some((d) => d === 'L→R' || d === 'R→L') && (
             <>
-              <div className="field-label">How you read the slope</div>
-              <SlopeRead
+              <div className="field-label">The read</div>
+              <ReadBreak
                 readAs={draft.readAs}
-                playedAs={draft.playedAs}
-                onPick={(readAs, playedAs) => setDraft({ readAs, playedAs })}
+                brokeAs={draft.brokeAs}
+                onPick={(readAs, brokeAs) => setDraft({ readAs, brokeAs })}
               />
             </>
           )}

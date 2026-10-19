@@ -37,13 +37,16 @@ export interface Putt {
   /** Quit on it. A tempo fault rather than a face or path one, so it stands on its own. */
   decel?: boolean;
   /**
-   * AimPoint numbers, 0 to 5. `readAs` is what the slope read as through the feet, `playedAs`
-   * what it turned out to be. Held apart rather than as a single error, because the pair also
-   * says what slopes a course actually throws at you. The finger method already scales the aim
-   * with the length of the putt, so the number means the same thing at 6 feet and at 40.
+   * How the break looked before the putt and how much it actually moved, 1 slight to 4 severe.
+   * Two taps on one scale: the second only when the read was wrong, so the gap between them is
+   * the read error and nobody has to subtract anything by eye.
+   *
+   * Curves rather than numbers on purpose. A numeric read locks out anyone who does not count
+   * fingers, and the scale is relative, so "barely moved" means the same thing at six feet and
+   * at forty, which is what cups could never do.
    */
   readAs?: number;
-  playedAs?: number;
+  brokeAs?: number;
 }
 
 export interface Hole {

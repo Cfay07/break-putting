@@ -6,6 +6,9 @@ import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { MissAnatomyPanel } from '../components/MissAnatomyPanel';
 import { MissShapesPanel } from '../components/MissShapesPanel';
+import { ReadPanel } from '../components/ReadPanel';
+import { BlameTriangle } from '../components/BlameTriangle';
+import { readError } from '../lib/readError';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
@@ -107,6 +110,16 @@ export function Stats() {
   const courses = useMemo(() => byCourse(rounds, state.baseline), [rounds, state.baseline]);
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
+  const read = useMemo(() => readError(rounds), [rounds]);
+  // One dot a round, so the spread shows whether a season average hides two different games.
+  const perRoundBlame = useMemo(
+    () =>
+      rounds
+        .map((r) => readError([r]))
+        .filter((x) => x.blamed > 0)
+        .map((x) => ({ read: x.blameRead, stroke: x.blameStroke, speed: x.blameSpeed })),
+    [rounds],
+  );
   const miss = useMemo(() => missAnatomy(rounds), [rounds]);
   const shapes = useMemo(() => missShapes(rounds), [rounds]);
   const vol = useMemo(() => volatility(rounds, state.baseline), [rounds, state.baseline]);
@@ -367,6 +380,19 @@ export function Stats() {
 
           <div className="field-label">Your most common miss</div>
           <MissShapesPanel shapes={shapes} />
+
+          {read.judged > 0 && (
+            <>
+              <h2>The read</h2>
+              {read.blamed > 0 && (
+                <BlameTriangle
+                  season={{ read: read.blameRead, stroke: read.blameStroke, speed: read.blameSpeed }}
+                  rounds={perRoundBlame}
+                />
+              )}
+              <ReadPanel read={read} />
+            </>
+          )}
 
           <h2>Miss patterns</h2>
           <PatternPanel stats={o.pooled} taggedRounds={taggedRounds} />

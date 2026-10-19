@@ -12,6 +12,9 @@ import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
+import { ReadPanel } from '../components/ReadPanel';
+import { BlameTriangle } from '../components/BlameTriangle';
+import { readError } from '../lib/readError';
 import { PutterTag } from '../components/PutterTag';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { PuttEditor } from '../components/PuttEditor';
@@ -68,6 +71,7 @@ export function RoundDetail({ id }: { id: string }) {
 
   const sgOf = (h: { putts: { d: number }[] }) =>
     h.putts.length ? holeSG(state.baseline, h.putts.map((p) => p.d), h.putts.length) : null;
+  const read = readError([round]);
   const marks = bleedMarks(round);
   const bleeds = bleedsIn(round);
   const suspect = suspectHoles(round);
@@ -269,6 +273,18 @@ export function RoundDetail({ id }: { id: string }) {
 
       <h2>Lag control</h2>
       <LagPanel stats={s} lag={lagSaves([round])} />
+
+      {read.judged > 0 && (
+        <>
+          <h2>The read</h2>
+          {read.blamed > 0 && (
+            <BlameTriangle
+              season={{ read: read.blameRead, stroke: read.blameStroke, speed: read.blameSpeed }}
+            />
+          )}
+          <ReadPanel read={read} />
+        </>
+      )}
 
       <h2>Miss patterns</h2>
       <PatternPanel stats={s} />
