@@ -142,6 +142,21 @@ export function PuttEditor({
         </>
       )}
 
+      <div className="field-label">Strike</div>
+      <div className="chips">
+        {(['toe', 'centre', 'heel'] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            className={putt.strike === k ? 'chip chip-sel' : 'chip'}
+            aria-pressed={putt.strike === k}
+            onClick={() => onPatch({ strike: putt.strike === k ? undefined : k })}
+          >
+            {k === 'centre' ? 'Middle' : k === 'toe' ? 'Toe' : 'Heel'}
+          </button>
+        ))}
+      </div>
+
       <div className="field-label">Factors</div>
       <div className="chips">
         {FACTORS.map((f) => (

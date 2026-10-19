@@ -342,6 +342,21 @@ export function Track() {
             </>
           )}
 
+          <div className="field-label">Strike</div>
+          <div className="chips">
+            {(['toe', 'centre', 'heel'] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                className={draft.strike === k ? 'chip chip-on' : 'chip'}
+                aria-pressed={draft.strike === k}
+                onClick={() => setDraft({ strike: draft.strike === k ? undefined : k })}
+              >
+                {k === 'centre' ? 'Middle' : k === 'toe' ? 'Toe' : 'Heel'}
+              </button>
+            ))}
+          </div>
+
           {!draft.made && <div className="field-label">Factors</div>}
           <div className="chips" style={draft.made ? { display: 'none' } : undefined}>
             {FACTORS.map((f: Factor) => (

@@ -17,6 +17,7 @@ import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
 import { PutterTag } from '../components/PutterTag';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
+import { Conditions } from '../components/Conditions';
 import { PuttEditor } from '../components/PuttEditor';
 import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
@@ -193,6 +194,16 @@ export function RoundDetail({ id }: { id: string }) {
             How the greens rolled that day. Stats can be split by this, so a fast-green round is
             not averaged in with a slow one.
           </p>
+
+          <Conditions
+            aerated={round.aerated}
+            bumpy={round.bumpy}
+            rainMm={round.rainMm}
+            date={round.date}
+            lat={state.courses.find((c) => c.id === round.courseId)?.lat}
+            lon={state.courses.find((c) => c.id === round.courseId)?.lon}
+            onChange={(patch) => dispatch({ t: 'updateRound', id: round.id, patch })}
+          />
         </Sheet>
       )}
 

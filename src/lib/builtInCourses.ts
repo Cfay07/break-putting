@@ -1,5 +1,7 @@
 import type { SavedCourse } from './types';
 
+// Town coordinates. Only the weather archive uses them and rainfall does not vary across a course.
+
 /**
  * Courses the golf course API does not carry. Ives Grove has three nines, so every playable
  * eighteen is one of the six orderings. Pars come off the BlueGolf scorecards, where the Blue nine
@@ -34,6 +36,8 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     id: 'builtin-ives-grove',
     name: 'Ives Grove Golf Links',
     place: 'Sturtevant, WI',
+        lat: 42.6981,
+    lon: -87.8945,
     tees: combinations(IVES_NINES),
   },
   {
@@ -42,6 +46,8 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     place: 'Kenosha, WI',
     // Two tees on the 18Birdies card. Other sites name the 5588 "Red" and add a 5337 nobody
     // else lists, so this follows the one source that got every par right.
+        lat: 42.5847,
+    lon: -87.8212,
     tees: [
       { name: 'White', yards: 5979, pars: PETRIFYING_PARS },
       { name: 'Orange', yards: 5588, pars: PETRIFYING_PARS },
@@ -51,6 +57,8 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     id: 'builtin-browns-lake',
     name: 'Browns Lake Golf Course',
     place: 'Burlington, WI',
+        lat: 42.6781,
+    lon: -88.2762,
     tees: [
       { name: 'White', yards: 6386, pars: BROWNS_LAKE_PARS },
       { name: 'Yellow', yards: 5391, pars: BROWNS_LAKE_PARS },

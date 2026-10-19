@@ -35,7 +35,12 @@ export async function searchCourses(query: string): Promise<CourseHit[]> {
 
 export async function loadCourse(id: string): Promise<SavedCourse> {
   const data = (await get(`/courses/${id}`)) as {
-    course?: { club_name?: string; course_name?: string; location?: { city?: string; state?: string }; tees?: Record<string, ApiTee[]> };
+    course?: {
+      club_name?: string;
+      course_name?: string;
+      location?: { city?: string; state?: string; latitude?: number; longitude?: number };
+      tees?: Record<string, ApiTee[]>;
+    };
   };
   const c = data.course ?? {};
   const tees: SavedTee[] = [];
@@ -54,6 +59,8 @@ export async function loadCourse(id: string): Promise<SavedCourse> {
     id: String(id),
     name: c.course_name && c.course_name !== c.club_name ? `${c.club_name} · ${c.course_name}` : (c.club_name ?? 'Unnamed'),
     place: [c.location?.city, c.location?.state].filter(Boolean).join(', '),
+    lat: c.location?.latitude,
+    lon: c.location?.longitude,
     tees: tees.sort((a, b) => (b.yards ?? 0) - (a.yards ?? 0)),
   };
 }
