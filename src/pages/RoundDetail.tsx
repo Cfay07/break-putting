@@ -18,6 +18,7 @@ import { readError } from '../lib/readError';
 import { PutterTag } from '../components/PutterTag';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { Conditions } from '../components/Conditions';
+import { CoursePicker } from '../components/CoursePicker';
 import { PuttEditor } from '../components/PuttEditor';
 import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
@@ -53,6 +54,7 @@ export function RoundDetail({ id }: { id: string }) {
   const [sharing, setSharing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [speedSheet, setSpeedSheet] = useState(false);
+  const [courseOpen, setCourseOpen] = useState(false);
 
   if (!round) {
     return (
@@ -505,12 +507,17 @@ export function RoundDetail({ id }: { id: string }) {
             value={round.date}
             onChange={(e) => dispatch({ t: 'updateRound', id: round.id, patch: { date: e.target.value } })}
           />
+          {/* Typing a name here used to be all you could do, which left the pars blank for good
+              on a round saved before its course had tees. Picking the tee fills them in. */}
           <div className="field-label">Course</div>
-          <input
-            type="text"
-            value={round.course ?? ''}
-            onChange={(e) => dispatch({ t: 'updateRound', id: round.id, patch: { course: e.target.value } })}
-          />
+          <button className="btn btn-ghost btn-wide" onClick={() => setCourseOpen(true)}>
+            {round.course ? `${round.course}${round.tee ? ` · ${round.tee}` : ''}` : 'Pick a course'}
+          </button>
+          {round.course && !round.tee && (
+            <p className="small muted" style={{ margin: '6px 0 0' }}>
+              No tee on this round, so the holes have no par. Pick one to fill them in.
+            </p>
+          )}
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ flex: 1 }}>
               <div className="field-label">First nine</div>
@@ -596,6 +603,25 @@ export function RoundDetail({ id }: { id: string }) {
           <p className="small muted">
             Only fill this in if the card disagrees with what you logged. The tally is what every stat uses.
           </p>
+        </Sheet>
+      )}
+      {courseOpen && (
+        <Sheet title="Course" onClose={() => setCourseOpen(false)}>
+          <CoursePicker
+            holeCount={round.holeCount}
+            value={{ name: round.course ?? '', courseId: round.courseId, tee: round.tee }}
+            onChange={(c) => {
+              dispatch({
+                t: 'applyCourse',
+                roundId: round.id,
+                course: c.name,
+                courseId: c.courseId,
+                tee: c.tee,
+                pars: c.pars,
+              });
+              if (c.pars?.length) setCourseOpen(false);
+            }}
+          />
         </Sheet>
       )}
     </>

@@ -29,6 +29,13 @@ const PETRIFYING_PARS = [4, 3, 4, 3, 4, 4, 4, 5, 5, 4, 4, 3, 4, 4, 4, 3, 4, 4];
 /** Out 35, in 37, par 72. Off the 18Birdies card, which GolfPass matches hole for hole. */
 const BROWNS_LAKE_PARS = [4, 4, 3, 4, 4, 5, 4, 3, 4, 4, 4, 4, 3, 5, 5, 4, 3, 5];
 
+/**
+ * Nine holes, par 35. The course API carries Shiloh but with an empty tee list, so it arrives
+ * with nothing to pick. GolfLink and GolfPass print the same card hole for hole, and the Blue
+ * total matches the 2863 on the 18Birdies card from the round played off it.
+ */
+const SHILOH_PARS = [4, 5, 4, 3, 4, 4, 3, 4, 4];
+
 export const BUILT_IN_COURSES: SavedCourse[] = [
   {
     id: 'builtin-ives-grove',
@@ -55,6 +62,16 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
       { name: 'White', yards: 6386, pars: BROWNS_LAKE_PARS },
       { name: 'Yellow', yards: 5391, pars: BROWNS_LAKE_PARS },
       { name: 'Red', yards: 5119, pars: BROWNS_LAKE_PARS },
+    ],
+  },
+  {
+    id: 'builtin-shiloh-park',
+    name: 'Shiloh Park Golf Course',
+    place: 'Zion, IL',
+    tees: [
+      { name: 'Blue', yards: 2863, pars: SHILOH_PARS },
+      { name: 'White', yards: 2695, pars: SHILOH_PARS },
+      { name: 'Yellow', yards: 2348, pars: SHILOH_PARS },
     ],
   },
 ];
