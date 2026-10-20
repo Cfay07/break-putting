@@ -1,4 +1,4 @@
-const CACHE = 'break-v2';
+const CACHE = 'break-__BUILD__';
 
 self.addEventListener('install', () => self.skipWaiting());
 
