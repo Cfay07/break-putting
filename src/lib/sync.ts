@@ -44,14 +44,23 @@ function stamp(at: string): void {
   }
 }
 
-async function upsert(kind: string, rows: unknown[]): Promise<void> {
+/**
+ * The conflict target has to be the table's actual key. This said `id` for everything, and
+ * settings is keyed by user_id and has no id column at all, so every settings push answered
+ * 400. That push runs before the pull, so the throw took the pull down with it: rounds went up
+ * and nothing ever came back, on every device, silently, because a quiet sync eats its error.
+ */
+async function upsert(kind: string, rows: unknown[], key = 'id'): Promise<void> {
   if (!rows.length) return;
-  const res = await table(`${kind}?on_conflict=id`, {
+  const res = await table(`${kind}?on_conflict=${key}`, {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates' },
     body: JSON.stringify(rows),
   });
-  if (!res.ok) throw new Error(`Could not save ${kind} (${res.status}).`);
+  if (!res.ok) {
+    const why = await res.text().catch(() => '');
+    throw new Error(`Could not save ${kind} (${res.status}). ${why}`.trim());
+  }
 }
 
 async function pull<T>(kind: string, since: string): Promise<{ rows: Row<T>[]; at: string | null }> {
@@ -119,13 +128,17 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
   );
 
   if (state.settingsUpdated && state.settingsUpdated > since) {
-    await upsert('settings', [
-      {
-        user_id: session.userId,
-        payload: { baseline: state.baseline, courses: state.courses },
-        updated_at: state.settingsUpdated,
-      },
-    ]);
+    await upsert(
+      'settings',
+      [
+        {
+          user_id: session.userId,
+          payload: { baseline: state.baseline, courses: state.courses },
+          updated_at: state.settingsUpdated,
+        },
+      ],
+      'user_id',
+    );
   }
 
   const [roundPull, putterPull] = await Promise.all([
