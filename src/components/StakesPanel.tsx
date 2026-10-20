@@ -20,10 +20,7 @@ export function StakesPanel({ stakes }: { stakes: Stakes }) {
           <div className="stat-row" key={r.vsPar}>
             <span className="k">
               {r.label}
-              <span className="muted">
-                {' '}
-                · {r.attempts} from {r.avgFt.toFixed(1)} ft
-              </span>
+              <span className="muted"> · {r.attempts} putts</span>
             </span>
             <span className="v num">
               {r.rate === null ? `${r.makes}/${r.attempts}` : pctText(r.rate)}
@@ -52,10 +49,16 @@ export function StakesPanel({ stakes }: { stakes: Stakes }) {
       )}
 
       <p className="small muted" style={{ margin: '6px 0 0' }}>
-        First putts only, {stakes.band.from} to {stakes.band.to} feet. Both matter: putts to save
-        bogey are usually comebacks, and comebacks are short, which invents a trend out of
-        distance alone. A second putt is also rolled on a green you have already read. A row needs{' '}
-        {MIN_ATTEMPTS} putts before it shows a percentage.
+        First putts only, {stakes.band.from} to {stakes.band.to} feet, which is what makes the
+        rows comparable rather than a restatement of how far away they were
+        {stakes.gap
+          ? ` (${stakes.gap.birdie.avgFt.toFixed(1)} ft for birdie against ${stakes.gap.par.avgFt.toFixed(1)} ft to save par)`
+          : ''}
+        . Both controls matter: putts to save bogey are usually comebacks, and comebacks are
+        short, which invents a trend out of distance alone. A second putt is also rolled on a
+        green you have already read. A row needs {MIN_ATTEMPTS} putts before it shows a
+        percentage, and none of these distances are your typical putt from that situation, only
+        the slice of it inside this band.
       </p>
     </div>
   );
