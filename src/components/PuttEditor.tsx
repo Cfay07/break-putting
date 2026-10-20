@@ -135,6 +135,7 @@ export function PuttEditor({
         <>
           <div className="field-label">The read</div>
           <ReadBreak
+            dirs={dirs}
             readAs={putt.readAs}
             brokeAs={putt.brokeAs}
             onPick={(readAs, brokeAs) => onPatch({ readAs, brokeAs })}

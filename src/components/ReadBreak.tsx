@@ -1,3 +1,5 @@
+import type { BreakDir } from '../lib/types';
+
 const STOPS = [
   { n: 1, label: 'Slight', bend: 5 },
   { n: 2, label: 'Some', bend: 13 },
@@ -18,35 +20,50 @@ function wording(readAs: number | undefined, brokeAs: number | undefined): strin
 }
 
 /**
- * Curves rather than a number scale. A numeric read only means something to someone who puts a
- * number on the slope before putting, and that locks out everyone who does not. A shape is a
- * thing you watched.
+ * A ball path, not a number scale. A numeric read only means something to someone who puts a
+ * number on the slope before putting, and that locks out everyone who does not.
+ *
+ * The ball sits at the bottom and the hole at the top, both on x=0, so the four stops line up
+ * and only the width of the bow changes. The bow goes to the high side, away from the way the
+ * putt turns: a left to right putt is started left of the hole and falls back right into it.
+ *
+ * A quadratic peaks at half its control offset, so a bend of 34 reaches 17 either side. The
+ * viewBox runs to 20 so the widest one clears its own stroke instead of being cut off.
  */
-function Curve({ bend, on }: { bend: number; on: boolean }) {
+function Curve({ bend, dir, on }: { bend: number; dir: BreakDir | undefined; on: boolean }) {
+  const apex = dir === 'L→R' ? -bend : bend;
   return (
-    <svg width="32" height="40" viewBox="0 0 32 40" aria-hidden="true">
+    <svg width="40" height="40" viewBox="-20 0 40 40" aria-hidden="true">
+      <circle cx="0" cy="6" r="3" fill="none" stroke="currentColor" strokeWidth="1.3" opacity={on ? 1 : 0.5} />
       <path
-        d={`M 16 36 Q ${16 + bend} 20 16 4`}
+        d={`M 0 32.5 Q ${apex} 19 0 9.5`}
         fill="none"
         stroke="currentColor"
         strokeWidth={on ? 2.6 : 2}
         strokeLinecap="round"
         opacity={on ? 1 : 0.5}
       />
-      <circle cx="16" cy="36" r="2.8" fill="currentColor" opacity={on ? 1 : 0.5} />
+      <circle cx="0" cy="35" r="2.4" fill="currentColor" opacity={on ? 1 : 0.5} />
     </svg>
   );
 }
 
 export function ReadBreak({
+  dirs,
   readAs,
   brokeAs,
   onPick,
 }: {
+  dirs: BreakDir[];
   readAs: number | undefined;
   brokeAs: number | undefined;
   onPick: (readAs: number | undefined, brokeAs: number | undefined) => void;
 }) {
+  // A double breaker turns both ways, so there is no one side to draw it on. Leave it as it was.
+  const lr = dirs.includes('L→R');
+  const rl = dirs.includes('R→L');
+  const dir = lr && rl ? undefined : lr ? 'L→R' : 'R→L';
+
   const actual = brokeAs ?? readAs;
   const lo = readAs !== undefined && actual !== undefined ? Math.min(readAs, actual) : null;
   const hi = readAs !== undefined && actual !== undefined ? Math.max(readAs, actual) : null;
@@ -78,7 +95,7 @@ export function ReadBreak({
               aria-label={s.label}
               onClick={() => tap(s.n)}
             >
-              <Curve bend={s.bend} on={isRead || isActual} />
+              <Curve bend={s.bend} dir={dir} on={isRead || isActual} />
               <span className="brk-label">{s.label}</span>
             </button>
           );

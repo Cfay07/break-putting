@@ -335,6 +335,7 @@ export function Track() {
             <>
               <div className="field-label">The read</div>
               <ReadBreak
+                dirs={draft.breakDirs ?? []}
                 readAs={draft.readAs}
                 brokeAs={draft.brokeAs}
                 onPick={(readAs, brokeAs) => setDraft({ readAs, brokeAs })}
