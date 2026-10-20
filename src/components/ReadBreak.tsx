@@ -9,8 +9,12 @@ const STOPS = [
 
 const WORD: Record<number, string> = { 1: 'slight', 2: 'some', 3: 'lots of', 4: 'severe' };
 
-function wording(readAs: number | undefined, brokeAs: number | undefined): string {
-  if (readAs === undefined) return 'Tap how the break looked before you hit it';
+function wording(readAs: number | undefined, brokeAs: number | undefined, double: boolean): string {
+  if (readAs === undefined) {
+    return double
+      ? 'It turns both ways, so rate the break over the last few feet, the one that decides it'
+      : 'Tap how the break looked before you hit it';
+  }
   if (brokeAs === undefined || brokeAs === readAs) {
     return `Read ${WORD[readAs]} break. Tap again if it moved more or less.`;
   }
@@ -30,13 +34,18 @@ function wording(readAs: number | undefined, brokeAs: number | undefined): strin
  * A quadratic peaks at half its control offset, so a bend of 34 reaches 17 either side. The
  * viewBox runs to 20 so the widest one clears its own stroke instead of being cut off.
  */
-function Curve({ bend, dir, on }: { bend: number; dir: BreakDir | undefined; on: boolean }) {
-  const apex = dir === 'L→R' ? -bend : bend;
+function Curve({ bend, dir, double, on }: { bend: number; dir: BreakDir | undefined; double: boolean; on: boolean }) {
+  // A double breaker is an S, and only the bend at the hole is being rated, so the low bend is
+  // held constant and the high one grows. The four stops then differ in exactly the thing the
+  // scale is asking about.
+  const d = double
+    ? `M 0 32.5 C -9 25 ${bend} 15 0 9.5`
+    : `M 0 32.5 Q ${dir === 'L→R' ? -bend : bend} 19 0 9.5`;
   return (
     <svg width="40" height="40" viewBox="-20 0 40 40" aria-hidden="true">
       <circle cx="0" cy="6" r="3" fill="none" stroke="currentColor" strokeWidth="1.3" opacity={on ? 1 : 0.5} />
       <path
-        d={`M 0 32.5 Q ${apex} 19 0 9.5`}
+        d={d}
         fill="none"
         stroke="currentColor"
         strokeWidth={on ? 2.6 : 2}
@@ -59,10 +68,11 @@ export function ReadBreak({
   brokeAs: number | undefined;
   onPick: (readAs: number | undefined, brokeAs: number | undefined) => void;
 }) {
-  // A double breaker turns both ways, so there is no one side to draw it on. Leave it as it was.
+  // A double breaker turns both ways, so there is no single side to bow it to: it gets an S.
   const lr = dirs.includes('L→R');
   const rl = dirs.includes('R→L');
-  const dir = lr && rl ? undefined : lr ? 'L→R' : 'R→L';
+  const double = lr && rl;
+  const dir = double ? undefined : lr ? 'L→R' : 'R→L';
 
   const actual = brokeAs ?? readAs;
   const lo = readAs !== undefined && actual !== undefined ? Math.min(readAs, actual) : null;
@@ -95,14 +105,14 @@ export function ReadBreak({
               aria-label={s.label}
               onClick={() => tap(s.n)}
             >
-              <Curve bend={s.bend} dir={dir} on={isRead || isActual} />
+              <Curve bend={s.bend} dir={dir} double={double} on={isRead || isActual} />
               <span className="brk-label">{s.label}</span>
             </button>
           );
         })}
       </div>
       <p className={readAs === undefined ? 'small brk-read' : 'small brk-read on'}>
-        {wording(readAs, brokeAs)}
+        {wording(readAs, brokeAs, double)}
       </p>
     </div>
   );
