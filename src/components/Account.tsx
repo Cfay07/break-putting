@@ -105,6 +105,25 @@ export function Account() {
     }
   };
 
+  // Sync is silent by design: it swallows its error and waits for the next launch. That is
+  // right for a background pull and wrong when something is visibly stale and you need to know
+  // why. This one clears the marker first, so it re-reads everything rather than trusting a
+  // marker that may already have been stamped past the change you are waiting for.
+  const pullEverything = async () => {
+    setBusy(true);
+    setNote('Syncing...');
+    try {
+      resetSyncClock();
+      const { result, incoming } = await sync(state);
+      dispatch({ t: 'applyIncoming', incoming });
+      setNote(`Sent ${result.pushed}, received ${result.pulled}.`);
+    } catch (e) {
+      setNote((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const leave = async () => {
     setBusy(true);
     setNote('Syncing before sign out...');
@@ -148,6 +167,9 @@ export function Account() {
         </div>
         <NameField />
         <div className="btn-row" style={{ marginTop: 14 }}>
+          <button className="btn" disabled={busy} onClick={pullEverything}>
+            Sync now
+          </button>
           <button className="btn btn-ghost" disabled={busy} onClick={leave}>
             Sign out
           </button>

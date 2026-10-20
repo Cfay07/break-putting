@@ -54,10 +54,23 @@ async function upsert(kind: string, rows: unknown[]): Promise<void> {
   if (!res.ok) throw new Error(`Could not save ${kind} (${res.status}).`);
 }
 
-async function pull<T>(kind: string, since: string): Promise<Row<T>[]> {
+async function pull<T>(kind: string, since: string): Promise<{ rows: Row<T>[]; at: string | null }> {
   const res = await table(`${kind}?select=id,payload,deleted,updated_at&updated_at=gt.${since}`);
   if (!res.ok) throw new Error(`Could not read ${kind} (${res.status}).`);
-  return (await res.json()) as Row<T>[];
+  return { rows: (await res.json()) as Row<T>[], at: res.headers.get('date') };
+}
+
+/**
+ * The marker for "everything newer than this" used to be stamped from the phone's own clock,
+ * and the next pull asks the server for rows newer than it. A phone running even slightly fast
+ * stamps past a change that is already sitting on the server, and then filters that change out
+ * of every pull it ever makes again. It can never arrive. Take the time off the server's own
+ * response instead, backed up two seconds for anything written while the query was in flight.
+ */
+function serverStamp(header: string | null, fallback: string): string {
+  const t = header ? Date.parse(header) : NaN;
+  if (Number.isNaN(t)) return new Date(Date.parse(fallback) - 60_000).toISOString();
+  return new Date(t - 2_000).toISOString();
 }
 
 /**
@@ -115,10 +128,13 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
     ]);
   }
 
-  const [remoteRounds, remotePutters] = await Promise.all([
+  const [roundPull, putterPull] = await Promise.all([
     pull<Round>('rounds', since),
     pull<Putter>('putters', since),
   ]);
+  const remoteRounds = roundPull.rows;
+  const remotePutters = putterPull.rows;
+  const syncedAt = serverStamp(roundPull.at, startedAt);
 
   const settingsRes = await table(
     `settings?select=payload,updated_at&updated_at=gt.${since}&limit=1`,
@@ -140,7 +156,7 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
       : undefined,
   };
 
-  stamp(startedAt);
+  stamp(syncedAt);
 
   return {
     result: {
