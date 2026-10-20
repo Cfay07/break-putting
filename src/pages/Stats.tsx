@@ -77,12 +77,18 @@ const SCOPE_LABELS: Record<Scope, string> = {
 };
 const GREEN_SCOPES: Scope[] = ['slow', 'medium', 'fast', 'glass'];
 
+/** A putter is a scope too. Prefixed so it cannot collide with a green speed named later. */
+const PUTTER = 'putter:';
+type Pick = Scope | `${typeof PUTTER}${string}`;
+const isPutter = (p: Pick): p is `${typeof PUTTER}${string}` => p.startsWith(PUTTER);
+const putterId = (p: Pick): string => p.slice(PUTTER.length);
+
 export function Stats() {
   const { state } = useApp();
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState(AVG);
 
-  const [scope, setScope] = useState<Scope>('all');
+  const [scope, setScope] = useState<Pick>('all');
   const [scopeSheet, setScopeSheet] = useState(false);
 
   const rounds = useMemo(() => {
@@ -90,11 +96,33 @@ export function Stats() {
     const picked =
       scope === 'all'
         ? finished
-        : scope === 'competitive' || scope === 'casual'
-          ? finished.filter((r) => !!r.competitive === (scope === 'competitive'))
-          : finished.filter((r) => r.greenSpeed === scope);
+        : isPutter(scope)
+          ? finished.filter((r) => r.putterId === putterId(scope))
+          : scope === 'competitive' || scope === 'casual'
+            ? finished.filter((r) => !!r.competitive === (scope === 'competitive'))
+            : finished.filter((r) => r.greenSpeed === scope);
     return [...picked].sort((a, b) => a.date.localeCompare(b.date));
   }, [state.rounds, scope]);
+
+  /**
+   * Every putter that has a finished round, with the window it was used in. A putter era is
+   * also a stretch of time, and that is the whole caveat on comparing two of them, so the
+   * dates belong on the picker rather than buried in a note.
+   */
+  const putterScopes = useMemo(() => {
+    const finished = state.rounds.filter((r) => r.finished);
+    return state.putters
+      .map((p) => {
+        const rs = finished
+          .filter((r) => r.putterId === p.id)
+          .sort((a, b) => a.date.localeCompare(b.date));
+        return rs.length
+          ? { id: p.id, name: p.name, rounds: rs.length, from: rs[0].date, to: rs[rs.length - 1].date }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => b.to.localeCompare(a.to));
+  }, [state.rounds, state.putters]);
 
   // Only offer a green speed you have actually played, so the list is never full of dead ends.
   const perScope = useMemo(() => {
@@ -211,7 +239,9 @@ export function Stats() {
           Showing
         </span>
         <button className="pick" onClick={() => setScopeSheet(true)}>
-          {SCOPE_LABELS[scope]}
+          {isPutter(scope)
+            ? (putterScopes.find((p) => p.id === putterId(scope))?.name ?? 'Putter')
+            : SCOPE_LABELS[scope]}
         </button>
       </div>
 
@@ -231,6 +261,25 @@ export function Stats() {
                 <span className="small muted">{perScope[sc]}</span>
               </button>
             ))}
+            {putterScopes.length > 1 &&
+              putterScopes.map((p) => (
+                <button
+                  key={p.id}
+                  aria-current={scope === `${PUTTER}${p.id}`}
+                  onClick={() => {
+                    setScope(`${PUTTER}${p.id}`);
+                    setScopeSheet(false);
+                  }}
+                >
+                  <span className="menu-row">
+                    {p.name}
+                    <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>
+                      {fmtDate(p.from)} to {fmtDate(p.to)}
+                    </span>
+                  </span>
+                  <span className="small muted">{p.rounds}</span>
+                </button>
+              ))}
           </div>
           <p className="small muted" style={{ marginTop: 10 }}>
             Green speed is set on the new round sheet and can be fixed afterwards on the round
@@ -245,7 +294,9 @@ export function Stats() {
               ? 'No rounds marked competitive yet. Open a round and tap the Casual chip under the course name to flip it.'
               : scope === 'casual'
                 ? 'No casual rounds. Every round you have logged is marked competitive.'
-                : `No rounds on ${SCOPE_LABELS[scope].toLowerCase()} yet.`}
+                : isPutter(scope)
+                  ? 'No finished rounds with that putter yet.'
+                  : `No rounds on ${SCOPE_LABELS[scope].toLowerCase()} yet.`}
           </p>
         </div>
       ) : (
@@ -381,6 +432,22 @@ export function Stats() {
             Made and % count every putt as it happened. Each row is rounded to two decimals, so
             adding them by eye can land a hundredth off the total{anyShort ? '. Short rounds are scaled up here the same way as in Averages' : ''}.
           </p>
+
+          {/* The denominator for everything above it. A make rate reads as a problem until you
+              know how far away the putts were. */}
+          {o.pooled.girProximity !== null && o.pooled.gir >= 10 && (
+            <p className="small muted" style={{ marginTop: 10 }}>
+              <strong>On greens you hit:</strong> your first putt averages{' '}
+              {o.pooled.girProximity.toFixed(1)} ft
+              {o.pooled.girProximityMedian !== null
+                ? `, median ${o.pooled.girProximityMedian.toFixed(1)} ft`
+                : ''}
+              , and {Math.round((o.pooled.girInside10 / o.pooled.gir) * 100)}% finish inside 10
+              feet, over {o.pooled.gir} greens. Hitting from further out and hitting it worse both
+              move this the same way, so read it as why your putts are the length they are, not as
+              a verdict on your irons.
+            </p>
+          )}
 
 
           <p className="act">Why you miss</p>

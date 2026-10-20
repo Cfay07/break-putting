@@ -101,6 +101,13 @@ export interface Stats {
   sg: number;
   makesTotalFeet: number;
   gir: number;
+  /**
+   * On a hole hit in regulation the first putt's length IS the approach proximity, because that
+   * is where the approach finished. Nothing new has to be tapped for this.
+   */
+  girProximity: number | null;
+  girProximityMedian: number | null;
+  girInside10: number;
   scoredHoles: number;
   pattern: Pattern;
 }
@@ -153,6 +160,13 @@ function emptyPattern(): Pattern {
   };
 }
 
+function median(xs: number[]): number | null {
+  if (!xs.length) return null;
+  const v = [...xs].sort((a, b) => a - b);
+  const mid = v.length >> 1;
+  return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+}
+
 export function pct(t: Tally): number | null {
   return t.attempts ? (t.makes / t.attempts) * 100 : null;
 }
@@ -177,6 +191,7 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
   let makesTotalFeet = 0;
   let gir = 0;
   let scoredHoles = 0;
+  const girLeaves: number[] = [];
   const threePuttHoles: number[] = [];
 
   for (const h of played) {
@@ -198,7 +213,10 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
     const vsPar = holeVsPar(h);
     if (vsPar !== undefined) {
       scoredHoles++;
-      if (n - vsPar >= 2) gir++;
+      if (n - vsPar >= 2) {
+        gir++;
+        girLeaves.push(h.putts[0].d);
+      }
     }
 
     for (const [i, p] of h.putts.entries()) {
@@ -275,6 +293,13 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
     sg,
     makesTotalFeet,
     gir,
+    girProximity: girLeaves.length
+      ? girLeaves.reduce((a, b) => a + b, 0) / girLeaves.length
+      : null,
+    // The median says more than the mean here: one 77 footer drags an average and leaves the
+    // typical green untouched.
+    girProximityMedian: median(girLeaves),
+    girInside10: girLeaves.filter((d) => d <= 10).length,
     scoredHoles: scoredHoles + chippedIn,
     pattern,
   };
