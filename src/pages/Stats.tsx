@@ -8,6 +8,10 @@ import { MissAnatomyPanel } from '../components/MissAnatomyPanel';
 import { MissShapesPanel } from '../components/MissShapesPanel';
 import { ReadPanel } from '../components/ReadPanel';
 import { ConditionPanel } from '../components/ConditionPanel';
+import { DriftPanel } from '../components/DriftPanel';
+import { StakesPanel } from '../components/StakesPanel';
+import { driftOf } from '../lib/drift';
+import { stakesOf } from '../lib/stakes';
 import { byConditions } from '../lib/conditions';
 import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
@@ -109,6 +113,8 @@ export function Stats() {
     [rounds],
   );
   const makeModel = useMemo(() => fitMakeModel(rounds), [rounds]);
+  const drift = useMemo(() => driftOf(rounds), [rounds]);
+  const stakes = useMemo(() => stakesOf(rounds), [rounds]);
   const courses = useMemo(() => byCourse(rounds, state.baseline), [rounds, state.baseline]);
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
@@ -407,6 +413,16 @@ export function Stats() {
             </>
           )}
 
+
+          <h2>Drift</h2>
+          <DriftPanel drift={drift} />
+
+          {stakes.rows.length > 0 && (
+            <>
+              <h2>Stakes</h2>
+              <StakesPanel stakes={stakes} />
+            </>
+          )}
 
           <p className="act">What it costs you</p>
           <h2>Lag control</h2>
