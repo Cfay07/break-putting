@@ -310,7 +310,9 @@ export function Rounds() {
             className="btn btn-primary btn-wide"
             style={{ marginTop: 18 }}
             onClick={start}
-            disabled={usable.length ? !putterId : !newPutter.trim()}
+            // A round with no course cannot say where it was played, and every panel that
+            // groups or labels by course has to carry a fallback for it. Require one.
+            disabled={!choice.name.trim() || (usable.length ? !putterId : !newPutter.trim())}
           >
             Start tracking
           </button>
