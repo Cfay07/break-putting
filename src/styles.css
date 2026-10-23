@@ -980,3 +980,4 @@ button.pick:active { background-color: #f4f1e8; }
   color: #fff;
   font-weight: 600;
 }
+.brk-wrong:disabled { opacity: 0.4; }

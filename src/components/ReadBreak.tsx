@@ -130,17 +130,18 @@ export function ReadBreak({
       </div>
 
       {/* A complete misread is not a bigger version of reading too little, so it sits apart
-          from the scale rather than becoming a fifth stop on it. */}
-      {readAs !== undefined && (
-        <button
-          type="button"
-          className={wrongWay ? 'brk-wrong on' : 'brk-wrong'}
-          aria-pressed={wrongWay}
-          onClick={tapWrongWay}
-        >
-          It broke the other way
-        </button>
-      )}
+          from the scale rather than becoming a fifth stop on it.
+          Always drawn, greyed until a read is picked: hiding it until then meant tagging the
+          direction showed four curves and nothing else, and the control could not be found. */}
+      <button
+        type="button"
+        className={wrongWay ? 'brk-wrong on' : 'brk-wrong'}
+        aria-pressed={wrongWay}
+        disabled={readAs === undefined}
+        onClick={tapWrongWay}
+      >
+        It broke the other way
+      </button>
 
       <p className={readAs === undefined ? 'small brk-read' : 'small brk-read on'}>
         {wording(readAs, brokeAs, wrongWay, double)}
