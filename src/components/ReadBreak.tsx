@@ -14,7 +14,13 @@ function wording(
   brokeAs: number | undefined,
   wrongWay: boolean,
   double: boolean,
+  straight: boolean,
 ): string {
+  if (straight) {
+    return readAs === undefined
+      ? 'It rolled straight. Tap how much break you saw in it, if any.'
+      : `Read ${WORD[readAs]} break on a putt that never turned.`;
+  }
   if (wrongWay && readAs !== undefined) {
     return `Read ${WORD[readAs]} break the other way. It turned back on you.`;
   }
@@ -86,6 +92,9 @@ export function ReadBreak({
   const lr = dirs.includes('L→R');
   const rl = dirs.includes('R→L');
   const double = lr && rl;
+  // Tagged straight means it did not turn. The scale then records break that was read and was
+  // never there, which is the one read error the app could not hold before.
+  const straight = !lr && !rl;
   const dir = double ? undefined : lr ? 'L→R' : 'R→L';
 
   const actual = brokeAs ?? readAs;
@@ -133,12 +142,14 @@ export function ReadBreak({
           read as a broken button: the instruction to pick a read sat underneath the thing that
           was greyed out waiting for one. */}
       <p className={readAs === undefined ? 'small brk-read' : 'small brk-read on'}>
-        {wording(readAs, brokeAs, wrongWay, double)}
+        {wording(readAs, brokeAs, wrongWay, double, straight)}
       </p>
 
       {/* A complete misread is not a bigger version of reading too little, so it sits apart
           from the scale rather than becoming a fifth stop on it. Always drawn so it can be
-          found, inert until there is a read for it to contradict. */}
+          found, inert until there is a read for it to contradict. Meaningless on a putt that
+          never turned, so it is not offered there. */}
+      {!straight && (
       <button
         type="button"
         className={wrongWay ? 'brk-wrong on' : 'brk-wrong'}
@@ -148,6 +159,7 @@ export function ReadBreak({
       >
         {readAs === undefined ? 'Pick your read first' : 'It broke the other way'}
       </button>
+      )}
     </div>
   );
 }

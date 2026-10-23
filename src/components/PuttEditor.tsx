@@ -131,7 +131,7 @@ export function PuttEditor({
         onToggle={(v) => onPatch({ breakDirs: toggleBreak(dirs, v), breakDir: undefined })}
       />
 
-      {dirs.some((d) => d === 'L→R' || d === 'R→L') && (
+      {dirs.some((d) => d === 'L→R' || d === 'R→L' || d === 'straight') && (
         <>
           <div className="field-label">The read</div>
           <ReadBreak

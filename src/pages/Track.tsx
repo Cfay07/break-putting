@@ -331,7 +331,7 @@ export function Track() {
 
           {/* Only on a putt that actually turned. There is no read to be wrong about on a
               straight one. */}
-          {(draft.breakDirs ?? []).some((d) => d === 'L→R' || d === 'R→L') && (
+          {(draft.breakDirs ?? []).some((d) => d === 'L→R' || d === 'R→L' || d === 'straight') && (
             <>
               <div className="field-label">The read</div>
               <ReadBreak

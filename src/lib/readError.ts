@@ -73,7 +73,11 @@ export function readError(rounds: Round[]): ReadSummary {
       hole.putts.forEach((p: Putt, i) => {
         if (p.readAs === undefined) return;
         const backwards = !!p.wrongWay;
-        const broke = p.brokeAs ?? p.readAs;
+        // Read break on a putt that rolled straight: it broke by nothing, so the delta is the
+        // whole read and it lands as the largest over-read there is. No new field needed.
+        const dirsOf = breakDirsOf(p);
+        const neverTurned = !dirsOf.includes('L→R') && !dirsOf.includes('R→L');
+        const broke = neverTurned ? 0 : p.brokeAs ?? p.readAs;
         // A backwards read has no magnitude error to measure, so delta is not asked for it.
         const delta = backwards ? null : broke - p.readAs;
         judged++;

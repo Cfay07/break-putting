@@ -1,6 +1,6 @@
 import type { ReadSummary } from '../lib/readError';
 
-const AMOUNT: Record<number, string> = { 1: 'Slight', 2: 'Some', 3: 'Lots', 4: 'Severe' };
+const AMOUNT: Record<number, string> = { 0: 'Straight', 1: 'Slight', 2: 'Some', 3: 'Lots', 4: 'Severe' };
 
 /** Enough tagged reads before a share is worth printing as a tendency rather than a coincidence. */
 const MIN_JUDGED = 8;

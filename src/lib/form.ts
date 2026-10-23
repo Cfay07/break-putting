@@ -1,5 +1,5 @@
 import { statsForHoles } from './stats';
-import type { Round } from './types';
+import { breakDirsOf, type Round } from './types';
 
 /**
  * Form scores how you putted. Strokes gained scores what the ball did. They disagree on exactly
@@ -97,7 +97,12 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
       if (p.readAs !== undefined) {
         parts.read.of++;
         touched = true;
-        const wrong = !!p.wrongWay || (p.brokeAs !== undefined && p.brokeAs !== p.readAs);
+        const dirs = breakDirsOf(p);
+        const neverTurned = !dirs.includes('L→R') && !dirs.includes('R→L');
+        const wrong =
+          !!p.wrongWay ||
+          neverTurned ||
+          (p.brokeAs !== undefined && p.brokeAs !== p.readAs);
         if (!wrong) parts.read.right++;
       }
       if (p.strike) {
