@@ -27,7 +27,7 @@ export const MIN_TAGGED = 6;
 
 /**
  * One colour per band, so the rail and the number are never two shades of the same idea, and a
- * real ramp with it: lightness runs 4, 10, 17, 15, 9, rising to the middle and falling again.
+ * real ramp with it: lightness runs 4, 10, 17, 17, 9, rising to the middle and falling again.
  *
  * The whole ramp lives inside the legible range on purpose. A brighter middle looks better as a
  * rail and cannot be the number: pure amber scores 2.01 as text on this card against a 4.5
@@ -36,7 +36,7 @@ export const MIN_TAGGED = 6;
  */
 export const FORM_BANDS = [
   { min: 8, name: 'Dark green', ink: '#15603b' },
-  { min: 6, name: 'Green', ink: '#357a44' },
+  { min: 6, name: 'Green', ink: '#1c8248' },
   { min: 4, name: 'Amber', ink: '#96690a' },
   { min: 2, name: 'Red', ink: '#a52a1f' },
   { min: 0, name: 'Dark red', ink: '#6e1a12' },

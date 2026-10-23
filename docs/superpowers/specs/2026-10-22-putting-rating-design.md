@@ -89,12 +89,12 @@ the way a rail column can when you scroll the list.
 ## The colour ramp
 
 One colour per band, so the rail and the number are never two shades of the same idea, and a
-real ramp with it: lightness runs **4, 10, 17, 15, 9**, rising to the middle and falling again.
+real ramp with it: lightness runs **4, 10, 17, 17, 9**, rising to the middle and falling again.
 
 | Form | Band | Colour | Lightness | Contrast as text |
 |---|---|---|---|---|
 | 8.0 – 10 | Dark green | `#15603b` | 8.8 | 7.21 |
-| 6.0 – 7.9 | Green | `#357a44` | 15.1 | 4.96 |
+| 6.0 – 7.9 | Green | `#1c8248` | 16.7 | 4.60 |
 | 4.0 – 5.9 | Amber | `#96690a` | 16.6 | 4.62 |
 | 2.0 – 3.9 | Red | `#a52a1f` | 9.8 | 6.76 |
 | 0 – 1.9 | Dark red | `#6e1a12` | 4.1 | 10.96 |
