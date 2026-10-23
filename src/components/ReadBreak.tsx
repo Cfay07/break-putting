@@ -9,7 +9,15 @@ const STOPS = [
 
 const WORD: Record<number, string> = { 1: 'slight', 2: 'some', 3: 'lots of', 4: 'severe' };
 
-function wording(readAs: number | undefined, brokeAs: number | undefined, double: boolean): string {
+function wording(
+  readAs: number | undefined,
+  brokeAs: number | undefined,
+  wrongWay: boolean,
+  double: boolean,
+): string {
+  if (wrongWay && readAs !== undefined) {
+    return `Read ${WORD[readAs]} break the other way. It turned back on you.`;
+  }
   if (readAs === undefined) {
     return double
       ? 'It turns both ways, so rate the break over the last few feet, the one that decides it'
@@ -61,12 +69,18 @@ export function ReadBreak({
   dirs,
   readAs,
   brokeAs,
+  wrongWay,
   onPick,
 }: {
   dirs: BreakDir[];
   readAs: number | undefined;
   brokeAs: number | undefined;
-  onPick: (readAs: number | undefined, brokeAs: number | undefined) => void;
+  wrongWay: boolean;
+  onPick: (
+    readAs: number | undefined,
+    brokeAs: number | undefined,
+    wrongWay: boolean,
+  ) => void;
 }) {
   // A double breaker turns both ways, so there is no single side to bow it to: it gets an S.
   const lr = dirs.includes('L→R');
@@ -79,12 +93,15 @@ export function ReadBreak({
   const hi = readAs !== undefined && actual !== undefined ? Math.max(readAs, actual) : null;
 
   const tap = (n: number) => {
-    if (readAs === undefined) return onPick(n, undefined);
+    if (readAs === undefined) return onPick(n, undefined, false);
     // Tapping the read again clears it, so a mis-tap is one more tap to undo.
-    if (n === readAs && brokeAs === undefined) return onPick(undefined, undefined);
-    if (n === readAs) return onPick(n, undefined);
-    onPick(readAs, n);
+    if (n === readAs && brokeAs === undefined && !wrongWay) return onPick(undefined, undefined, false);
+    if (n === readAs) return onPick(n, undefined, false);
+    onPick(readAs, n, false);
   };
+
+  // Only ever the second answer: it says what the putt did, not what was seen.
+  const tapWrongWay = () => onPick(readAs, undefined, !wrongWay);
 
   return (
     <div>
@@ -105,14 +122,28 @@ export function ReadBreak({
               aria-label={s.label}
               onClick={() => tap(s.n)}
             >
-              <Curve bend={s.bend} dir={dir} double={double} on={isRead || isActual} />
+              <Curve bend={s.bend} dir={dir} double={double} on={(isRead || isActual) && !wrongWay} />
               <span className="brk-label">{s.label}</span>
             </button>
           );
         })}
       </div>
+
+      {/* A complete misread is not a bigger version of reading too little, so it sits apart
+          from the scale rather than becoming a fifth stop on it. */}
+      {readAs !== undefined && (
+        <button
+          type="button"
+          className={wrongWay ? 'brk-wrong on' : 'brk-wrong'}
+          aria-pressed={wrongWay}
+          onClick={tapWrongWay}
+        >
+          It broke the other way
+        </button>
+      )}
+
       <p className={readAs === undefined ? 'small brk-read' : 'small brk-read on'}>
-        {wording(readAs, brokeAs, double)}
+        {wording(readAs, brokeAs, wrongWay, double)}
       </p>
     </div>
   );

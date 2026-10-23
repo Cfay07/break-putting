@@ -37,6 +37,16 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
             <span className="small muted"> · {read.over}</span>
           </span>
         </div>
+        {/* Only when it has happened. A zero row for the worst read available is noise. */}
+        {read.wrong > 0 && (
+          <div className="stat-row">
+            <span className="k">Read the turn backwards</span>
+            <span className="v num neg">
+              {pct(read.wrong)}
+              <span className="small muted"> · {read.wrong}</span>
+            </span>
+          </div>
+        )}
       </div>
 
       {read.bands.length > 1 && (
@@ -50,6 +60,7 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
                   <th>Putts</th>
                   <th>Read right</th>
                   <th>Too little</th>
+                  {read.wrong > 0 && <th>Backwards</th>}
                   <th>Miss by</th>
                 </tr>
               </thead>
@@ -62,6 +73,11 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
                     <td className={b.under > b.hadIt ? 'num neg' : 'num'}>
                       {Math.round((b.under / b.putts) * 100)}%
                     </td>
+                    {read.wrong > 0 && (
+                      <td className={b.wrong ? 'num neg' : 'num'}>
+                        {b.wrong ? `${Math.round((b.wrong / b.putts) * 100)}%` : '--'}
+                      </td>
+                    )}
                     <td className="num">{b.avgLeave === null ? '--' : `${b.avgLeave.toFixed(1)} ft`}</td>
                   </tr>
                 ))}

@@ -958,3 +958,26 @@ button.pick:active { background-color: #f4f1e8; }
   border-bottom: 1px solid var(--line);
 }
 .act:first-of-type { margin-top: 8px; }
+
+/* A backwards read is a different mistake from a small one, so it gets its own control rather
+   than a fifth stop that would imply it is just more of the same. */
+.brk-wrong {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 0;
+  border: 1px dashed var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-3);
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+.brk-wrong.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  border-style: solid;
+  color: #fff;
+  font-weight: 600;
+}

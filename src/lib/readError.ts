@@ -7,6 +7,8 @@ export interface ReadBand {
   hadIt: number;
   under: number;
   over: number;
+  /** Read the turn backwards. Counted apart: it is a different mistake, not a bigger one. */
+  wrong: number;
   /** Average leave on the ones that missed, so a bad read has a price in feet. */
   avgLeave: number | null;
 }
@@ -19,6 +21,7 @@ export interface ReadSide {
   right: number;
   under: number;
   over: number;
+  wrong: number;
 }
 
 export interface ReadSummary {
@@ -27,6 +30,7 @@ export interface ReadSummary {
   hadIt: number;
   under: number;
   over: number;
+  wrong: number;
   bands: ReadBand[];
   sides: ReadSide[];
   /** Missed putts split the only way the three tags allow. */
@@ -51,33 +55,38 @@ function mean(xs: number[]): number | null {
  * the whole reason the read is logged.
  */
 export function readError(rounds: Round[]): ReadSummary {
-  const bands = new Map<number, { putts: number; hadIt: number; under: number; over: number; leaves: number[] }>();
+  const bands = new Map<number, { putts: number; hadIt: number; under: number; over: number; wrong: number; leaves: number[] }>();
   let judged = 0;
   let hadIt = 0;
   let under = 0;
   let over = 0;
+  let wrong = 0;
   let blameRead = 0;
   let blameStroke = 0;
   let blameSpeed = 0;
   const rightLeaves: number[] = [];
   const wrongLeaves: number[] = [];
-  const sides = new Map<'lr' | 'rl', { putts: number; right: number; under: number; over: number }>();
+  const sides = new Map<'lr' | 'rl', { putts: number; right: number; under: number; over: number; wrong: number }>();
 
   for (const round of rounds) {
     for (const hole of round.holes) {
       hole.putts.forEach((p: Putt, i) => {
         if (p.readAs === undefined) return;
+        const backwards = !!p.wrongWay;
         const broke = p.brokeAs ?? p.readAs;
-        const delta = broke - p.readAs;
+        // A backwards read has no magnitude error to measure, so delta is not asked for it.
+        const delta = backwards ? null : broke - p.readAs;
         judged++;
-        if (delta === 0) hadIt++;
-        else if (delta > 0) under++;
+        if (backwards) wrong++;
+        else if (delta === 0) hadIt++;
+        else if (delta! > 0) under++;
         else over++;
 
-        const band = bands.get(broke) ?? { putts: 0, hadIt: 0, under: 0, over: 0, leaves: [] };
+        const band = bands.get(broke) ?? { putts: 0, hadIt: 0, under: 0, over: 0, wrong: 0, leaves: [] };
         band.putts++;
-        if (delta === 0) band.hadIt++;
-        else if (delta > 0) band.under++;
+        if (backwards) band.wrong++;
+        else if (delta === 0) band.hadIt++;
+        else if (delta! > 0) band.under++;
         else band.over++;
 
         const leave = p.made ? null : leaveAfter(hole, i);
@@ -89,17 +98,18 @@ export function readError(rounds: Round[]): ReadSummary {
 
         const bucket = breakBucket(breakDirsOf(p));
         if (bucket === 'lr' || bucket === 'rl') {
-          const side = sides.get(bucket) ?? { putts: 0, right: 0, under: 0, over: 0 };
+          const side = sides.get(bucket) ?? { putts: 0, right: 0, under: 0, over: 0, wrong: 0 };
           side.putts++;
-          if (delta === 0) side.right++;
-          else if (delta > 0) side.under++;
+          if (backwards) side.wrong++;
+          else if (delta === 0) side.right++;
+          else if (delta! > 0) side.under++;
           else side.over++;
           sides.set(bucket, side);
         }
 
         if (p.made) return;
         const offLine = !!p.push || !!p.pull;
-        if (delta !== 0) blameRead++;
+        if (backwards || delta !== 0) blameRead++;
         else if (offLine) blameStroke++;
         else blameSpeed++;
       });
@@ -111,6 +121,7 @@ export function readError(rounds: Round[]): ReadSummary {
     hadIt,
     under,
     over,
+    wrong,
     bands: [...bands.entries()]
       .map(([amount, b]) => ({
         amount,
@@ -118,6 +129,7 @@ export function readError(rounds: Round[]): ReadSummary {
         hadIt: b.hadIt,
         under: b.under,
         over: b.over,
+        wrong: b.wrong,
         avgLeave: mean(b.leaves),
       }))
       .sort((a, b) => a.amount - b.amount),

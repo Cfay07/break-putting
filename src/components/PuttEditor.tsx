@@ -138,7 +138,10 @@ export function PuttEditor({
             dirs={dirs}
             readAs={putt.readAs}
             brokeAs={putt.brokeAs}
-            onPick={(readAs, brokeAs) => onPatch({ readAs, brokeAs })}
+            wrongWay={!!putt.wrongWay}
+            onPick={(readAs, brokeAs, wrongWay) =>
+              onPatch({ readAs, brokeAs, wrongWay: wrongWay || undefined })
+            }
           />
         </>
       )}

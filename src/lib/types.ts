@@ -50,6 +50,13 @@ export interface Putt {
   readAs?: number;
   brokeAs?: number;
   /**
+   * It broke the opposite way to the read. Its own field rather than a fifth stop on the scale,
+   * because the scale measures how much and this measures which way: a complete misread is not
+   * a bigger version of reading too little, it is a different mistake. Stored alongside readAs,
+   * which still holds what was seen, so nothing has to lie about what the player read.
+   */
+  wrongWay?: boolean;
+  /**
    * Where on the face it came off. Distinct from push and pull: a square face can still catch
    * the toe, and that putt goes offline and short at once, so logging it as either a push or
    * bad speed blames the wrong thing.

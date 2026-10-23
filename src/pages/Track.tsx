@@ -338,7 +338,10 @@ export function Track() {
                 dirs={draft.breakDirs ?? []}
                 readAs={draft.readAs}
                 brokeAs={draft.brokeAs}
-                onPick={(readAs, brokeAs) => setDraft({ readAs, brokeAs })}
+                wrongWay={!!draft.wrongWay}
+                onPick={(readAs, brokeAs, wrongWay) =>
+                  setDraft({ readAs, brokeAs, wrongWay: wrongWay || undefined })
+                }
               />
             </>
           )}
