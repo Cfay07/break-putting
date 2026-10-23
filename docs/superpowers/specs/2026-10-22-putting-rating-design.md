@@ -213,6 +213,47 @@ and on 2026-10-22 it had something to catch: all eight of his tagged misreads br
 read them, eight out of eight, never once over-read.
 
 
+## The test Form has to pass, or be cut
+
+Measured on all 26 of Conor's rounds on 2026-10-23, with Form exactly as shipped:
+
+| | |
+|---|---|
+| Rounds with no process data | **24 of 26** |
+| Pearson r, Form against strokes gained | **0.9992** |
+| Rounds that change position when sorting by Form instead of SG | **0** |
+
+He spotted this himself: sort the rounds list by best and Form and strokes gained give the
+identical order, every time.
+
+**This is the objection that killed expected putts**, deleted in commit `a0dfd64` for correlating
+0.905 with strokes gained. Form currently sits at 0.999. By the standard this project has already
+set, it does not yet earn its place.
+
+The difference is in the cause, which is worth being precise about. Expected putts was redundant
+**by construction**: it was built from the same information and could never say anything new.
+Form is redundant **by absence**. On a round with no reads and no strikes, Form *is*
+`fromSG(sg18)` and nothing else, because the half that would make it differ does not exist. The
+two tagged rounds moved only −0.20 and −0.19 away from their outcome, not enough to overtake
+anything.
+
+**So the test.** Once **ten rounds** carry enough tagged putts to clear the process gate, measure
+the correlation again across those ten.
+
+- **r below about 0.90:** Form is measuring something strokes gained cannot see. Keep it.
+- **r between 0.90 and 0.95:** marginal. Look at whether the disagreements are the interesting
+  ones (toe strikes that dropped, pure strokes that did not) before deciding.
+- **r above 0.95:** cut it, the same way expected putts was cut. A second number that always
+  agrees with the first is a worse version of the first.
+
+If it fails, there is one thing to try before cutting: the 50/50 blend is a guess, and a process
+layer that is informative but outvoted would show up as a near-perfect correlation too. Re-run at
+a heavier process weight before reaching for the delete key. If it still tracks, it goes.
+
+Record the result here when the ten rounds exist. Do not quietly keep a metric that failed its
+own test.
+
+
 ## Constraints the builder must design around
 
 ### The process inputs barely exist
