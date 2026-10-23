@@ -15,6 +15,8 @@ import { PatternPanel } from '../components/PatternPanel';
 import { ReadPanel } from '../components/ReadPanel';
 import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
+import { formOf } from '../lib/form';
+import { FormPanel } from '../components/FormPanel';
 import { PutterTag } from '../components/PutterTag';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { Conditions } from '../components/Conditions';
@@ -75,6 +77,7 @@ export function RoundDetail({ id }: { id: string }) {
   const sgOf = (h: { putts: { d: number }[] }) =>
     h.putts.length ? holeSG(state.baseline, h.putts.map((p) => p.d), h.putts.length) : null;
   const read = readError([round]);
+  const form = formOf(round, state.baseline);
   const marks = bleedMarks(round);
   const bleeds = bleedsIn(round);
   const suspect = suspectHoles(round);
@@ -282,6 +285,13 @@ export function RoundDetail({ id }: { id: string }) {
 
       <h2>Lag control</h2>
       <LagPanel stats={s} lag={lagSaves([round])} />
+
+      {form && (
+        <>
+          <h2>Form</h2>
+          <FormPanel form={form} />
+        </>
+      )}
 
       {read.judged > 0 && (
         <>

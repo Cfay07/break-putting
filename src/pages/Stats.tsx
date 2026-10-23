@@ -15,6 +15,7 @@ import { stakesOf } from '../lib/stakes';
 import { byConditions } from '../lib/conditions';
 import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
+import { formOf, formBand } from '../lib/form';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
@@ -147,6 +148,23 @@ export function Stats() {
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const read = useMemo(() => readError(rounds), [rounds]);
+
+  /** Season Form. Rounds with no putts return null and simply do not count. */
+  const form = useMemo(() => {
+    const all = rounds.map((r) => formOf(r, state.baseline)).filter((f) => f !== null);
+    if (!all.length) return null;
+    const measured = all.filter((f) => f.process !== null);
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    return {
+      rounds: all.length,
+      avg: mean(all.map((f) => f.score)),
+      best: Math.max(...all.map((f) => f.score)),
+      worst: Math.min(...all.map((f) => f.score)),
+      measured: measured.length,
+      process: measured.length ? mean(measured.map((f) => f.process!)) : null,
+      outcome: mean(all.map((f) => f.outcome)),
+    };
+  }, [rounds, state.baseline]);
   const conditions = useMemo(() => byConditions(rounds, state.baseline), [rounds, state.baseline]);
   // One dot a round, so the spread shows whether a season average hides two different games.
   const perRoundBlame = useMemo(
@@ -425,6 +443,41 @@ export function Stats() {
             </p>
           )}
 
+
+          {form && (
+            <>
+              <h2>Form</h2>
+              <div className="card">
+                <div className="form-hero">
+                  <span className="form-big" style={{ color: formBand(form.avg).ink }}>
+                    {form.avg.toFixed(1)}
+                  </span>
+                  <span className="small muted">average over {form.rounds} rounds</span>
+                </div>
+                <div className="stat-row">
+                  <span className="k">Best / worst round</span>
+                  <span className="v num">
+                    {form.best.toFixed(1)} / {form.worst.toFixed(1)}
+                  </span>
+                </div>
+                <div className="stat-row">
+                  <span className="k">How you putted</span>
+                  <span className="v num">
+                    {form.process === null ? '--' : form.process.toFixed(1)}
+                  </span>
+                </div>
+                <div className="stat-row">
+                  <span className="k">What the ball did</span>
+                  <span className="v num">{form.outcome.toFixed(1)}</span>
+                </div>
+              </div>
+              <p className="small muted" style={{ margin: '8px 0 0' }}>
+                {form.measured} of {form.rounds} rounds carried enough tagged putts to score how
+                you putted. The rest are the outcome alone, which is why they show a faint rail on
+                the rounds list. Open any round to see what built its number.
+              </p>
+            </>
+          )}
 
           <h2>By distance</h2>
           <DistanceTable stats={o.pooled} rounds={o.rounds} sgPerRound={o.bucketSgPerRound} />
