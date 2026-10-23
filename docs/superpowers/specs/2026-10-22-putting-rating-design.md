@@ -88,28 +88,29 @@ the way a rail column can when you scroll the list.
 
 ## The colour ramp
 
-Dark red, red, amber, light green, dark green, with lightness rising to the middle and falling
-again. A first attempt made every band dark so the rail and the number could share one value,
-and that was not a ramp at all: its lightness ran 10, 13, 14, 14, 15, which left a 6.8 looking
-darker than a 9.1. Conor caught it by eye.
+One colour per band, so the rail and the number are never two shades of the same idea, and a
+real ramp with it: lightness runs **4, 10, 17, 15, 9**, rising to the middle and falling again.
 
-**Two values per band, and not by choice.** A ramp needs light colours through its middle, and a
-light colour cannot be plain text on this card: amber scores **2.01** against a 4.5 minimum. So
-the rail carries the true ramp, since nothing sits on it, and the number takes the darkest
-version of the same hue. Three of the five bands come out identical anyway; only the two light
-ones differ, and only as light against dark of one hue.
-
-| Form | Band | Rail | Number | Number contrast |
+| Form | Band | Colour | Lightness | Contrast as text |
 |---|---|---|---|---|
-| 8.0 – 10 | Dark green | `#1f7a4d` | `#1f7a4d` | 5.05 |
-| 6.0 – 7.9 | Light green | `#8fc23f` | `#5a7016` | 5.30 |
-| 4.0 – 5.9 | Amber | `#e8a622` | `#8a6208` | 5.21 |
-| 2.0 – 3.9 | Red | `#c6412a` | `#b0431a` | 5.44 |
-| 0 – 1.9 | Dark red | `#8f2017` | `#8f2017` | 9.59 |
+| 8.0 – 10 | Dark green | `#15603b` | 8.8 | 7.21 |
+| 6.0 – 7.9 | Green | `#357a44` | 15.1 | 4.96 |
+| 4.0 – 5.9 | Amber | `#96690a` | 16.6 | 4.62 |
+| 2.0 – 3.9 | Red | `#a52a1f` | 9.8 | 6.76 |
+| 0 – 1.9 | Dark red | `#6e1a12` | 4.1 | 10.96 |
 
-A chip behind the number would let both share one value, and was built and rejected: it looked
-like a bubble among plain numbers, and fading it for an untagged round dropped its own text to
-between 1.6 and 3.0 contrast.
+The whole ramp sits inside the legible range on purpose. Two earlier attempts failed and are
+worth not repeating. The first made every band dark so both halves could share a value, and its
+lightness ran 10, 13, 14, 14, 15, which is no ramp at all and left a 6.8 looking darker than a
+9.1. The second used a bright middle on the rail and a dark sibling for the number, which ramps
+beautifully and visibly does not match, which was the original complaint.
+
+A bright middle simply cannot be the number: pure amber scores **2.01** as text on this card
+against a 4.5 minimum. Pushing the dark end darker instead buys the same rise and fall with
+every band still readable, so neither half has to compromise.
+
+A chip behind the number was also built and rejected: it read as a bubble among plain numbers,
+and fading it for an untagged round dropped its own text to between 1.6 and 3.0 contrast.
 
 Measure, do not eyeball. Three separate colour faults were caught only by running the numbers:
 `#c0531f` and `#7a9b24` cleared neither white nor dark text; `#b5603a` failed white text at

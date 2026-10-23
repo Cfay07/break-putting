@@ -26,21 +26,20 @@ const LONG_MAKE = 4;
 export const MIN_TAGGED = 6;
 
 /**
- * A real ramp: dark red, red, amber, light green, dark green, lightness rising to the middle
- * and falling again. The flat version it replaced ran 10, 13, 14, 14, 15 in lightness, which is
- * no ramp at all and left a 6.8 looking darker than a 9.1.
+ * One colour per band, so the rail and the number are never two shades of the same idea, and a
+ * real ramp with it: lightness runs 4, 10, 17, 15, 9, rising to the middle and falling again.
  *
- * Two values per band, and not by choice. The ramp needs light colours through its middle, and
- * a light colour cannot be text on this card: amber scores 2.01 against a 4.5 minimum. So the
- * rail carries the true ramp, since nothing sits on it, and the number takes the darkest
- * version of the same hue. Same colour family, same position on the scale, different job.
+ * The whole ramp lives inside the legible range on purpose. A brighter middle looks better as a
+ * rail and cannot be the number: pure amber scores 2.01 as text on this card against a 4.5
+ * minimum. Pushing the dark end darker instead buys the same rise and fall with every band
+ * still readable, so neither half of the card has to compromise.
  */
 export const FORM_BANDS = [
-  { min: 8, name: 'Dark green', rail: '#1f7a4d', ink: '#1f7a4d' },
-  { min: 6, name: 'Light green', rail: '#8fc23f', ink: '#5a7016' },
-  { min: 4, name: 'Amber', rail: '#e8a622', ink: '#8a6208' },
-  { min: 2, name: 'Red', rail: '#c6412a', ink: '#b0431a' },
-  { min: 0, name: 'Dark red', rail: '#8f2017', ink: '#8f2017' },
+  { min: 8, name: 'Dark green', ink: '#15603b' },
+  { min: 6, name: 'Green', ink: '#357a44' },
+  { min: 4, name: 'Amber', ink: '#96690a' },
+  { min: 2, name: 'Red', ink: '#a52a1f' },
+  { min: 0, name: 'Dark red', ink: '#6e1a12' },
 ] as const;
 
 export function formBand(score: number) {
