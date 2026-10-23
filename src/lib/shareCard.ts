@@ -243,7 +243,7 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
     ]);
   }
   if (p0.push || p0.pull) missRows.push(['Pushed / pulled', `${p0.push} / ${p0.pull}`]);
-  if (p0.decel) missRows.push(['Decel', String(p0.decel)]);
+  if (p0.decel || p0.accel) missRows.push(['Decel / accel', `${p0.decel} / ${p0.accel}`]);
   missRows.push(['Lip-outs', String(s.lipOuts)]);
 
   const biasText = biasSentence(bias);

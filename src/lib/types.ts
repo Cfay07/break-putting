@@ -36,6 +36,8 @@ export interface Putt {
   pull?: boolean;
   /** Quit on it. A tempo fault rather than a face or path one, so it stands on its own. */
   decel?: boolean;
+  /** Jabbed at it. The opposite tempo fault, and nothing could say it before. */
+  accel?: boolean;
   /**
    * How the break looked before the putt and how much it actually moved, 1 slight to 4 severe.
    * Two taps on one scale: the second only when the read was wrong, so the gap between them is
@@ -202,7 +204,7 @@ export function brandPill(name: string): { bg: string; ink: string } | null {
   return BRAND_PILLS.find((b) => b.match.test(name)) ?? null;
 }
 
-export const FACTORS = ['lip', 'push', 'pull', 'decel'] as const;
+export const FACTORS = ['lip', 'push', 'pull', 'decel', 'accel'] as const;
 export type Factor = (typeof FACTORS)[number];
 
 export const FACTOR_LABELS: Record<Factor, string> = {
@@ -210,6 +212,7 @@ export const FACTOR_LABELS: Record<Factor, string> = {
   push: 'Pushed',
   pull: 'Pulled',
   decel: 'Decel',
+  accel: 'Accel',
 };
 
 export const BREAK_DIRS: BreakDir[] = ['L→R', 'R→L', 'straight', 'uphill', 'downhill'];

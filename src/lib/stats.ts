@@ -57,6 +57,7 @@ export interface Pattern {
   pull: number;
   lip: number;
   decel: number;
+  accel: number;
   tagged: number;
   byBucket: Record<BucketKey, { high: number; low: number; online: number }>;
   /** Every tagged putt lands in exactly one break bucket, double breakers included. */
@@ -138,7 +139,7 @@ function emptyPattern(): Pattern {
   return {
     high: 0, low: 0, online: 0,
     short: 0, good: 0, long: 0,
-    push: 0, pull: 0, lip: 0, decel: 0, tagged: 0,
+    push: 0, pull: 0, lip: 0, decel: 0, accel: 0, tagged: 0,
     breakMakes: 0,
     breakMisses: 0,
     byBreak: {
@@ -246,6 +247,7 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
       if (p.push) pattern.push++;
       if (p.pull) pattern.pull++;
       if (p.decel) pattern.decel++;
+      if (p.accel) pattern.accel++;
       if (p.missSide) {
         pattern[p.missSide]++;
         pattern.byBucket[b][p.missSide]++;

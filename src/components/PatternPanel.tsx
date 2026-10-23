@@ -88,8 +88,10 @@ export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; tagged
           </span>
         </div>
         <div className="stat-row">
-          <span className="k">Decel</span>
-          <span className={p.decel >= 3 ? 'v num neg' : 'v num'}>{p.decel}</span>
+          <span className="k">Decel / accel</span>
+          <span className={p.decel + p.accel >= 3 ? 'v num neg' : 'v num'}>
+            {p.decel} / {p.accel}
+          </span>
         </div>
         <div className="stat-row">
           <span className="k">Lip-outs</span>
