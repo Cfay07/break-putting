@@ -58,12 +58,16 @@ blood drop, longest putter name). No overflow.
 ```
 ┌─┬──────────────────────────────────────────────┐
 │ │ Oct 13  🏆                   🩸3  COBRA       │
-│ │ Flossmoor Country Club                        │
+│ │ Flossmoor Country Club      ▮▮▯  MEDIUM       │
 │ │ PUTTS  3-PUTTS   SG     SCORE        FORM     │
 │ │ 33     2        -4.19   81            5.6     │
 └─┴──────────────────────────────────────────────┘
   ^ left rail, Form band colour
 ```
+
+Three tiers, which is tidier than what is there now: the head row is context (when, whether it
+counted, what it cost, which putter), the course line is **where and what the greens were like**,
+and the metrics row is performance only.
 
 - **Left rail**, 5px, full card height, in the vibrant band colour. Faded when untagged.
 - **🏆 next to the date** for a competitive round. This *replaces* the existing
@@ -71,6 +75,12 @@ blood drop, longest putter name). No overflow.
   rounds and would collide. A trophy also needs no learning where a dark rail did.
 - **🩸 stays grouped with the putter pill** on the right, as it is today.
 - **FORM in the metrics row**, right-aligned, after Score, in the band's dark text variant.
+- **Green speed moves up to the course line.** It currently sits at the right end of the metrics
+  row under `.metric-end`, which is exactly where Form goes. Measured at 375px: keeping both in
+  that row overflows on **every** card tested, clipping the speed label off the edge. Moving the
+  bars beside the course name overflows on none and does not truncate even the longest course
+  name in the data ("Pleasant View Golf Course · Lake / Woods"). It is also the better home:
+  green speed is a condition of the day, not a performance number.
 
 Rejected: a badge beside the course name. The head strip already carries date, trophy, drop and
 putter tag; a badge would be the fifth thing fighting for it, and it cannot show a season's shape
