@@ -42,8 +42,9 @@ A 0 to 10 score with one decimal, per round, built from two layers.
 
 **The outcome layer** comes from strokes gained. Every round has it.
 
-**The process layer** comes from the tags: read, strike, start line, pace. Only tagged rounds
-have it.
+**The process layer** comes from the tags: read, strike, start line, pace, and **lip-outs**. A
+lipped putt is the clearest case in the game of doing everything right and not being paid for it,
+so Form should credit it where strokes gained cannot. 28 are already tagged.
 
 Rounds with enough tagged putts show both; rounds without show the outcome layer alone, at
 reduced opacity, so the two are never mistaken for the same measurement. Conor's call: a rating
@@ -127,6 +128,27 @@ use the player's own putts, not invented examples, so it argues from their round
 from theory.
 
 
+## Keep it contained
+
+This touches a lot of files if built as one lump. It should not be built as one lump. Three
+separate ships, smallest first, each useful on its own and each revertable without touching the
+others.
+
+**1. `accel` alone.** Five files, no new concepts, nothing depends on it. Ship and forget.
+
+**2. The complete misread alone.** This is the risky one, because it changes `readError`'s
+output shape and three consumers read that. Ship it by itself so if something breaks, it is
+obvious what broke.
+
+**3. Form.** One new file, `src/lib/form.ts`, holding the entire calculation and exporting a
+single number plus its components. Nothing else does arithmetic. The card change is then one
+rail element, one metric column, and swapping the competitive rail for a trophy. The round page
+and Stats page each render the components they are handed.
+
+The rule that keeps it clean: **no Form arithmetic outside `form.ts`.** If a component is doing
+sums, it is in the wrong place.
+
+
 ## Goals
 
 - One number per round for "did I putt well", readable at a glance.
@@ -155,6 +177,29 @@ from theory.
   for correlating 0.905 with strokes gained; putting it back inside Form would be the same
   mistake wearing a hat. The test for any new input: does it say something the ball's final
   position cannot?
+
+## Should anything else feed it
+
+Checked against the filter (does it say something the ball's final position cannot) rather than
+added because it sounds good.
+
+**Added: lip-outs.** See above. Missing from the first draft and clearly belongs.
+
+**Open question for the builder: distance weighting.** Right now every tagged putt would count
+the same. A misread on a 50-footer and a misread on a 6-footer are not equally culpable, and
+nor are they equally costly. Weighting each putt's process score by how makeable the putt was
+would be more honest, and the app already has a learned makeability model to supply that.
+Against it: it makes Form harder to explain, and the round page has to show why one putt counted
+more than another. Decide this deliberately; do not let it happen by accident.
+
+**Deliberately excluded: Drift.** It is genuinely additive information, which is why it exists
+as its own stat, but it is a round-level pattern rather than a per-putt quality. Every putt in a
+round can be struck well and still all miss the same side. Folding that into Form would produce
+the question "why is my Form low when I struck every putt properly", which has no good answer.
+Form stays per-putt quality averaged up. Drift stays the thing that catches systematic aim bias,
+and on 2026-10-22 it had something to catch: all eight of his tagged misreads broke more than he
+read them, eight out of eight, never once over-read.
+
 
 ## Constraints the builder must design around
 
