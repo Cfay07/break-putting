@@ -182,7 +182,7 @@ export function Rounds() {
             <span
               className="form-rail"
               style={{
-                background: formBand(form.score).ink,
+                background: formBand(form.score).rail,
                 opacity: form.process === null ? 0.4 : 1,
               }}
               aria-hidden="true"

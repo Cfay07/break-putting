@@ -26,17 +26,21 @@ const LONG_MAKE = 4;
 export const MIN_TAGGED = 6;
 
 /**
- * One colour per band, used for the rail and the number alike. The vibrant steps a rail would
- * prefer cannot carry the number: as text on the card the bright yellow-green and amber scored
- * 2.12 and 2.08 against a 4.5 minimum. Matching them means taking the darker step for both, and
- * a 5px rail reads perfectly well in it.
+ * A real ramp: dark red, red, amber, light green, dark green, lightness rising to the middle
+ * and falling again. The flat version it replaced ran 10, 13, 14, 14, 15 in lightness, which is
+ * no ramp at all and left a 6.8 looking darker than a 9.1.
+ *
+ * Two values per band, and not by choice. The ramp needs light colours through its middle, and
+ * a light colour cannot be text on this card: amber scores 2.01 against a 4.5 minimum. So the
+ * rail carries the true ramp, since nothing sits on it, and the number takes the darkest
+ * version of the same hue. Same colour family, same position on the scale, different job.
  */
 export const FORM_BANDS = [
-  { min: 8, name: 'Green', ink: '#1f7a4d' },
-  { min: 6, name: 'Yellow-green', ink: '#5a7016' },
-  { min: 4, name: 'Amber', ink: '#8a6208' },
-  { min: 2, name: 'Orange-red', ink: '#b0431a' },
-  { min: 0, name: 'Red', ink: '#a52a1f' },
+  { min: 8, name: 'Dark green', rail: '#1f7a4d', ink: '#1f7a4d' },
+  { min: 6, name: 'Light green', rail: '#8fc23f', ink: '#5a7016' },
+  { min: 4, name: 'Amber', rail: '#e8a622', ink: '#8a6208' },
+  { min: 2, name: 'Red', rail: '#c6412a', ink: '#b0431a' },
+  { min: 0, name: 'Dark red', rail: '#8f2017', ink: '#8f2017' },
 ] as const;
 
 export function formBand(score: number) {

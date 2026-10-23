@@ -163,6 +163,7 @@ p { line-height: 1.45; }
 .form-rail { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
 .metrics .metric-form { margin-left: auto; text-align: right; }
 .metrics .metric-form .val { font-size: 21px; font-weight: 800; }
+
 .round-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .round-date { font-weight: 700; font-size: 16px; white-space: nowrap; }
 /* Sits in the gap the head row already had. In the metrics row it made a fifth column and

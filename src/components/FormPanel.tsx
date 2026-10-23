@@ -35,7 +35,7 @@ export function FormPanel({ form }: { form: Form }) {
             How you hit them
             <span className="small muted"> · reads, strikes, line, pace</span>
           </span>
-          <span className="v num" style={{ color: band.ink }}>
+          <span className="v num">
             {form.process === null ? '--' : form.process.toFixed(1)}
           </span>
         </div>

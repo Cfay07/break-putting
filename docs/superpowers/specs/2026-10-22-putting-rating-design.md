@@ -88,19 +88,28 @@ the way a rail column can when you scroll the list.
 
 ## The colour ramp
 
-Five bands, red through green, exactly as Conor specified. **One colour per band**, used by the
-rail and the number alike, because a rail in one shade beside a number in another reads as two
-different facts. Matching them means both take the darker step: the vibrant yellow-green and
-amber a rail would prefer score **2.12** and **2.08** as text on the card against a 4.5 minimum,
-and a 5px rail reads perfectly well in the darker one.
+Dark red, red, amber, light green, dark green, with lightness rising to the middle and falling
+again. A first attempt made every band dark so the rail and the number could share one value,
+and that was not a ramp at all: its lightness ran 10, 13, 14, 14, 15, which left a 6.8 looking
+darker than a 9.1. Conor caught it by eye.
 
-| Form | Band | Colour | Contrast as text |
-|---|---|---|---|
-| 8.0 – 10 | Green | `#1f7a4d` | 5.05 |
-| 6.0 – 7.9 | Yellow-green | `#5a7016` | 5.30 |
-| 4.0 – 5.9 | Amber | `#8a6208` | 5.21 |
-| 2.0 – 3.9 | Orange-red | `#b0431a` | 5.44 |
-| 0 – 1.9 | Red | `#a52a1f` | 6.76 |
+**Two values per band, and not by choice.** A ramp needs light colours through its middle, and a
+light colour cannot be plain text on this card: amber scores **2.01** against a 4.5 minimum. So
+the rail carries the true ramp, since nothing sits on it, and the number takes the darkest
+version of the same hue. Three of the five bands come out identical anyway; only the two light
+ones differ, and only as light against dark of one hue.
+
+| Form | Band | Rail | Number | Number contrast |
+|---|---|---|---|---|
+| 8.0 – 10 | Dark green | `#1f7a4d` | `#1f7a4d` | 5.05 |
+| 6.0 – 7.9 | Light green | `#8fc23f` | `#5a7016` | 5.30 |
+| 4.0 – 5.9 | Amber | `#e8a622` | `#8a6208` | 5.21 |
+| 2.0 – 3.9 | Red | `#c6412a` | `#b0431a` | 5.44 |
+| 0 – 1.9 | Dark red | `#8f2017` | `#8f2017` | 9.59 |
+
+A chip behind the number would let both share one value, and was built and rejected: it looked
+like a bubble among plain numbers, and fading it for an untagged round dropped its own text to
+between 1.6 and 3.0 contrast.
 
 Measure, do not eyeball. Three separate colour faults were caught only by running the numbers:
 `#c0531f` and `#7a9b24` cleared neither white nor dark text; `#b5603a` failed white text at
