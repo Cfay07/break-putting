@@ -158,6 +158,7 @@ p { line-height: 1.45; }
    a shade firmer so a round that counted still reads as one at a glance. */
 .round-row.comp { border-color: rgba(20, 57, 43, 0.28); }
 .round-row { position: relative; overflow: hidden; padding-left: 18px; }
+.round-when { display: inline-flex; align-items: baseline; gap: 7px; min-width: 0; }
 .comp-cup { font-size: 13px; line-height: 1; flex: 0 0 auto; }
 .form-rail { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
 .metrics .metric-form { margin-left: auto; text-align: right; }

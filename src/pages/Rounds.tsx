@@ -189,12 +189,17 @@ export function Rounds() {
             />
           )}
           <div className="round-head">
-            <span className="round-date">{fmtDate(r.date)}</span>
-            {r.competitive && (
-              <span className="comp-cup" aria-label="competitive round">
-                🏆
-              </span>
-            )}
+            {/* Date and cup travel as one. Loose in a space-between row they were two separate
+                children, so a round with no blood drop split the spare width between them and
+                left the cup stranded mid-card. */}
+            <span className="round-when">
+              <span className="round-date">{fmtDate(r.date)}</span>
+              {r.competitive && (
+                <span className="comp-cup" aria-label="competitive round">
+                  🏆
+                </span>
+              )}
+            </span>
             {/* Drawn whenever a putting mistake happened, same as the drop on the scorecard,
                 so no drop means no mistake. The number is what it went on to cost, and a zero
                 sits quiet because getting away with one is not damage. */}
