@@ -6,7 +6,6 @@ import { Sheet } from '../components/Sheet';
 import { fmtDate, signed, today } from '../lib/format';
 import { go } from '../lib/router';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
-import { SpeedBars } from '../components/SpeedBars';
 import { currentSession } from '../lib/cloud';
 import { bleedsIn } from '../lib/bleed';
 import { courseLabel, roundScale, roundStats } from '../lib/stats';
@@ -215,11 +214,6 @@ export function Rounds() {
               <span className="tiny">Score</span>
               <span className="val">{r.score ?? '--'}</span>
             </span>
-            {r.greenSpeed && (
-              <span className="metric metric-end">
-                <SpeedBars speed={r.greenSpeed} label />
-              </span>
-            )}
           </div>
         </button>
       ))}
