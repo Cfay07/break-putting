@@ -460,21 +460,39 @@ export function Stats() {
                     {form.best.toFixed(1)} / {form.worst.toFixed(1)}
                   </span>
                 </div>
+                {/* The two halves do not share a denominator: execution can only average the
+                    rounds that were tagged. Saying so on the row is the difference between a
+                    comparison and a trap. */}
                 <div className="stat-row">
-                  <span className="k">How you putted</span>
+                  <span className="k">
+                    Execution
+                    <span className="small muted">
+                      {' '}
+                      · reads, strikes, line, pace · {form.measured} round
+                      {form.measured === 1 ? '' : 's'}
+                    </span>
+                  </span>
                   <span className="v num">
                     {form.process === null ? '--' : form.process.toFixed(1)}
                   </span>
                 </div>
                 <div className="stat-row">
-                  <span className="k">What the ball did</span>
+                  <span className="k">
+                    Result
+                    <span className="small muted">
+                      {' '}
+                      · strokes gained, on this scale · {form.rounds} rounds
+                    </span>
+                  </span>
                   <span className="v num">{form.outcome.toFixed(1)}</span>
                 </div>
               </div>
               <p className="small muted" style={{ margin: '8px 0 0' }}>
-                {form.measured} of {form.rounds} rounds carried enough tagged putts to score how
-                you putted. The rest are the outcome alone, which is why they show a faint rail on
-                the rounds list. Open any round to see what built its number.
+                Those two are averaged over different rounds, so do not read them against each
+                other: only {form.measured} of {form.rounds} rounds carried enough tagged putts to
+                score execution, while result covers all {form.rounds}. The untagged ones score on
+                result alone, which is what the faint rail on the rounds list means. Open any
+                round to see what built its number.
               </p>
             </>
           )}

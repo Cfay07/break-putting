@@ -31,13 +31,19 @@ export function FormPanel({ form }: { form: Form }) {
         </div>
 
         <div className="stat-row">
-          <span className="k">How you putted</span>
+          <span className="k">
+            Execution
+            <span className="small muted"> · reads, strikes, line, pace</span>
+          </span>
           <span className="v num" style={{ color: band.ink }}>
             {form.process === null ? '--' : form.process.toFixed(1)}
           </span>
         </div>
         <div className="stat-row">
-          <span className="k">What the ball did</span>
+          <span className="k">
+            Result
+            <span className="small muted"> · strokes gained, on this scale</span>
+          </span>
           <span className="v num">{form.outcome.toFixed(1)}</span>
         </div>
       </div>
@@ -71,9 +77,10 @@ export function FormPanel({ form }: { form: Form }) {
             })}
           </div>
           <p className="small muted" style={{ margin: '8px 0 0' }}>
-            Half of Form is these rows, half is strokes gained. Lip-outs only ever add: a putt
-            that caught the hole and stayed out was a good one that went unpaid, which is the
-            thing strokes gained cannot see.
+            Form is execution and result averaged. Execution is the rows above: the share of
+            what you controlled that you got right. Lip-outs only ever add, because a putt that
+            caught the hole and stayed out was a good one that went unpaid, and that is the thing
+            strokes gained cannot see.
           </p>
         </>
       )}
