@@ -8,6 +8,7 @@ import { go } from '../lib/router';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { currentSession } from '../lib/cloud';
 import { bleedsIn } from '../lib/bleed';
+import { formOf, formBand } from '../lib/form';
 import { courseLabel, roundScale, roundStats } from '../lib/stats';
 import type { GreenSpeed } from '../lib/types';
 import { newId } from '../lib/storage';
@@ -31,6 +32,7 @@ export function Rounds() {
         // the card could not tell them apart when it only counted shots.
         mistakes: bleedsIn(r).length,
         bled: bleedsIn(r).reduce((n, b) => n + b.shots, 0),
+        form: formOf(r, state.baseline),
       }));
     rows.sort((a, b) => b.round.date.localeCompare(a.round.date));
     if (sort !== 'recent') {
@@ -167,14 +169,32 @@ export function Rounds() {
       )}
 
       <div className="round-list">
-      {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s, mistakes, bled }) => (
+      {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s, mistakes, bled, form }) => (
         <button
             key={r.id}
             className={r.competitive ? 'round-row comp' : 'round-row'}
             onClick={() => go(`/round/${r.id}`)}
           >
+          {/* The leading edge used to be the competitive marker. Form took it, because a colour
+              running the height of every card is the one thing you can read down a whole list
+              without stopping, and competitive moved to a trophy that needs no learning. */}
+          {form && (
+            <span
+              className="form-rail"
+              style={{
+                background: formBand(form.score).rail,
+                opacity: form.process === null ? 0.4 : 1,
+              }}
+              aria-hidden="true"
+            />
+          )}
           <div className="round-head">
             <span className="round-date">{fmtDate(r.date)}</span>
+            {r.competitive && (
+              <span className="comp-cup" aria-label="competitive round">
+                🏆
+              </span>
+            )}
             {/* Drawn whenever a putting mistake happened, same as the drop on the scorecard,
                 so no drop means no mistake. The number is what it went on to cost, and a zero
                 sits quiet because getting away with one is not damage. */}
@@ -214,6 +234,20 @@ export function Rounds() {
               <span className="tiny">Score</span>
               <span className="val">{r.score ?? '--'}</span>
             </span>
+            {form && (
+              <span className="metric metric-form">
+                <span className="tiny">Form</span>
+                <span
+                  className="val"
+                  style={{
+                    color: formBand(form.score).ink,
+                    opacity: form.process === null ? 0.75 : 1,
+                  }}
+                >
+                  {form.score.toFixed(1)}
+                </span>
+              </span>
+            )}
           </div>
         </button>
       ))}
