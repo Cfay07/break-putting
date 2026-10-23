@@ -181,9 +181,12 @@ export function Rounds() {
           {form && (
             <span
               className="form-rail"
+              // Width, never opacity. Fading an untagged round lightened its colour and so
+              // overrode the ramp: a dark-green 9.1 drawn at 0.75 came out lighter than a
+              // mid-green 6.5 at full strength, which is the one thing the scale must not do.
               style={{
                 background: formBand(form.score).ink,
-                opacity: form.process === null ? 0.4 : 1,
+                width: form.process === null ? 2 : 5,
               }}
               aria-hidden="true"
             />
@@ -244,10 +247,7 @@ export function Rounds() {
                 <span className="tiny">Form</span>
                 <span
                   className="val"
-                  style={{
-                    color: formBand(form.score).ink,
-                    opacity: form.process === null ? 0.75 : 1,
-                  }}
+                  style={{ color: formBand(form.score).ink }}
                 >
                   {form.score.toFixed(1)}
                 </span>

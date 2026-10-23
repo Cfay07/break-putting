@@ -43,7 +43,7 @@ export function stakesOf(rounds: Round[], from = 5, to = 10): Stakes {
 
       // What holing this putt would have written on the card.
       const vsPar = strokes - hole.putts.length + 1 - par;
-      if (vsPar < -1 || vsPar > 1) continue;
+      if (vsPar < -2 || vsPar > 1) continue;
 
       const b = buckets.get(vsPar) ?? { attempts: 0, makes: 0, feet: 0 };
       b.attempts++;
@@ -53,8 +53,13 @@ export function stakesOf(rounds: Round[], from = 5, to = 10): Stakes {
     }
   }
 
-  const LABELS: Record<number, string> = { [-1]: 'For birdie', 0: 'To save par', 1: 'To save bogey' };
-  const rows = [-1, 0, 1]
+  const LABELS: Record<number, string> = {
+    [-2]: 'For eagle',
+    [-1]: 'For birdie',
+    0: 'To save par',
+    1: 'To save bogey',
+  };
+  const rows = [-2, -1, 0, 1]
     .map((vsPar) => {
       const b = buckets.get(vsPar);
       if (!b || !b.attempts) return null;
