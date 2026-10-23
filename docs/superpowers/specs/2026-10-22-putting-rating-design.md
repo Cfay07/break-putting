@@ -88,17 +88,19 @@ the way a rail column can when you scroll the list.
 
 ## The colour ramp
 
-Five bands, red through green, exactly as Conor specified. **Two tones per band**, because the
-rail and the number have different contrast problems: nothing sits on the rail, so it can be
-vibrant, while the number is coloured text on cream and must clear 4.5:1.
+Five bands, red through green, exactly as Conor specified. **One colour per band**, used by the
+rail and the number alike, because a rail in one shade beside a number in another reads as two
+different facts. Matching them means both take the darker step: the vibrant yellow-green and
+amber a rail would prefer score **2.12** and **2.08** as text on the card against a 4.5 minimum,
+and a 5px rail reads perfectly well in the darker one.
 
-| Form | Band | Rail | Number | Number contrast |
-|---|---|---|---|---|
-| 8.0 – 10 | Green | `#1f7a4d` | `#1f7a4d` | 5.05 |
-| 6.0 – 7.9 | Yellow-green | `#93bb2e` | `#5a7016` | 5.30 |
-| 4.0 – 5.9 | Amber | `#e0a526` | `#8a6208` | 5.21 |
-| 2.0 – 3.9 | Orange-red | `#b0431a` | `#b0431a` | 5.44 |
-| 0 – 1.9 | Red | `#a52a1f` | `#a52a1f` | 6.76 |
+| Form | Band | Colour | Contrast as text |
+|---|---|---|---|
+| 8.0 – 10 | Green | `#1f7a4d` | 5.05 |
+| 6.0 – 7.9 | Yellow-green | `#5a7016` | 5.30 |
+| 4.0 – 5.9 | Amber | `#8a6208` | 5.21 |
+| 2.0 – 3.9 | Orange-red | `#b0431a` | 5.44 |
+| 0 – 1.9 | Red | `#a52a1f` | 6.76 |
 
 Measure, do not eyeball. Three separate colour faults were caught only by running the numbers:
 `#c0531f` and `#7a9b24` cleared neither white nor dark text; `#b5603a` failed white text at
@@ -310,9 +312,25 @@ Mapping strokes gained per 18 onto 0 to 10. It must not be calibrated to the pla
 history, and it must not anchor everything to tour level, which would park every amateur at 1 out
 of 10 forever.
 
-Conor's observed range across 26 rounds is **−11.73 to +3.56** per 18, most between −9 and −1.
-The mockups used `(sg18 + 12) / 14 × 10` clamped, which spread his real rounds across 0.2 to
-10.0 and looked right, but it is a starting point and not a decision.
+**Settled.** A straight line gave his best round a flat 10, which is wrong: a rating that hands
+out full marks for a round a player has already had is a rating with nowhere left to go. Real
+ratings crowd the middle and almost never give the top away, so the mapping is a curve with
+fixed anchors, interpolated the same way the expected-putts baseline is:
+
+| SG per 18 | Form |
+|---|---|
+| −12 or worse | 0 |
+| −7 | 3 |
+| −3 | 5.5 |
+| 0 (tour average) | 7.5 |
+| +2 | 8.7 |
+| +5 | 9.5 |
+| +10 | 10 |
+
+Against his real 26 rounds this gives a season average of **4.3**, a best of **9.1** for the
++3.56 round that used to score a flat 10, and **nothing at 10**. With flawless tagging on top, a
+brilliant round reaches 9.8 and tour-average putting reaches 8.8. A ten needs ten shots a round
+better than tour, which nobody does.
 
 Note the figures in the seed files under `seed/` do **not** match the live database. The live
 database is authoritative.

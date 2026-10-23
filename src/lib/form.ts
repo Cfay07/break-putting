@@ -25,13 +25,18 @@ const LONG_MAKE = 4;
  */
 export const MIN_TAGGED = 6;
 
-/** Rail colour is vibrant and carries no text. Ink is the darker step, for text on the card. */
+/**
+ * One colour per band, used for the rail and the number alike. The vibrant steps a rail would
+ * prefer cannot carry the number: as text on the card the bright yellow-green and amber scored
+ * 2.12 and 2.08 against a 4.5 minimum. Matching them means taking the darker step for both, and
+ * a 5px rail reads perfectly well in it.
+ */
 export const FORM_BANDS = [
-  { min: 8, name: 'Green', rail: '#1f7a4d', ink: '#1f7a4d' },
-  { min: 6, name: 'Yellow-green', rail: '#93bb2e', ink: '#5a7016' },
-  { min: 4, name: 'Amber', rail: '#e0a526', ink: '#8a6208' },
-  { min: 2, name: 'Orange-red', rail: '#b0431a', ink: '#b0431a' },
-  { min: 0, name: 'Red', rail: '#a52a1f', ink: '#a52a1f' },
+  { min: 8, name: 'Green', ink: '#1f7a4d' },
+  { min: 6, name: 'Yellow-green', ink: '#5a7016' },
+  { min: 4, name: 'Amber', ink: '#8a6208' },
+  { min: 2, name: 'Orange-red', ink: '#b0431a' },
+  { min: 0, name: 'Red', ink: '#a52a1f' },
 ] as const;
 
 export function formBand(score: number) {
@@ -39,14 +44,36 @@ export function formBand(score: number) {
 }
 
 /**
- * Strokes gained per eighteen onto nought to ten. Fixed anchors on purpose: calibrating to the
- * player's own history would park everyone at the middle forever and never show improvement.
- * Ten is roughly two shots better than tour per eighteen, nought is twelve worse.
+ * Strokes gained per eighteen onto nought to ten, the way a real rating behaves rather than a
+ * straight line. Match ratings and review scores crowd the middle and give the top away almost
+ * never, so the curve stretches where rounds actually land and flattens hard above it: tour
+ * average is a 7.5, and a ten needs ten shots a round better than tour, which nobody does.
+ *
+ * Fixed anchors on purpose. Calibrating to the player's own history would park everyone at the
+ * middle forever and could never show improvement.
  */
-const BEST = 2;
-const WORST = -12;
-const fromSG = (sg18: number) =>
-  Math.max(0, Math.min(10, ((sg18 - WORST) / (BEST - WORST)) * 10));
+const CURVE: [number, number][] = [
+  [-12, 0],
+  [-7, 3],
+  [-3, 5.5],
+  [0, 7.5],
+  [2, 8.7],
+  [5, 9.5],
+  [10, 10],
+];
+
+function fromSG(sg18: number): number {
+  if (sg18 <= CURVE[0][0]) return 0;
+  if (sg18 >= CURVE[CURVE.length - 1][0]) return 10;
+  for (let i = 1; i < CURVE.length; i++) {
+    const [x1, y1] = CURVE[i];
+    if (sg18 <= x1) {
+      const [x0, y0] = CURVE[i - 1];
+      return y0 + ((sg18 - x0) / (x1 - x0)) * (y1 - y0);
+    }
+  }
+  return 10;
+}
 
 export interface Tally {
   right: number;
