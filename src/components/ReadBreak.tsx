@@ -129,10 +129,16 @@ export function ReadBreak({
         })}
       </div>
 
+      {/* The line that says what to do comes before the control it unlocks. The other way round
+          read as a broken button: the instruction to pick a read sat underneath the thing that
+          was greyed out waiting for one. */}
+      <p className={readAs === undefined ? 'small brk-read' : 'small brk-read on'}>
+        {wording(readAs, brokeAs, wrongWay, double)}
+      </p>
+
       {/* A complete misread is not a bigger version of reading too little, so it sits apart
-          from the scale rather than becoming a fifth stop on it.
-          Always drawn, greyed until a read is picked: hiding it until then meant tagging the
-          direction showed four curves and nothing else, and the control could not be found. */}
+          from the scale rather than becoming a fifth stop on it. Always drawn so it can be
+          found, inert until there is a read for it to contradict. */}
       <button
         type="button"
         className={wrongWay ? 'brk-wrong on' : 'brk-wrong'}
@@ -140,12 +146,8 @@ export function ReadBreak({
         disabled={readAs === undefined}
         onClick={tapWrongWay}
       >
-        It broke the other way
+        {readAs === undefined ? 'Pick your read first' : 'It broke the other way'}
       </button>
-
-      <p className={readAs === undefined ? 'small brk-read' : 'small brk-read on'}>
-        {wording(readAs, brokeAs, wrongWay, double)}
-      </p>
     </div>
   );
 }

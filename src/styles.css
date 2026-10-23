@@ -958,26 +958,27 @@ button.pick:active { background-color: #f4f1e8; }
 }
 .act:first-of-type { margin-top: 8px; }
 
-/* A backwards read is a different mistake from a small one, so it gets its own control rather
-   than a fifth stop that would imply it is just more of the same. */
+/* A fifth answer to the same question, so it wears the same chrome as the four stops: card
+   ground, hairline border, and the accent when it is what the putt actually did, exactly like
+   .brk-stop.actual. Dashed and see-through read as broken rather than as not-yet-available. */
 .brk-wrong {
   display: block;
   width: 100%;
   margin-top: 6px;
-  padding: 7px 0;
-  border: 1px dashed var(--line);
+  padding: 9px 0;
+  border: 1px solid var(--line);
   border-radius: 9px;
-  background: transparent;
-  color: var(--ink-3);
+  background: var(--card);
+  color: var(--ink-2);
   font: inherit;
   font-size: 12px;
-  letter-spacing: 0.03em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .brk-wrong.on {
   background: var(--accent);
   border-color: var(--accent);
-  border-style: solid;
   color: #fff;
-  font-weight: 600;
 }
-.brk-wrong:disabled { opacity: 0.4; }
+.brk-wrong:disabled { color: var(--ink-3); opacity: 0.65; }
