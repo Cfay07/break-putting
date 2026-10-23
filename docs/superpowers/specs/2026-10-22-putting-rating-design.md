@@ -366,12 +366,15 @@ fixed anchors, interpolated the same way the expected-putts baseline is:
 | 0 (tour average) | 7.5 |
 | +2 | 8.7 |
 | +5 | 9.5 |
-| +10 | 10 |
+| +8 | 10 |
 
 Against his real 26 rounds this gives a season average of **4.3**, a best of **9.1** for the
 +3.56 round that used to score a flat 10, and **nothing at 10**. With flawless tagging on top, a
-brilliant round reaches 9.8 and tour-average putting reaches 8.8. A ten needs ten shots a round
-better than tour, which nobody does.
+brilliant round reaches 9.8 and tour-average putting reaches 8.8. A ten needs about eight shots
+a round better than tour, which is roughly the best putting round anyone has ever had: rare
+rather than impossible. The top anchor sat at +10 first, which left half a point of scale
+spanning ground no golfer has ever covered, and moved to +8 without changing a single one of
+Conor's 26 rounds.
 
 Note the figures in the seed files under `seed/` do **not** match the live database. The live
 database is authoritative.

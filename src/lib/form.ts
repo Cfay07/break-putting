@@ -59,7 +59,7 @@ const CURVE: [number, number][] = [
   [0, 7.5],
   [2, 8.7],
   [5, 9.5],
-  [10, 10],
+  [8, 10],
 ];
 
 function fromSG(sg18: number): number {
