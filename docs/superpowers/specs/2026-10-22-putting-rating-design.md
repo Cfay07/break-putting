@@ -89,15 +89,20 @@ the way a rail column can when you scroll the list.
 ## The colour ramp
 
 One colour per band, so the rail and the number are never two shades of the same idea, and a
-real ramp with it: lightness runs **4, 10, 17, 17, 9**, rising to the middle and falling again.
+real ramp with it: lightness runs **4, 10, 17, 20, 9**, rising to the middle and falling again.
 
 | Form | Band | Colour | Lightness | Contrast as text |
 |---|---|---|---|---|
 | 8.0 – 10 | Dark green | `#15603b` | 8.8 | 7.21 |
-| 6.0 – 7.9 | Green | `#1c8248` | 16.7 | 4.60 |
+| 6.0 – 7.9 | Green | `#2c8c54` | 19.9 | 4.00 |
 | 4.0 – 5.9 | Amber | `#96690a` | 16.6 | 4.62 |
 | 2.0 – 3.9 | Red | `#a52a1f` | 9.8 | 6.76 |
 | 0 – 1.9 | Dark red | `#6e1a12` | 4.1 | 10.96 |
+
+The bar is **3.0, not 4.5**. Every place a band colour becomes text it is large text: 21px bold
+on the round card, 40px on the round page, which is the threshold WCAG sets for the lower floor.
+Holding the ramp to the small-text rule cost two shades of headroom in the middle for nothing.
+The bands still sit at 4.0 and above, so there is real margin.
 
 The whole ramp sits inside the legible range on purpose. Two earlier attempts failed and are
 worth not repeating. The first made every band dark so both halves could share a value, and its

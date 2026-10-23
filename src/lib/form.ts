@@ -29,14 +29,15 @@ export const MIN_TAGGED = 6;
  * One colour per band, so the rail and the number are never two shades of the same idea, and a
  * real ramp with it: lightness runs 4, 10, 17, 17, 9, rising to the middle and falling again.
  *
- * The whole ramp lives inside the legible range on purpose. A brighter middle looks better as a
- * rail and cannot be the number: pure amber scores 2.01 as text on this card against a 4.5
- * minimum. Pushing the dark end darker instead buys the same rise and fall with every band
- * still readable, so neither half of the card has to compromise.
+ * The whole ramp lives inside the legible range on purpose. The bar is 3.0 rather than 4.5:
+ * every place this colour becomes text it is large text, 21px bold on the card and 40px on the
+ * round page, which is the threshold WCAG sets for the lower floor. The bands still sit at 4.0
+ * and above, so there is real margin, and that headroom is what lets the middle be light enough
+ * to ramp at all. Pure amber at full brightness scores 2.01 and remains out of reach.
  */
 export const FORM_BANDS = [
   { min: 8, name: 'Dark green', ink: '#15603b' },
-  { min: 6, name: 'Green', ink: '#1c8248' },
+  { min: 6, name: 'Green', ink: '#2c8c54' },
   { min: 4, name: 'Amber', ink: '#96690a' },
   { min: 2, name: 'Red', ink: '#a52a1f' },
   { min: 0, name: 'Dark red', ink: '#6e1a12' },
