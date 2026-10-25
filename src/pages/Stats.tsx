@@ -327,10 +327,23 @@ export function Stats() {
             <>
               <h2>What you would be shooting</h2>
               <div className="card">
-                <div className="shoot-for num">{avgIfNeutral.toFixed(1)}</div>
+                {/* Both numbers, because the gap between them is the whole point and the real
+                    one used to be a figure inside a sentence. */}
+                <div className="shoot-pair">
+                  <span className="shoot-one">
+                    <span className="shoot-for num">{avgScore.toFixed(1)}</span>
+                    <span className="tiny">You shoot</span>
+                  </span>
+                  <span className="shoot-arrow" aria-hidden="true">→</span>
+                  <span className="shoot-one">
+                    <span className="shoot-for num">{avgIfNeutral.toFixed(1)}</span>
+                    <span className="tiny">With tour putting</span>
+                  </span>
+                </div>
                 <p className="small" style={{ margin: '4px 0 12px' }}>
-                  That is your scoring average of {avgScore.toFixed(1)} with a tour pro's putting
-                  dropped into the same rounds.{' '}
+                  Your scoring average over {withScore.length} scored round
+                  {withScore.length === 1 ? '' : 's'}, and the same rounds with a tour pro's
+                  putting dropped in.{' '}
                   {avgIfNeutral > avgScore
                     ? `You putt better than tour, so swapping in their putter would cost you ${(
                         avgIfNeutral - avgScore

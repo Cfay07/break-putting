@@ -989,3 +989,8 @@ button.pick:active { background-color: #f4f1e8; }
 .form-hero { display: flex; align-items: baseline; gap: 9px; margin-bottom: 10px; }
 .form-big { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
 
+
+.shoot-pair { display: flex; align-items: flex-end; gap: 14px; }
+.shoot-one { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.shoot-one .tiny { white-space: nowrap; }
+.shoot-arrow { color: var(--ink-3); font-size: 19px; padding-bottom: 20px; flex: 0 0 auto; }
