@@ -16,6 +16,8 @@ import { byConditions } from '../lib/conditions';
 import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
 import { formOf, formBand } from '../lib/form';
+import { StrikePanel } from '../components/StrikePanel';
+import { byStrike } from '../lib/stats';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
@@ -148,6 +150,7 @@ export function Stats() {
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const read = useMemo(() => readError(rounds), [rounds]);
+  const strike = useMemo(() => byStrike(rounds), [rounds]);
 
   /** Season Form. Rounds with no putts return null and simply do not count. */
   const form = useMemo(() => {
@@ -522,6 +525,13 @@ export function Stats() {
 
 
           <p className="act">Why you miss</p>
+          {strike.length > 0 && (
+            <>
+              <h2>Where on the face</h2>
+              <StrikePanel rows={strike} />
+            </>
+          )}
+
           <h2>When you miss, why</h2>
           <MissAnatomyPanel miss={miss} />
 

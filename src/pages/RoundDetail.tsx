@@ -270,14 +270,7 @@ export function RoundDetail({ id }: { id: string }) {
               <span className="small muted"> of {s.scoredHoles} scored</span>
             </span>
           </div>
-        ) : (
-          round.greens !== undefined && (
-            <div className="stat-row">
-              <span className="k">Greens hit</span>
-              <span className="v num">{round.greens}</span>
-            </div>
-          )
-        )}
+        ) : null}
       </div>
 
       <h2>By distance</h2>
@@ -581,19 +574,6 @@ export function RoundDetail({ id }: { id: string }) {
                 t: 'updateRound',
                 id: round.id,
                 patch: { score: e.target.value ? Number(e.target.value) : undefined },
-              })
-            }
-          />
-          <div className="field-label">Greens hit</div>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={round.greens ?? ''}
-            onChange={(e) =>
-              dispatch({
-                t: 'updateRound',
-                id: round.id,
-                patch: { greens: e.target.value ? Number(e.target.value) : undefined },
               })
             }
           />

@@ -832,3 +832,64 @@ export function suspectHoles(round: Round): { hole: number; from: number; to: nu
   }
   return out;
 }
+
+
+/** A strike row needs this many putts before its percentages are worth printing. */
+export const MIN_STRIKE = 10;
+
+export interface StrikeRow {
+  key: 'centre' | 'toe' | 'heel';
+  label: string;
+  putts: number;
+  makePct: number | null;
+  /** Leave as a share of the putt, so a 40 footer and a 6 footer can sit in one column. */
+  leavePct: number | null;
+  avgLeave: number | null;
+}
+
+/**
+ * Where on the face it came off, against what the ball then did. Strike has fed the blame
+ * triangle and one row of Form since it was added and never had a panel of its own, so the
+ * obvious question went unasked: does catching it out the toe cost you distance control?
+ */
+export function byStrike(rounds: Round[]): StrikeRow[] {
+  const acc: Record<string, { putts: number; makes: number; leaves: number[]; ratios: number[] }> = {
+    centre: { putts: 0, makes: 0, leaves: [], ratios: [] },
+    toe: { putts: 0, makes: 0, leaves: [], ratios: [] },
+    heel: { putts: 0, makes: 0, leaves: [], ratios: [] },
+  };
+
+  for (const r of rounds) {
+    if (!r.finished) continue;
+    for (const hole of r.holes) {
+      hole.putts.forEach((p, i) => {
+        if (!p.strike) return;
+        const a = acc[p.strike];
+        a.putts++;
+        if (p.made) {
+          a.makes++;
+          return;
+        }
+        const leave = hole.putts[i + 1]?.d;
+        if (leave === undefined || !p.d) return;
+        a.leaves.push(leave);
+        a.ratios.push((leave / p.d) * 100);
+      });
+    }
+  }
+
+  const mean = (xs: number[]) => (xs.length ? xs.reduce((x, y) => x + y, 0) / xs.length : null);
+  return (['centre', 'toe', 'heel'] as const)
+    .map((key) => {
+      const a = acc[key];
+      return {
+        key,
+        label: key === 'centre' ? 'Middle' : key === 'toe' ? 'Toe' : 'Heel',
+        putts: a.putts,
+        makePct: a.putts >= MIN_STRIKE ? (a.makes / a.putts) * 100 : null,
+        leavePct: a.ratios.length >= MIN_STRIKE ? mean(a.ratios) : null,
+        avgLeave: a.leaves.length >= MIN_STRIKE ? mean(a.leaves) : null,
+      };
+    })
+    .filter((r) => r.putts > 0);
+}

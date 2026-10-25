@@ -6,6 +6,7 @@ import { Sheet } from '../components/Sheet';
 import { fmtDate, signed, today } from '../lib/format';
 import { go } from '../lib/router';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
+import { Conditions } from '../components/Conditions';
 import { currentSession } from '../lib/cloud';
 import { bleedsIn } from '../lib/bleed';
 import { formOf, formBand } from '../lib/form';
@@ -53,6 +54,8 @@ export function Rounds() {
   const [holeCount, setHoleCount] = useState(18);
   const [competitive, setCompetitive] = useState(false);
   const [greenSpeed, setGreenSpeed] = useState<GreenSpeed | undefined>();
+  const [aerated, setAerated] = useState<boolean | undefined>();
+  const [bumpy, setBumpy] = useState<number | undefined>();
   const [putterId, setPutterId] = useState(usable.find((p) => p.active)?.id ?? usable[0]?.id ?? '');
   const [newPutter, setNewPutter] = useState('');
 
@@ -91,6 +94,8 @@ export function Rounds() {
         tee: choice.tee,
         competitive: competitive || undefined,
         greenSpeed,
+        aerated,
+        bumpy,
         firstNine: nineNames.first.trim() || undefined,
         secondNine: nineNames.second.trim() || undefined,
       },
@@ -98,6 +103,9 @@ export function Rounds() {
     setOpen(false);
     setChoice({ name: '' });
     setNewPutter('');
+    // The sheet is reused, so conditions from the last round must not ride along into the next.
+    setAerated(undefined);
+    setBumpy(undefined);
     go('/track');
   };
 
@@ -282,6 +290,16 @@ export function Rounds() {
 
           <div className="field-label">Greens, by stimp</div>
           <GreenSpeedPick value={greenSpeed} onPick={setGreenSpeed} />
+          {/* Green speed sits here and is on 27 of 27 rounds. Bumpiness and aeration sat on the
+              round page afterwards and are on 2 and 0. Same question, same sheet. */}
+          <Conditions
+            aerated={aerated}
+            bumpy={bumpy}
+            onChange={(patch) => {
+              if ('aerated' in patch) setAerated(patch.aerated);
+              if ('bumpy' in patch) setBumpy(patch.bumpy);
+            }}
+          />
 
           <div className="field-label">Playing</div>
           <div className="seg">

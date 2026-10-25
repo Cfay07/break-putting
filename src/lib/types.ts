@@ -101,6 +101,11 @@ export interface Round {
   course?: string;
   putterId: string;
   score?: number;
+  /**
+   * Removed from the UI. Nought of 27 rounds ever carried it and it fed no stat, because greens
+   * in regulation is worked out from par, strokes and putts instead. Kept on the type so an old
+   * round that has one still parses.
+   */
   greens?: number;
   recordedPutts?: number;
   /**
