@@ -246,7 +246,7 @@ export function Stats() {
       fmt: (v) => `${v.toFixed(0)}%`,
       dfmt: (v) => `${v.toFixed(0)}%`,
     },
-    { k: 'Strokes gained', get: (s) => s.sg, lowerBetter: false, fmt: (v) => signed(v, 2), dfmt: (v) => v.toFixed(2) },
+    { k: 'Strokes gained', get: (s) => s.sg, lowerBetter: false, fmt: (v) => signed(v), dfmt: (v) => v.toFixed(1) },
     { k: 'Greens hit', get: (s) => s.gir, lowerBetter: false, fmt: (v) => v.toFixed(1), dfmt: (v) => v.toFixed(1) },
   ];
 
@@ -370,7 +370,7 @@ export function Stats() {
             <div className="stat-row">
               <span className="k">3-putts per round</span>
               <span className={(o.threePuttsPerRound ?? 0) > 0 ? 'v num neg' : 'v num'}>
-                {o.threePuttsPerRound?.toFixed(2)}
+                {o.threePuttsPerRound?.toFixed(1)}
               </span>
             </div>
             <div className="stat-row">
@@ -380,7 +380,7 @@ export function Stats() {
             <div className="stat-row">
               <span className="k">Strokes gained per round</span>
               <span className={(o.sgPerRound ?? 0) >= 0 ? 'v num pos' : 'v num neg'}>
-                {signed(o.sgPerRound ?? 0, 2)}
+                {signed(o.sgPerRound ?? 0)}
               </span>
             </div>
             {o.girPerRound !== null && (
@@ -415,7 +415,7 @@ export function Stats() {
           {[
             { title: 'Putts per round', values: o.points.map((p) => p.stats.totalPutts * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
             { title: '3-putts per round', values: o.points.map((p) => p.stats.threePlus * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
-            { title: 'Strokes gained per round', values: o.points.map((p) => p.stats.sg * p.scale), invert: false, fmt: (v: number) => signed(v, 2) },
+            { title: 'Strokes gained per round', values: o.points.map((p) => p.stats.sg * p.scale), invert: false, fmt: (v: number) => signed(v) },
             {
               title: 'Make % from 3 to 10 ft',
               values: o.points.map((p) => pct(p.stats.scoring) ?? 0),
@@ -707,7 +707,7 @@ export function Stats() {
                           <td>{label}</td>
                           <td>{side.holes}</td>
                           <td>{side.firstPutt} ft</td>
-                          <td>{side.puttsPerHole.toFixed(2)}</td>
+                          <td>{side.puttsPerHole.toFixed(1)}</td>
                           <td>{side.onePuttPct.toFixed(0)}%</td>
                         </tr>
                       ))}
@@ -802,10 +802,10 @@ export function Stats() {
                     </td>
                     <td>{sub.rounds}</td>
                     <td>{sub.puttsPerRound?.toFixed(1)}</td>
-                    <td>{sub.threePuttsPerRound?.toFixed(2)}</td>
+                    <td>{sub.threePuttsPerRound?.toFixed(1)}</td>
                     <td>{pctText(sub.scoringPct)}</td>
                     <td className={(sub.sgPerRound ?? 0) >= 0 ? 'pos' : 'neg'}>
-                      {signed(sub.sgPerRound ?? 0, 2)}
+                      {signed(sub.sgPerRound ?? 0)}
                     </td>
                   </tr>
                 );
@@ -835,7 +835,7 @@ export function Stats() {
                         <td>{c.rounds}</td>
                         <td>{c.putts.toFixed(1)}</td>
                         <td>{c.threePlus.toFixed(1)}</td>
-                        <td className={c.sg >= 0 ? 'pos' : 'neg'}>{signed(c.sg, 2)}</td>
+                        <td className={c.sg >= 0 ? 'pos' : 'neg'}>{signed(c.sg)}</td>
                       </tr>
                     ))}
                   </tbody>

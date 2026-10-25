@@ -26,11 +26,11 @@ const EMPTY: TeamView = { teams: [], members: [], stats: [] };
  * app knows, so they are the ones worth competing on.
  */
 const BOARDS = [
-  { key: 'sg_pr', label: 'Strokes gained', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2)), lowBetter: false },
+  { key: 'sg_pr', label: 'Strokes gained', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1)), lowBetter: false },
   { key: 'scoring_pct', label: 'Make % (3-10 ft)', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
   { key: 'make6', label: 'Six-footers', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
-  { key: 'three_pr', label: '3-putts per round', fmt: (v: number) => v.toFixed(2), lowBetter: true },
-  { key: 'bleed_pr', label: 'Bleed', fmt: (v: number) => `-${v.toFixed(2)}`, lowBetter: true },
+  { key: 'three_pr', label: '3-putts per round', fmt: (v: number) => v.toFixed(1), lowBetter: true },
+  { key: 'bleed_pr', label: 'Bleed', fmt: (v: number) => `-${v.toFixed(1)}`, lowBetter: true },
   { key: 'bounce_back', label: 'Bounce back', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
 ] as const;
 
@@ -75,7 +75,7 @@ function RoundCard({ round, onClose }: { round: TeamRound; onClose: () => void }
         <div className="stat-row">
           <span className="k">Strokes gained</span>
           <span className={(round.sg ?? 0) < 0 ? 'v num neg' : 'v num pos'}>
-            {round.sg === null ? '--' : round.sg >= 0 ? `+${round.sg.toFixed(2)}` : round.sg.toFixed(2)}
+            {round.sg === null ? '--' : round.sg >= 0 ? `+${round.sg.toFixed(1)}` : round.sg.toFixed(1)}
           </span>
         </div>
         <div className="stat-row">
@@ -152,11 +152,11 @@ function PlayerPanel({
     ? [
         ['Rounds logged', String(stats.rounds)],
         ['Putts per round', stats.putts_pr?.toFixed(1) ?? '--'],
-        ['3-putts per round', stats.three_pr?.toFixed(2) ?? '--'],
-        ['Strokes gained', stats.sg_pr !== null ? stats.sg_pr.toFixed(2) : '--'],
+        ['3-putts per round', stats.three_pr?.toFixed(1) ?? '--'],
+        ['Strokes gained', stats.sg_pr !== null ? stats.sg_pr.toFixed(1) : '--'],
         ['Make % from 3 to 10 ft', stats.scoring_pct !== null ? `${(stats.scoring_pct * 100).toFixed(0)}%` : '--'],
         ['Six-footers', stats.make6 !== null ? `${(stats.make6 * 100).toFixed(0)}%` : '--'],
-        ['Bleed, shots a round', stats.bleed_pr !== null ? `-${stats.bleed_pr.toFixed(2)}` : '--'],
+        ['Bleed, shots a round', stats.bleed_pr !== null ? `-${stats.bleed_pr.toFixed(1)}` : '--'],
         ['Bounce back', stats.bounce_back !== null ? `${(stats.bounce_back * 100).toFixed(0)}%` : '--'],
         ['Last round', stats.last_round ? fmtDate(stats.last_round) : '--'],
       ]
@@ -211,7 +211,7 @@ function PlayerPanel({
                 </span>
                 <span className="val num">{r.putts ?? '--'}</span>
                 <span className={(r.sg ?? 0) < 0 ? 'val num neg' : 'val num pos'}>
-                  {r.sg === null ? '--' : r.sg >= 0 ? `+${r.sg.toFixed(2)}` : r.sg.toFixed(2)}
+                  {r.sg === null ? '--' : r.sg >= 0 ? `+${r.sg.toFixed(1)}` : r.sg.toFixed(1)}
                 </span>
               </button>
             ))}

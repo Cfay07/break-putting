@@ -138,25 +138,40 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
         <>
           <div className="field-label">What the misses were</div>
           <div className="card">
+            {/* Shares, not counts. A miss with more than one fault is split between them, so the
+                raw numbers are fractions and "2.3 misses" means nothing to anybody. */}
             <div className="stat-row">
-              <span className="k">The read</span>
-              <span className="v num">{read.blameRead}</span>
+              <span className="k">
+                The read
+                <span className="small muted"> · where you aimed</span>
+              </span>
+              <span className="v num">{Math.round((read.blameRead / read.blamed) * 100)}%</span>
             </div>
             <div className="stat-row">
-              <span className="k">The stroke, pushed or pulled</span>
-              <span className="v num">{read.blameStroke}</span>
+              <span className="k">
+                The stroke
+                <span className="small muted"> · push, pull, toe or heel</span>
+              </span>
+              <span className="v num">{Math.round((read.blameStroke / read.blamed) * 100)}%</span>
             </div>
             <div className="stat-row">
-              <span className="k">The speed, read and line were fine</span>
-              <span className="v num">{read.blameSpeed}</span>
+              <span className="k">
+                The speed
+                <span className="small muted"> · short, long, quit on it, jabbed</span>
+              </span>
+              <span className="v num">{Math.round((read.blameSpeed / read.blamed) * 100)}%</span>
             </div>
           </div>
           <p className="small muted" style={{ margin: '6px 0 0' }}>
-            Push and pull are the start line, so a miss with the read right and a clean start was
-            the pace. This is the only split the three tags allow and it needs all three.
+            Across {Math.round(read.blamed)} tagged miss
+            {Math.round(read.blamed) === 1 ? '' : 'es'}. A putt carrying more than one fault is
+            split between them rather than handed to whichever is checked first, so a misread you
+            also pushed counts as half of each. A miss with the read right and nothing else
+            flagged is put down to the pace.
           </p>
         </>
       )}
+
     </>
   );
 }

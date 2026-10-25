@@ -34,13 +34,13 @@ export function DistanceTable({
                 <td>{t.attempts ? `${t.makes}/${t.attempts}` : '--'}</td>
                 <td>{p === null ? '--' : `${p.toFixed(0)}%`}</td>
                 <td className={t.sgPutts === 0 ? '' : t.sg >= 0 ? 'pos' : 'neg'}>
-                  {t.sgPutts === 0 ? '--' : signed(t.sg, 2)}
+                  {t.sgPutts === 0 ? '--' : signed(t.sg)}
                 </td>
                 {perRound && (
                   <td className={(perRound[b.key] ?? 0) >= 0 ? 'pos' : 'neg'}>
                     {perRound[b.key] === null || perRound[b.key] === undefined
                       ? '--'
-                      : signed(perRound[b.key]!, 2)}
+                      : signed(perRound[b.key]!)}
                   </td>
                 )}
               </tr>
@@ -54,12 +54,11 @@ export function DistanceTable({
                 : '--'}
             </td>
             <td />
-            <td className={stats.sg >= 0 ? 'pos' : 'neg'}>{signed(stats.sg, 2)}</td>
+            <td className={stats.sg >= 0 ? 'pos' : 'neg'}>{signed(stats.sg)}</td>
             {perRound && (
               <td>
                 {signed(
                   BUCKETS.reduce((n, b) => n + (perRound[b.key] ?? 0), 0),
-                  2,
                 )}
               </td>
             )}

@@ -85,7 +85,7 @@ export function BlameTriangle({ season, rounds = [] }: { season: Blame; rounds?:
       </svg>
       <p className="small" style={{ margin: '2px 0 0' }}>
         <strong>{biggest[1]}%</strong> of your misses were {biggest[0]}. Read {share(season.read)}%,
-        stroke {share(season.stroke)}%, speed {share(season.speed)}%, off {total} tagged misses.
+        stroke {share(season.stroke)}%, speed {share(season.speed)}%, off {Math.round(total)} tagged misses.
       </p>
       {rounds.length > 1 && (
         <p className="small muted" style={{ margin: '6px 0 0' }}>

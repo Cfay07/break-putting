@@ -152,7 +152,7 @@ function tableRow(p: Pen, cols: Col[], cells: Cell[], shade = false) {
   p.y -= 13;
 }
 
-const signed2 = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(2)}`;
+const signed2 = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}`;
 const share = (n: number, total: number) => (total ? `${Math.round((n / total) * 100)}%` : '--');
 
 export interface CardInput {
@@ -183,7 +183,7 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
   const numbers: [string, string, string][] = [
     ['Score', round.score != null ? String(round.score) : '--', INK],
     ['Putts', String(s.totalPutts), INK],
-    ['Putts per hole', s.puttsPerHole.toFixed(2), INK],
+    ['Putts per hole', s.puttsPerHole.toFixed(1), INK],
     ['1 / 2 / 3+ putts', `${s.onePutts} / ${s.twoPutts} / ${s.threePlus}`, INK],
   ];
   if (s.threePuttHoles.length) {

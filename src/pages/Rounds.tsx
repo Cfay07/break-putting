@@ -236,7 +236,7 @@ export function Rounds() {
             </span>
             <span className="metric">
               <span className="tiny">SG</span>
-              <span className={s.sg >= 0 ? 'val pos' : 'val neg'}>{signed(s.sg, 2)}</span>
+              <span className={s.sg >= 0 ? 'val pos' : 'val neg'}>{signed(s.sg)}</span>
             </span>
             <span className="metric">
               <span className="tiny">Score</span>

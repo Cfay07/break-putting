@@ -6,7 +6,7 @@ const MIN_TAGGED = 8;
 /** And this many lag putts before an average leave means anything. */
 const MIN_LAG = 5;
 
-const signed = (v: number) => (v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2));
+const signed = (v: number) => (v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1));
 
 /**
  * One block per band rather than one wide table. Eight columns do not fit a phone, and the

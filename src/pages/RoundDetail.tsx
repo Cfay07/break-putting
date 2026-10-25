@@ -42,7 +42,7 @@ function SgCell({ value }: { value: number | null }) {
     value <= -0.5 ? 'sg down big' : value < 0 ? 'sg down' : value > 0 ? 'sg up' : 'sg';
   return (
     <span className={cls}>
-      {value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2)}
+      {value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
     </span>
   );
 }
@@ -228,11 +228,11 @@ export function RoundDetail({ id }: { id: string }) {
         )}
         <div className="stat-row">
           <span className="k">Putts per hole</span>
-          <span className="v num">{s.puttsPerHole.toFixed(2)}</span>
+          <span className="v num">{s.puttsPerHole.toFixed(1)}</span>
         </div>
         <div className="stat-row">
           <span className="k">Strokes gained putting</span>
-          <span className={s.sg >= 0 ? 'v num pos' : 'v num neg'}>{signed(s.sg, 2)}</span>
+          <span className={s.sg >= 0 ? 'v num pos' : 'v num neg'}>{signed(s.sg)}</span>
         </div>
         <div className="stat-row">
           <span className="k">1 / 2 / 3+ putts</span>
