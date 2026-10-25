@@ -1,4 +1,5 @@
 import { formBand, type Form, type Tally } from '../lib/form';
+import { FormVenn } from './FormVenn';
 
 const share = (t: Tally) => (t.of ? Math.round((t.right / t.of) * 100) : null);
 
@@ -76,6 +77,8 @@ export function FormPanel({ form }: { form: Form }) {
               );
             })}
           </div>
+          <FormVenn venn={form.venn} />
+
           <p className="small muted" style={{ margin: '8px 0 0' }}>
             Form averages the two. How you hit them is the rows above, the share of what you
             controlled that you got right. How they finished is strokes gained, which does not

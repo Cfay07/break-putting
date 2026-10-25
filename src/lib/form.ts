@@ -93,6 +93,23 @@ export interface FormParts {
   lip: Tally;
 }
 
+/**
+ * Where the two numbers agree and where they do not. A putt is clean when everything you
+ * controlled was right, and holed when the ball went in: strokes gained only sees the second
+ * column, Form mostly the first, and the two corners where they disagree are the whole argument
+ * for carrying both.
+ */
+export interface Venn {
+  /** Clean stroke, went in. Both pay. */
+  earned: number;
+  /** Something was off and it went in anyway. Strokes gained pays, Form does not. */
+  gotAway: number;
+  /** Clean stroke, stayed out. Form pays, strokes gained does not. */
+  robbed: number;
+  /** Something was off and it missed. Neither pays. */
+  deserved: number;
+}
+
 export interface Form {
   score: number;
   outcome: number;
@@ -101,6 +118,7 @@ export interface Form {
   /** Putts that contributed at least one tagged component. */
   tagged: number;
   parts: FormParts;
+  venn: Venn;
   sg18: number;
 }
 
@@ -122,6 +140,7 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
   const parts: FormParts = {
     read: empty(), strike: empty(), line: empty(), pace: empty(), lip: empty(),
   };
+  const venn: Venn = { earned: 0, gotAway: 0, robbed: 0, deserved: 0 };
   let tagged = 0;
 
   for (const hole of round.holes) {
@@ -129,6 +148,7 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
       // Tap-ins never reach the tagging screen, so counting them would only dilute.
       if (p.made && p.d < LONG_MAKE) continue;
       let touched = false;
+      let readWrong = false;
 
       if (p.readAs !== undefined) {
         const unfinished = !neverTurnedOf(p) && p.readAs === 0 && p.brokeAs === undefined;
@@ -142,6 +162,7 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
           !!p.wrongWay ||
           neverTurned ||
           (p.brokeAs !== undefined && p.brokeAs !== p.readAs);
+        readWrong = wrong;
         if (!wrong) parts.read.right++;
         }
       }
@@ -168,7 +189,18 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
         parts.lip.right++;
       }
 
-      if (touched) tagged++;
+      if (touched) {
+        tagged++;
+        // Only a putt carrying a read or a strike can be called clean or not, so the Venn
+        // counts the same putts the process layer does.
+        const readOk = p.readAs === undefined || !readWrong;
+        const strikeOk = p.strike === undefined || p.strike === 'centre';
+        const lineOk = !p.push && !p.pull;
+        const paceOk = !p.decel && !p.accel && p.speed !== 'short' && p.speed !== 'long';
+        const clean = readOk && strikeOk && lineOk && paceOk;
+        if (p.made) clean ? venn.earned++ : venn.gotAway++;
+        else clean ? venn.robbed++ : venn.deserved++;
+      }
     }
   }
 
@@ -182,5 +214,5 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
   // everyone already trusts, and neither alone is the whole story of a round.
   const score = process === null ? outcome : outcome * 0.5 + process * 0.5;
 
-  return { score, outcome, process, tagged, parts, sg18 };
+  return { score, outcome, process, tagged, parts, venn, sg18 };
 }
