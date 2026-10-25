@@ -104,6 +104,11 @@ export interface Form {
   sg18: number;
 }
 
+const neverTurnedOf = (p: { breakDirs?: string[]; breakDir?: string }) => {
+  const dirs = breakDirsOf(p as never);
+  return !dirs.includes('L→R') && !dirs.includes('R→L');
+};
+
 const empty = (): Tally => ({ right: 0, of: 0 });
 
 export function formOf(round: Round, baseline: [number, number][]): Form | null {
@@ -126,15 +131,19 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
       let touched = false;
 
       if (p.readAs !== undefined) {
+        const unfinished = !neverTurnedOf(p) && p.readAs === 0 && p.brokeAs === undefined;
+        if (unfinished) {
+          // counted as tagged, judged on nothing
+        } else {
         parts.read.of++;
         touched = true;
-        const dirs = breakDirsOf(p);
-        const neverTurned = !dirs.includes('L→R') && !dirs.includes('R→L');
+        const neverTurned = neverTurnedOf(p);
         const wrong =
           !!p.wrongWay ||
           neverTurned ||
           (p.brokeAs !== undefined && p.brokeAs !== p.readAs);
         if (!wrong) parts.read.right++;
+        }
       }
       if (p.strike) {
         parts.strike.of++;
@@ -147,9 +156,12 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
         parts.line.of++;
         if (!p.push && !p.pull) parts.line.right++;
       }
-      if (p.speed) {
+      // Quitting on it and jabbing at it are pace faults with a cause attached, and they were
+      // feeding nothing at all before: tagged, counted on the stats page, and invisible here.
+      const tempo = !!p.decel || !!p.accel;
+      if (p.speed || tempo) {
         parts.pace.of++;
-        if (p.speed === 'good') parts.pace.right++;
+        if (p.speed === 'good' && !tempo) parts.pace.right++;
       }
       if (p.lip) {
         parts.lip.of++;

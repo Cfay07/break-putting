@@ -49,10 +49,16 @@ function mean(xs: number[]): number | null {
 }
 
 /**
- * What the read tags say once they are crossed with the stroke flags. Push and pull are the
- * start line, so a miss with a right read and a clean start line is speed, one with a right
- * read and a push or pull is the stroke, and one with a wrong read is the read. That split is
- * the whole reason the read is logged.
+ * What the read tags say once they are crossed with the stroke flags.
+ *
+ * A miss is split across every fault it carries rather than handed whole to the first one.
+ * Read used to win outright, which meant a putt that was misread AND pushed AND quit on
+ * counted purely as a read error, and since most tagged misses carry some read error the
+ * stroke arm sat near zero however many push, pull, toe and decel chips were ticked.
+ *
+ * Every tag now lands in exactly one arm. Read is where you aimed: the read scale and a
+ * backwards read. Stroke is whether you hit it there: push, pull, and a toe or heel strike.
+ * Speed is how hard: short, long, quit on it, jabbed at it.
  */
 export function readError(rounds: Round[]): ReadSummary {
   const bands = new Map<number, { putts: number; hadIt: number; under: number; over: number; wrong: number; leaves: number[] }>();
@@ -77,6 +83,8 @@ export function readError(rounds: Round[]): ReadSummary {
         // whole read and it lands as the largest over-read there is. No new field needed.
         const dirsOf = breakDirsOf(p);
         const neverTurned = !dirsOf.includes('L→R') && !dirsOf.includes('R→L');
+        // Read nothing on a putt that did turn, with no amount yet: incomplete, not correct.
+        if (!neverTurned && p.readAs === 0 && p.brokeAs === undefined) return;
         const broke = neverTurned ? 0 : p.brokeAs ?? p.readAs;
         // A backwards read has no magnitude error to measure, so delta is not asked for it.
         const delta = backwards ? null : broke - p.readAs;
@@ -112,10 +120,18 @@ export function readError(rounds: Round[]): ReadSummary {
         }
 
         if (p.made) return;
-        const offLine = !!p.push || !!p.pull;
-        if (backwards || delta !== 0) blameRead++;
-        else if (offLine) blameStroke++;
-        else blameSpeed++;
+        const faults: ('read' | 'stroke' | 'speed')[] = [];
+        if (backwards || delta !== 0) faults.push('read');
+        if (p.push || p.pull || p.strike === 'toe' || p.strike === 'heel') faults.push('stroke');
+        if (p.speed === 'short' || p.speed === 'long' || p.decel || p.accel) faults.push('speed');
+        // Read was right and nothing else was flagged, so the pace is what is left.
+        if (!faults.length) faults.push('speed');
+        const each = 1 / faults.length;
+        for (const f of faults) {
+          if (f === 'read') blameRead += each;
+          else if (f === 'stroke') blameStroke += each;
+          else blameSpeed += each;
+        }
       });
     }
   }

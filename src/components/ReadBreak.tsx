@@ -1,13 +1,16 @@
 import type { BreakDir } from '../lib/types';
 
 const STOPS = [
+  // Reading no break at all is a read, and the commonest miss in the game is missing break that
+  // was there. Without this stop that putt could only be logged as untagged.
+  { n: 0, label: 'None', bend: 0 },
   { n: 1, label: 'Slight', bend: 5 },
   { n: 2, label: 'Some', bend: 13 },
   { n: 3, label: 'Lots', bend: 23 },
   { n: 4, label: 'Severe', bend: 34 },
 ] as const;
 
-const WORD: Record<number, string> = { 1: 'slight', 2: 'some', 3: 'lots of', 4: 'severe' };
+const WORD: Record<number, string> = { 0: 'no', 1: 'slight', 2: 'some', 3: 'lots of', 4: 'severe' };
 
 function wording(
   readAs: number | undefined,
@@ -17,9 +20,16 @@ function wording(
   straight: boolean,
 ): string {
   if (straight) {
-    return readAs === undefined
-      ? 'It rolled straight. Tap how much break you saw in it, if any.'
+    if (readAs === undefined) return 'It rolled straight. Tap how much break you saw in it, if any.';
+    return readAs === 0
+      ? 'Read it dead straight, and it was. Nothing to get wrong.'
       : `Read ${WORD[readAs]} break on a putt that never turned.`;
+  }
+  // Read nothing on a putt that turned: the amount it turned is the whole error, so ask for it.
+  if (readAs === 0) {
+    return brokeAs === undefined
+      ? 'Read no break in it. Tap again for how much it actually moved.'
+      : `Read it straight, moved ${WORD[brokeAs]}. You missed the break entirely.`;
   }
   if (wrongWay && readAs !== undefined) {
     return `Read ${WORD[readAs]} break the other way. It turned back on you.`;
@@ -50,11 +60,14 @@ function wording(
  */
 function Curve({ bend, dir, double, on }: { bend: number; dir: BreakDir | undefined; double: boolean; on: boolean }) {
   // A double breaker is an S, and only the bend at the hole is being rated, so the low bend is
-  // held constant and the high one grows. The four stops then differ in exactly the thing the
-  // scale is asking about.
-  const d = double
-    ? `M 0 32.5 C -9 25 ${bend} 15 0 9.5`
-    : `M 0 32.5 Q ${dir === 'L→R' ? -bend : bend} 19 0 9.5`;
+  // held constant and the high one grows. The stops then differ in exactly the thing the scale
+  // is asking about. No break is drawn dead straight whatever the putt did.
+  const d =
+    bend === 0
+      ? 'M 0 32.5 L 0 9.5'
+      : double
+        ? `M 0 32.5 C -9 25 ${bend} 15 0 9.5`
+        : `M 0 32.5 Q ${dir === 'L→R' ? -bend : bend} 19 0 9.5`;
   return (
     <svg width="40" height="40" viewBox="-20 0 40 40" aria-hidden="true">
       <circle cx="0" cy="6" r="3" fill="none" stroke="currentColor" strokeWidth="1.3" opacity={on ? 1 : 0.5} />
@@ -103,7 +116,7 @@ export function ReadBreak({
 
   const tap = (n: number) => {
     if (readAs === undefined) return onPick(n, undefined, false);
-    // Tapping the read again clears it, so a mis-tap is one more tap to undo.
+    // Zero is a read like any other, so clearing it has to work the same way.
     if (n === readAs && brokeAs === undefined && !wrongWay) return onPick(undefined, undefined, false);
     if (n === readAs) return onPick(n, undefined, false);
     onPick(readAs, n, false);
@@ -154,10 +167,14 @@ export function ReadBreak({
         type="button"
         className={wrongWay ? 'brk-wrong on' : 'brk-wrong'}
         aria-pressed={wrongWay}
-        disabled={readAs === undefined}
+        disabled={readAs === undefined || readAs === 0}
         onClick={tapWrongWay}
       >
-        {readAs === undefined ? 'Pick your read first' : 'It broke the other way'}
+        {readAs === undefined
+          ? 'Pick your read first'
+          : readAs === 0
+            ? 'You read no break, so there is no other way'
+            : 'It broke the other way'}
       </button>
       )}
     </div>

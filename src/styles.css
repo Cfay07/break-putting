@@ -815,7 +815,7 @@ button.pick:active { background-color: #f4f1e8; }
 
 /* The read and what the putt actually did, on one strip of curves. Shapes instead of numbers,
    so nothing has to be taught and nobody is locked out for not counting fingers. */
-.brk-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.brk-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
 .brk-stop {
   display: flex;
   flex-direction: column;
@@ -834,7 +834,7 @@ button.pick:active { background-color: #f4f1e8; }
 /* What it actually did is the answer, so it takes the accent and the read goes quiet. */
 .brk-stop.actual { background: var(--accent); border-color: var(--accent); color: #fff; }
 .brk-stop.read.actual { background: var(--ink); border-color: var(--ink); }
-.brk-label { font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; }
+.brk-label { font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; }
 .brk-read { color: var(--ink-3); margin: 8px 0 0; }
 .brk-read.on { color: var(--ink-2); }
 
