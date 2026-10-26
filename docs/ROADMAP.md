@@ -17,38 +17,35 @@ conditions splits that never draw, a Stakes row standing on 12 putts.
 
 ---
 
-## Phase 1 · Tagging has to be worth its taps
+## Phase 1 · CLOSED, on the evidence
 
-Blocks everything else. Every read stat in the app is decoration until the tags exist.
+Opened as "tagging costs too many taps". The evidence says it does not, and the phase was built
+on a bad denominator.
 
-Measured fill rates across 374 misses:
+The alarming figures (read 9%, strike 9%, tempo 1.3%) divided by **all** putts, including every
+putt in rounds where nothing was tagged. Measured instead on the 63 misses where Conor was
+clearly tagging, the optional fault chips are used at normal rates:
 
-| Control | Taps | Filled |
-|---|---|---|
-| Miss grid (side and speed together) | 1 | **50%** |
-| Break direction | 1 | 36% |
-| Read | 1 | 9% |
-| Strike | 1 | 9% |
-| Tempo (decel / accel) | 1 | **1.3%** |
+| Chip | Used while tagging |
+|---|---|
+| Push / pull | 12.7% |
+| Decel / accel | **9.5%** |
+| Lip-out | 11.1% |
 
-Honest tap count for one putt: 2 for distance, 1 for made or missed, 1 to save. **Four is the
-floor and it cannot go lower**, because the save is a real confirm rather than overhead. Tagging
-adds four more on top.
+Tempo is used as often as push and pull. It stays. It was nearly deleted on the strength of a
+ratio that made a sometimes-true fault look like an untouched control.
 
-So this phase is narrower than it first looked. It is not "halve the taps", it is **make each
-tagging tap earn itself**.
+**The real shape of the gap:** on 2026-10-22 Conor tagged 19 of 31 putts, 61%, which already
+clears the exit condition. Across all rounds it is 5%, because most rounds carry no tags at all.
+Tagging is all-or-nothing per round, so this is a habit question rather than a UI one, and no
+amount of tap-shaving addresses it.
 
-- **Delete tempo.** Five putts in 805. It feeds pace in Form and one arm of the triangle, and
-  both survive without it.
-- **Read and strike: cheaper, but not a second grid.** Conor has said twice that a second grid
-  beside the miss grid would read as a near-copy of a different question. He is right. Find a
-  shape that is not a grid, or leave it at two taps and spend the effort elsewhere.
-- Revisit whether break direction and the read can be one choice, since the read curves already
-  bow by direction.
+Two things stay ruled out and are not to be revisited without new evidence: **a second grid
+beside the miss grid** (Conor, twice: it reads as a near-copy of a different question) and
+**deleting tempo**.
 
-**Exit:** 60% of misses carry a read.
-
----
+The honest floor for one putt is four taps: two for distance, one for made or missed, one to
+save. The save is a confirm, not overhead.
 
 ## Phase 2 · One standard for "do we know this yet"
 
@@ -128,5 +125,5 @@ If BREAK! is the one that does, that is an identity, it is defensible, and it is
 The instinct is already there: expected putts was deleted for being redundant at r=0.905, which
 most people would have shipped.
 
-**Order:** Phase 1 first regardless, because an app nobody tags is a spreadsheet with opinions.
-Then 2, which is the one that makes it worth trusting.
+**Order:** Phase 2 first. Phase 1 closed on the evidence rather than being done, and Phase 2 is
+the one that makes the app worth trusting.
