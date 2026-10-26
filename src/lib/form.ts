@@ -23,7 +23,7 @@ const LONG_MAKE = 4;
  * letting them unlock the layer would mark nearly every round as fully measured and the faint
  * rail would stop meaning anything.
  */
-export const MIN_TAGGED = 6;
+export const MIN_TAGGED_PUTTS_IN_ROUND = 6;
 
 /**
  * One colour per band, so the rail and the number are never two shades of the same idea, and a
@@ -208,7 +208,7 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
     (a, t) => ({ right: a.right + t.right, of: a.of + t.of }),
     { right: 0, of: 0 },
   );
-  const process = tagged >= MIN_TAGGED && totals.of ? (totals.right / totals.of) * 10 : null;
+  const process = tagged >= MIN_TAGGED_PUTTS_IN_ROUND && totals.of ? (totals.right / totals.of) * 10 : null;
 
   // Half and half when both exist. Process is the point of the metric, outcome is the half
   // everyone already trusts, and neither alone is the whole story of a round.

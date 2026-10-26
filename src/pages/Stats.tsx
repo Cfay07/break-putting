@@ -17,6 +17,8 @@ import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
 import { formOf, formBand } from '../lib/form';
 import { StrikePanel } from '../components/StrikePanel';
+import { SampleTag } from '../components/SampleTag';
+import { sample } from '../lib/sample';
 import { byStrike } from '../lib/stats';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
@@ -379,8 +381,12 @@ export function Stats() {
 
           <h2>Averages</h2>
           <div className="card">
+            {/* Each row says what it stands on. A per-round average over three rounds and one
+                over thirty are not the same claim and used to look identical. */}
             <div className="stat-row">
-              <span className="k">Putts per round</span>
+              <span className="k">
+                Putts per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
+              </span>
               <span className="v num">{o.puttsPerRound?.toFixed(1)}</span>
             </div>
             <div className="stat-row">
@@ -390,11 +396,16 @@ export function Stats() {
               </span>
             </div>
             <div className="stat-row">
-              <span className="k">Make % from 3 to 10 ft</span>
+              <span className="k">
+                Make % from 3 to 10 ft{' '}
+                <SampleTag s={sample(o.pooled.scoring.attempts, 50, 'putts')} />
+              </span>
               <span className="v num">{pctText(o.scoringPct)}</span>
             </div>
             <div className="stat-row">
-              <span className="k">Strokes gained per round</span>
+              <span className="k">
+                Strokes gained per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
+              </span>
               <span className={(o.sgPerRound ?? 0) >= 0 ? 'v num pos' : 'v num neg'}>
                 {signed(o.sgPerRound ?? 0)}
               </span>

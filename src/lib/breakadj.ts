@@ -1,4 +1,4 @@
-import { MIN_TAGGED } from './makeability';
+import { MIN_TAGGED_PUTTS_FOR_MODEL } from './makeability';
 import { puttSG } from './sg';
 import {
   BREAK_BUCKETS,
@@ -27,7 +27,7 @@ const SHRINK = 40;
  * strokes adjustment switches on with it, so the app never shows a break effect in one place and
  * denies it in another.
  */
-export { MIN_TAGGED } from './makeability';
+export { MIN_TAGGED_PUTTS_FOR_MODEL } from './makeability';
 
 export type SlopeKey = 'uphill' | 'downhill';
 
@@ -107,7 +107,7 @@ export function learnBreak(rounds: Round[], baseline: [number, number][]): Break
     break: learnAxis(BREAK_BUCKETS, samples, (s) => s.bucket),
     slope: learnAxis(['uphill', 'downhill'] as const, samples, (s) => s.slope),
     tagged: samples.length,
-    ready: samples.length >= MIN_TAGGED,
+    ready: samples.length >= MIN_TAGGED_PUTTS_FOR_MODEL,
   };
 }
 

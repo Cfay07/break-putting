@@ -2,7 +2,7 @@ import { pct, type SpeedSplit } from '../lib/stats';
 import { SpeedBars } from './SpeedBars';
 
 /** A band needs this many tagged misses before its tendency is worth printing. */
-const MIN_TAGGED = 8;
+const MIN_SIDED_IN_SPEED_GROUP = 8;
 /** And this many lag putts before an average leave means anything. */
 const MIN_LAG = 5;
 
@@ -18,8 +18,8 @@ export function SpeedPanel({ splits }: { splits: SpeedSplit[] }) {
     <div>
       {splits.map((g) => {
         const scoringPct = pct(g.scoring);
-        const high = g.sided >= MIN_TAGGED ? Math.round((g.high / g.sided) * 100) : null;
-        const short = g.paced >= MIN_TAGGED ? Math.round((g.short / g.paced) * 100) : null;
+        const high = g.sided >= MIN_SIDED_IN_SPEED_GROUP ? Math.round((g.high / g.sided) * 100) : null;
+        const short = g.paced >= MIN_SIDED_IN_SPEED_GROUP ? Math.round((g.short / g.paced) * 100) : null;
 
         return (
           <div className="speed-band" key={g.speed}>

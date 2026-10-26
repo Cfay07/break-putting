@@ -994,3 +994,10 @@ button.pick:active { background-color: #f4f1e8; }
 .shoot-one { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .shoot-one .tiny { white-space: nowrap; }
 .shoot-arrow { color: var(--ink-3); font-size: 19px; padding-bottom: 20px; flex: 0 0 auto; }
+
+/* What a number stands on. Quiet when there is enough, louder when there is not. */
+.samp { font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.samp-solid { color: var(--ink-3); }
+.samp-thin { color: var(--accent); }
+.samp-waiting { color: var(--ink-3); opacity: 0.8; }
+.samp-flag { font-weight: 600; letter-spacing: 0.02em; }

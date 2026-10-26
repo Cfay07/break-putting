@@ -18,7 +18,7 @@ const RIDGE = 15;
  * purpose: at a hundred-odd tags spread over five terms the estimates are still mostly noise,
  * and a confident wrong number does more damage to trust than an empty panel.
  */
-export const MIN_TAGGED = 150;
+export const MIN_TAGGED_PUTTS_FOR_MODEL = 150;
 
 /** A single shape needs its own sample before its row means anything, whatever the total says. */
 export const MIN_TERM = 30;
@@ -143,7 +143,7 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
   for (const p of tagged) for (const t of termsOf(p.dirs)) taggedBy[t] += 1;
   model.tagged = tagged.length;
   model.taggedBy = taggedBy;
-  if (tagged.length < MIN_TAGGED) return model;
+  if (tagged.length < MIN_TAGGED_PUTTS_FOR_MODEL) return model;
 
   const shift = irls(
     tagged.map((p) => {
