@@ -36,6 +36,16 @@ const BROWNS_LAKE_PARS = [4, 4, 3, 4, 4, 5, 4, 3, 4, 4, 4, 4, 3, 5, 5, 4, 3, 5];
  */
 const SHILOH_PARS = [4, 5, 4, 3, 4, 4, 3, 4, 4];
 
+/**
+ * Nine holes, par 35, and the course API has never heard of it: a search for Shoop, Shoop Park
+ * or Shoop Park Racine all come back empty, so it had to be typed in.
+ *
+ * Two sites print "par 34" in their header and then a scorecard that adds to 35, which looks
+ * like one bad figure on a shared feed. GolfPass says 35 outright, and three sources give the
+ * same hole-by-hole, so the holes win.
+ */
+const SHOOP_PARS = [3, 5, 4, 5, 3, 4, 4, 3, 4];
+
 export const BUILT_IN_COURSES: SavedCourse[] = [
   {
     id: 'builtin-ives-grove',
@@ -72,6 +82,15 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
       { name: 'Blue', yards: 2863, pars: SHILOH_PARS },
       { name: 'White', yards: 2695, pars: SHILOH_PARS },
       { name: 'Yellow', yards: 2348, pars: SHILOH_PARS },
+    ],
+  },
+  {
+    id: 'builtin-shoop-park',
+    name: 'Shoop Park Golf Course',
+    place: 'Racine, WI',
+    tees: [
+      { name: 'White', yards: 2667, pars: SHOOP_PARS },
+      { name: 'Red', yards: 2615, pars: SHOOP_PARS },
     ],
   },
 ];
