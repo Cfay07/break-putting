@@ -357,7 +357,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         )}
         {roundXpot !== null && (
           <div className="stat-row">
-            <span className="k">After the stroke (xPOT)</span>
+            <span className="k">After the stroke</span>
             <span className="v num">{roundXpot.toFixed(2)}</span>
           </div>
         )}
@@ -670,7 +670,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                         </span>
                         {xpot.ok && (
                           <span className="pc-line">
-                            <span className="pc-k">After the stroke (xPOT)</span>
+                            <span className="pc-k">After the stroke</span>
                             <span className="pc-t">
                               {xpot.xpot.toFixed(2)}
                               <span className="pc-adj">

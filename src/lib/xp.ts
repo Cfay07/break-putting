@@ -315,7 +315,7 @@ export function assessedOf(p: Putt): boolean {
 /**
  * Does your stroke tagging predict anything?
  *
- * The honest form of xPOT. Fitted only on putts whose stroke was actually judged, as
+ * Fitted only on putts whose stroke was actually judged, as
  * `logit(p) = logit(p_conditions) + alpha + beta * fault`, with the conditions prediction as a
  * fixed offset so this layer cannot re-estimate difficulty.
  *
@@ -415,7 +415,7 @@ export function xpotOf(
   return Math.max(1, expectedPutts(baseline, p.d) + (chance - after));
 }
 
-/** What the stroke cost, in putts. Null wherever xPOT cannot speak. */
+/** What the stroke cost, in putts. Null wherever the stroke layer cannot speak. */
 export function strokeCostOf(
   model: MakeModel,
   exec: ExecModel,
@@ -541,7 +541,12 @@ export type XpotState =
   | { ok: false; why: string };
 
 /**
- * One answer to "what does xPOT say about this putt", used everywhere xPOT appears.
+ * One answer to "what does the stroke layer say about this putt", used wherever it appears.
+ *
+ * Not called xPOT any more. The x-prefix works for xP, which is expected putts and additive and
+ * used all over. "On target" is borrowed from xGOT, where it means a shot that hit the goal and
+ * placement inside the frame matters. Putting has no equivalent, so the letters described
+ * nothing. The label already read "After the stroke" in English, which is the whole of it.
  *
  * It used to be explained on the stats page and nowhere else, so the reason it was silent on a
  * putt card was a thing you had to go and find. Worse, the round row rendered an empty string in

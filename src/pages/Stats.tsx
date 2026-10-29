@@ -682,7 +682,7 @@ export function Stats() {
                 </span>
               </div>
               <div className="stat-row">
-                <span className="k">xPOT status</span>
+                <span className="k">After the stroke</span>
                 <span className="v small muted">{xpotReason(exec) || 'live on every putt card'}</span>
               </div>
               <p className={exec.predictive ? 'note' : 'why-note'}>
