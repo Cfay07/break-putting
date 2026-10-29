@@ -14,18 +14,24 @@ spent on them.
 | Phase | Exit condition | State |
 |---|---|---|
 | 1 · Tagging economics | Closed on evidence | **Closed** |
-| 2 · One sufficiency standard | No number renders without saying what it stands on | **Most of the way** |
+| 2 · One sufficiency standard | No number renders without saying what it stands on | **Closed** |
 | 3 · Navigation, not deletion | Any stat in one tap, nothing removed | **Closed** |
 | 4 · Form's trial | Form proven or gone | **Open, data-gated** |
 | 5 · Baseline provenance | Every number traces to something citable | **Open, blocked** |
 | 6 · A second player | One finding confirmed on somebody else | **Open, data-gated** |
 | 7 · Form as a player rating | xP shipped, xPOT gated | **Half shipped** |
 
-### Phase 2, what is left
-Gating now enforces itself rather than only displaying: `MIN_TERM` stops the model using an
-undersampled shape, `makeChanceOf` returns nothing past the longest putt ever hit, `xpotStatus`
-refuses with a stated reason, the verdict tally explains its own zeros. What is missing is a
-`SampleTag` on every remaining number. The exit condition says *every*, and it is not every.
+### Phase 2, closed 2026-10-29
+Gating enforces itself rather than only displaying. `MIN_TERM` stops the model using an
+undersampled shape rather than only hiding it from the learned panel. `makeChanceOf` returns
+nothing past the longest putt ever hit, because a logistic in ln(distance) will answer for any
+number you hand it. `xpotStatus` refuses with the reason in the same place it refuses. The verdict
+tally explains its own zeros, and `fitExecModel` refuses outright when the fault variable is
+standing in for the outcome, which is not a sample-size gate and no amount of tagging the same way
+would fix.
+
+Audited component by component: every one that renders a rate also carries a count. The last gap
+was the miss-shapes rows, which showed a share with the count sitting unused one line above.
 
 ### Phase 4, why it cannot be closed by writing code
 `formTrial` runs on every load and prints its own verdict against thresholds fixed before the

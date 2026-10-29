@@ -23,7 +23,9 @@ export function MissShapesPanel({ shapes }: { shapes: MissShape[] }) {
             <span className="shape-bar">
               <i style={{ width: `${Math.round((s.n / top.n) * 100)}%` }} />
             </span>
-            <span className="shape-pct num">{Math.round(s.share * 100)}%</span>
+            <span className="shape-pct num">
+              {Math.round(s.share * 100)}%<span className="shape-n">{s.n}</span>
+            </span>
           </div>
         ))}
       </div>
