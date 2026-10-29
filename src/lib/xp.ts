@@ -375,11 +375,16 @@ export interface ExecModel {
   /** True only where the gap clears its own interval. */
   predictive: boolean;
   estimable: boolean;
+  /** Faults were only ever recorded on misses, so the variable is standing in for the outcome. */
+  confounded: boolean;
+  faultyMakes: number;
+  cleanMisses: number;
 }
 
 const EMPTY_EXEC: ExecModel = {
   alpha: 0, beta: 0, nClean: 0, nFaulty: 0, cleanRate: null, faultyRate: null,
   gap: null, band: null, predictive: false, estimable: false,
+  confounded: false, faultyMakes: 0, cleanMisses: 0,
 };
 
 /** A fault anyone actually recorded. Absence is not evidence of a clean stroke. */
@@ -429,6 +434,22 @@ export function fitExecModel(model: MakeModel, rounds: AnyRound[]): ExecModel {
   if (clean.length < 5 || faulty.length < 5) {
     return { ...EMPTY_EXEC, nClean: clean.length, nFaulty: faulty.length };
   }
+  // A faulty group with almost no makes in it is not a stroke measurement. It happens when
+  // faults are only ever recorded on putts that missed, and then "has a fault" is standing in
+  // for "missed" and the fit is reading the tagging rule rather than the stroke. Refuse rather
+  // than report a gap that is really the outcome in disguise.
+  const faultyMakes = faulty.filter((r) => r.made).length;
+  const cleanMisses = clean.filter((r) => !r.made).length;
+  if (faultyMakes < 5 || cleanMisses < 5) {
+    return {
+      ...EMPTY_EXEC,
+      nClean: clean.length,
+      nFaulty: faulty.length,
+      confounded: true,
+      faultyMakes,
+      cleanMisses,
+    };
+  }
 
   const rate = (xs: typeof rows) => xs.filter((x) => x.made).length / xs.length;
   const cleanRate = rate(clean);
@@ -461,6 +482,9 @@ export function fitExecModel(model: MakeModel, rounds: AnyRound[]): ExecModel {
     cleanRate, faultyRate, gap, band,
     predictive: band < Math.abs(gap),
     estimable: !!fit,
+    confounded: false,
+    faultyMakes,
+    cleanMisses,
   };
 }
 

@@ -569,7 +569,15 @@ export function Stats() {
           {strike.length > 0 && (
             <>
               <h2>Does your stroke tagging predict misses</h2>
-          {exec.nClean < 5 || exec.nFaulty < 5 ? (
+          {exec.confounded ? (
+            <p className="why-note">
+              <b>Cannot be measured yet, and not because of sample size.</b> Faults have only ever
+              been recorded on putts that missed ({exec.faultyMakes} holed putts carry one), so
+              "has a fault" is standing in for "missed" and any gap would be the outcome wearing a
+              different name. The factor chips were hidden on holed putts until now, which is why.
+              Tag a few putts you struck badly and holed anyway and this can start answering.
+            </p>
+          ) : exec.nClean < 5 || exec.nFaulty < 5 ? (
             <p className="note">
               Not enough strokes judged yet. This needs putts where you either ticked a fault or
               said outright that nothing was wrong, because a blank cannot tell the two apart.

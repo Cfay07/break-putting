@@ -393,7 +393,10 @@ export function Track() {
               Nothing wrong
             </button>
           </div>
-          <div className="chips" style={draft.made ? { display: 'none' } : undefined}>
+          {/* Factors used to be hidden on a holed putt, so a putt you pushed and holed anyway
+              could not be recorded at all. Across 431 makes that produced exactly zero faulty
+              ones, which left "has a fault" standing in for "missed" in anything that read it. */}
+          <div className="chips">
             {FACTORS.map((f: Factor) => (
               <button
                 key={f}
