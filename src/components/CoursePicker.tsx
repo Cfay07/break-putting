@@ -22,6 +22,21 @@ export interface CourseChoice {
  *
  * A saved course wins on name only if it actually carries tees. Otherwise the built-in does.
  */
+/**
+ * A tee's pars stretched or trimmed to the holes being played.
+ *
+ * Slicing alone was wrong in one direction. A nine hole course picked for an eighteen hole round
+ * returned nine pars for eighteen holes, so ten through eighteen had none at all and every stat
+ * that reads par quietly skipped them. Playing a nine twice round is ordinary, so the nine
+ * repeats rather than the round being forced down to nine.
+ */
+function fitPars(pars: number[], holeCount: number): number[] {
+  if (!pars.length) return [];
+  const out: number[] = [];
+  while (out.length < holeCount) out.push(...pars);
+  return out.slice(0, holeCount);
+}
+
 function mergeCourses(saved: SavedCourse[]): SavedCourse[] {
   const builtInNames = new Set(BUILT_IN_COURSES.map((b) => b.name.toLowerCase()));
   const keep = saved.filter(
@@ -68,7 +83,7 @@ export function CoursePicker({
       name: course.name,
       courseId: course.id,
       tee: tee.name,
-      pars: tee.pars.slice(0, holeCount),
+      pars: fitPars(tee.pars, holeCount),
     });
     setOpen(null);
     setHits(null);

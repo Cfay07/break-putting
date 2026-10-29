@@ -296,13 +296,17 @@ export function faultyOf(p: Putt): boolean {
 /**
  * Whether the stroke was looked at.
  *
- * `executionAssessed` is the honest flag and only exists on putts logged since it shipped. A
- * strike tag counts too, because picking "middle" is an explicit judgement that the strike was
- * fine, not a blank. An untouched putt is neither clean nor faulty, it is unknown, and it stays
- * out of the fit entirely.
+ * Only the explicit flag counts. A strike tag used to count as well, on the reasoning that
+ * picking "middle" is a judgement rather than a blank, and that was an over-claim: it judges the
+ * strike and says nothing about whether the putt was also pushed or quit on. A putt that was only
+ * ever looked at down one axis was landing in the clean pile as though the whole stroke had been
+ * cleared.
+ *
+ * The cost is real. Every putt logged before the flag existed drops out of the fit, which leaves
+ * the execution model with very little. That is the correct amount of very little.
  */
 export function assessedOf(p: Putt): boolean {
-  return !!p.executionAssessed || p.strike !== undefined;
+  return !!p.executionAssessed;
 }
 
 /**
