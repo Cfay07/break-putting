@@ -1,4 +1,4 @@
-import { MIN_PAIRS, type Drift } from '../lib/drift';
+import { type Drift } from '../lib/drift';
 
 /**
  * How sure the number is, said in words. A z of 2 is the usual line for "this is probably not
@@ -13,16 +13,8 @@ function confidence(z: number): string {
 }
 
 export function DriftPanel({ drift }: { drift: Drift }) {
-  if (drift.rate === null || drift.z === null) {
-    return (
-      <div className="card">
-        <p className="small muted" style={{ margin: 0 }}>
-          {drift.pairs} of the {MIN_PAIRS} back-to-back misses needed. Tag which side your misses
-          finish on and this fills in.
-        </p>
-      </div>
-    );
-  }
+  // The page hides the whole section when these are null, so there is no empty state to draw.
+  if (drift.rate === null || drift.z === null) return null;
 
   const pct = Math.round(drift.rate * 100);
   const leans = drift.z >= 1.5;

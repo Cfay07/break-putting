@@ -8,7 +8,6 @@ import { CupMap, cupCounts } from '../components/CupMap';
 import {
   fitExecModel,
   beatSpread,
-  looseEnds,
   difficultyOf,
   roomOf,
   xpotStatus,
@@ -107,7 +106,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     [state.baseline, round],
   );
   const cup = useMemo(() => (round ? cupCounts(round.holes) : null), [round]);
-  const loose = useMemo(() => (round ? looseEnds(round.holes) : []), [round]);
   const sgAdjusted = useMemo(
     () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
     [makeModel, state.baseline, round],
@@ -447,35 +445,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       )}
 
       <h2>Scorecard</h2>
-      {loose.length > 0 && (
-        <>
-          {/* Housekeeping, next to the mistyped-distance warning, because both are the same job:
-              fix the data before reading anything off it. Never mid-round. */}
-          <p className="small muted" style={{ margin: '0 0 8px' }}>
-            <b>{loose.length} breaking putt{loose.length === 1 ? '' : 's'}</b> tagged which way
-            but not how much, so they are priced as "slight" — wrong more often than not. One tap
-            each.
-          </p>
-          <div className="board" style={{ marginBottom: 12 }}>
-            {loose.slice(0, 8).map((l) => (
-              <button
-                key={`${l.hole}-${l.index}`}
-                className="lb-row"
-                onClick={() => {
-                  setEditHole(l.hole);
-                  setEditPutt(l.index);
-                }}
-              >
-                <span className="place num">{l.hole}</span>
-                <span className="nm">
-                  {l.d} ft <span className="small muted">· no read amount</span>
-                </span>
-                <span className="val small muted">›</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
       {suspect.length > 0 && (
         <p className="small neg" style={{ margin: '0 0 8px' }}>
           Worth a look:{' '}

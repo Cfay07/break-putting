@@ -580,7 +580,7 @@ export function Stats() {
             </>
           )}
 
-          {verdicts.judged + verdicts.unjudgedMisses > 0 && (
+          {verdicts.judged > 0 && (
             <>
               <div className="field-label">What it earned you</div>
               <div className="board">
@@ -598,18 +598,7 @@ export function Stats() {
               <Why lead="Against what the putt was worth, not against its length.">
                 Robbed and Sold are both misses you should have made, split on whether the stroke
                 was clean.
-                {verdicts.unjudgedMisses > 0 && (
-                  <>
-                    {' '}
-                    <b>
-                      {verdicts.unjudgedMisses} miss
-                      {verdicts.unjudgedMisses === 1 ? '' : 'es'} big enough to earn a label are
-                      waiting on one
-                    </b>
-                    , because nobody said whether the stroke was clean. Tap a fault, or "Nothing
-                    wrong", and they land in one column or the other.
-                  </>
-                )}
+                
               </Why>
             </>
           )}
@@ -653,6 +642,8 @@ export function Stats() {
           <p className="act">Why you miss</p>
           {strike.length > 0 && (
             <>
+              {(exec.nClean > 0 || exec.nFaulty > 0) && (
+                <>
               <h2>Does your stroke tagging predict misses</h2>
           {exec.confounded ? (
             <p className="why-note">
@@ -713,6 +704,8 @@ export function Stats() {
               </p>
             </>
           )}
+                </>
+              )}
 
           <h2>Where on the face</h2>
               <StrikePanel rows={strike} />
@@ -777,23 +770,14 @@ export function Stats() {
               </div>
               <p className="note">
                 {bias.fromMisses} from misses, {bias.fromMakes} from cup entries.
-                {bias.fromMakes === 0
-                  ? ' Every one of these is a miss so far, so it only describes the putts that got away. Tag where a few drop and it starts describing all of them.'
-                  : ''}
+
               </p>
             </>
           )}
 
-          <h2>How much of the hole you use</h2>
-          {cup.n + cup.unsure === 0 ? (
-            <Why lead="Nothing logged yet.">
-              A make is a make to every putting stat there is, so a centre cut and a ball off the
-              back lip read identically. Tag where a few drop and this tells you what share you
-              cut through the middle, the part that keeps happening, against the edges, the part
-              that stops.
-            </Why>
-          ) : (
+          {cup.n + cup.unsure > 0 && (
             <>
+              <h2>How much of the hole you use</h2>
               <CupMap
                 counts={Object.fromEntries(cup.byPoint.map((b) => [b.point, b.n]))}
                 unsure={cup.unsure}
@@ -869,8 +853,12 @@ export function Stats() {
             </>
           )}
 
-          <h2>Drift</h2>
-          <DriftPanel drift={drift} />
+          {drift.rate !== null && drift.z !== null && (
+            <>
+              <h2>Drift</h2>
+              <DriftPanel drift={drift} />
+            </>
+          )}
 
           {stakes.rows.length > 0 && (
             <>
