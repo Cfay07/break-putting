@@ -1102,3 +1102,12 @@ button.pick:active { background-color: #f4f1e8; }
 }
 .xps-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 9px; font-size: 11.5px; color: var(--ink-3); }
 .xps-legend b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* What the putt you just described is worth, shown before it is filed. */
+.draft-xp {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: baseline;
+  margin-top: 16px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--card);
+}
+.dx-k { font-size: 12px; color: var(--ink-2); }
+.dx-v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }

@@ -159,11 +159,7 @@ export function verdictOf(
   const p = putts[i];
   // Never infer a clean stroke from an empty set of faults.
   if (!p.executionAssessed) return null;
-  const faulty =
-    !!p.push || !!p.pull || !!p.decel || !!p.accel ||
-    p.strike === 'toe' || p.strike === 'heel' ||
-    !!p.wrongWay || (p.brokeAs !== undefined && p.brokeAs !== p.readAs);
-  return faulty ? 'sold' : 'robbed';
+  return faultyOf(p) ? 'sold' : 'robbed';
 }
 
 /**
@@ -289,7 +285,11 @@ const EMPTY_EXEC: ExecModel = {
 export function faultyOf(p: Putt): boolean {
   return (
     !!p.push || !!p.pull || !!p.decel || !!p.accel || !!p.wrongWay ||
-    p.strike === 'toe' || p.strike === 'heel'
+    p.strike === 'toe' || p.strike === 'heel' ||
+    // A read that did not match what the putt did is a fault, holed or not. verdictOf has always
+    // counted it; this did not, so a misread putt that dropped was faulty for the label and clean
+    // for the model, which is exactly the case the execution layer most needs to see.
+    (p.brokeAs !== undefined && p.brokeAs !== p.readAs)
   );
 }
 

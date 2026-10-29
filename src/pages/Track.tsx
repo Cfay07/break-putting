@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
@@ -10,6 +10,8 @@ import { ReadBreak } from '../components/ReadBreak';
 import { Sheet } from '../components/Sheet';
 import { go } from '../lib/router';
 import { bleedMarks, liveBleed } from '../lib/bleed';
+import { fitMakeModel } from '../lib/makeability';
+import { makeChanceOf, xpOf } from '../lib/xp';
 import { liveRound, useApp } from '../lib/store';
 import { syncQuietly } from '../lib/sync';
 import {
@@ -18,6 +20,7 @@ import {
   breakLabel,
   toggleBreak,
   FACTORS,
+  type Putt,
   FACTOR_LABELS,
   holeVsPar,
   holedOut,
@@ -89,6 +92,10 @@ export function Track() {
   const d = Number(track.distanceInput);
   const canSubmit = track.distanceInput !== '' && d >= 1;
   const draft = track.draft ?? {};
+  const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
+  const draftPutt = draft.d ? ({ ...draft, d: draft.d, made: !!draft.made } as Putt) : null;
+  const draftXp = draftPutt ? xpOf(makeModel, state.baseline, draftPutt) : null;
+  const draftChance = draftPutt ? makeChanceOf(makeModel, draftPutt) : null;
   const cleanCalled = !!draft.executionAssessed && !FACTORS.some((f: Factor) => draft[f]);
   const hasPars = round.holes.some((h) => h.par !== undefined);
 
@@ -408,6 +415,18 @@ export function Track() {
               </button>
             ))}
           </div>
+
+          {/* What the putt you just described is worth, before it is filed. Hidden on a
+              competitive round along with everything else behind `quiet`: live expected-value
+              readouts mid-tournament are a rules question nobody needs. */}
+          {!quiet && draftXp !== null && (
+            <div className="draft-xp">
+              <span className="dx-k">Expected putts (xP)</span>
+              <span className="dx-v">{draftXp.toFixed(2)}</span>
+              <span className="dx-k">Chance it drops</span>
+              <span className="dx-v">{Math.round((draftChance ?? 0) * 100)}%</span>
+            </div>
+          )}
 
           <button
             className="btn btn-primary btn-wide"
