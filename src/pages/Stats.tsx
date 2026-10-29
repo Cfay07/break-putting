@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react';
 import { bleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
-import { cupUse, fitExecModel, VERDICT_LABEL, verdictTally, xpSpread } from '../lib/xp';
+import {
+  cupUse,
+  fitExecModel,
+  VERDICT_LABEL,
+  verdictTally,
+  xpotReason,
+  xpSpread,
+} from '../lib/xp';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
@@ -637,6 +644,10 @@ export function Stats() {
                   {Math.round((exec.gap ?? 0) * 100)} pts
                   <span className="small muted"> ± {Math.round((exec.band ?? 0) * 100)}</span>
                 </span>
+              </div>
+              <div className="stat-row">
+                <span className="k">xPOT status</span>
+                <span className="v small muted">{xpotReason(exec) || 'live on every putt card'}</span>
               </div>
               <p className={exec.predictive ? 'note' : 'why-note'}>
                 {exec.predictive ? (

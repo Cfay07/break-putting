@@ -6,6 +6,8 @@ import { fitMakeModel } from '../lib/makeability';
 import {
   fitExecModel,
   holeAdjustments,
+  xpotReason,
+  xpotStatus,
   makeChanceOf,
   puttSGAdjusted,
   roundSGAdjusted,
@@ -85,6 +87,17 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     () => fitExecModel(makeModel, state.rounds),
     [makeModel, state.rounds],
   );
+  const roundXpot = useMemo(() => {
+    if (!round || !makeModel.ready) return null;
+    let sum = 0;
+    for (const h of round.holes) {
+      if (!h.putts.length) continue;
+      const st = xpotStatus(makeModel, exec, state.baseline, h.putts[0]);
+      if (!st.ok) return null;
+      sum += st.xpot;
+    }
+    return sum;
+  }, [makeModel, exec, state.baseline, round]);
   const sgAdjusted = useMemo(
     () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
     [makeModel, state.baseline, round],
@@ -315,9 +328,11 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         {roundXp !== null && (
           <div className="stat-row">
             <span className="k">After the stroke (xPOT)</span>
-            <span className="v num muted">
-              {exec.confounded ? 'needs faulty makes' : exec.predictive ? '' : 'not settled yet'}
-            </span>
+            {roundXpot !== null ? (
+              <span className="v num">{roundXpot.toFixed(2)}</span>
+            ) : (
+              <span className="v small muted">{xpotReason(exec)}</span>
+            )}
           </div>
         )}
         <div className="stat-row">
@@ -506,6 +521,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                     const xp = xpOf(makeModel, state.baseline, p);
                     const chance = makeChanceOf(makeModel, p);
                     const verdict = verdictOf(makeModel, state.baseline, hole.putts, i);
+                    const xpot = xpotStatus(makeModel, exec, state.baseline, p);
                     // Telescoped, so the leftover putt's difficulty is not charged twice.
                     const adj = holeAdjustments(makeModel, state.baseline, hole.putts)[i];
                     const base = expectedPutts(state.baseline, p.d);
@@ -565,6 +581,21 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                         <span className="pc-line">
                           <span className="pc-k">The stroke</span>
                           <span className={p.executionAssessed ? 'pc-t' : 'pc-t quiet'}>{execution}</span>
+                        </span>
+                        <span className="pc-line">
+                          <span className="pc-k">After the stroke (xPOT)</span>
+                          {xpot.ok ? (
+                            <span className="pc-t">
+                              {xpot.xpot.toFixed(2)}
+                              <span className="pc-adj">
+                                {' '}
+                                {xpot.cost >= 0 ? '+' : ''}
+                                {xpot.cost.toFixed(2)} from the stroke
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="pc-t quiet">{xpot.why}</span>
+                          )}
                         </span>
                         {sgPlain !== null && (
                           <span className="pc-line">

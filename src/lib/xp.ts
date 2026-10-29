@@ -553,3 +553,55 @@ export function verdictTally(
       ,
   };
 }
+
+export type XpotState =
+  | { ok: true; xpot: number; cost: number }
+  | { ok: false; why: string };
+
+/**
+ * One answer to "what does xPOT say about this putt", used everywhere xPOT appears.
+ *
+ * It used to be explained on the stats page and nowhere else, so the reason it was silent on a
+ * putt card was a thing you had to go and find. Worse, the round row rendered an empty string in
+ * the one case where it actually works. A number that refuses has to say why in the same place
+ * it refuses, every time.
+ */
+export function xpotStatus(
+  model: MakeModel,
+  exec: ExecModel,
+  baseline: [number, number][],
+  p: Putt,
+): XpotState {
+  if (exec.confounded) {
+    return {
+      ok: false,
+      why: `waiting on putts you struck badly and holed anyway (${exec.faultyMakes} so far, needs 5)`,
+    };
+  }
+  if (!exec.estimable) {
+    return { ok: false, why: `waiting on judged strokes (${exec.nClean + exec.nFaulty} so far)` };
+  }
+  if (!exec.predictive) {
+    const gap = Math.round((exec.gap ?? 0) * 100);
+    const band = Math.round((exec.band ?? 0) * 100);
+    return { ok: false, why: `clean beats faulty by ${gap} pts, margin is ${band}, so not settled` };
+  }
+  if (!assessedOf(p)) return { ok: false, why: 'this stroke was never judged' };
+
+  const xpot = xpotOf(model, exec, baseline, p);
+  const before = xpOf(model, baseline, p);
+  if (xpot === null || before === null) return { ok: false, why: 'not enough to price this putt' };
+  return { ok: true, xpot, cost: xpot - before };
+}
+
+/** The same answer for a whole round, where no single putt is in question. */
+export function xpotReason(exec: ExecModel): string {
+  if (exec.confounded) {
+    return `needs putts struck badly and holed anyway · ${exec.faultyMakes} of 5`;
+  }
+  if (!exec.estimable) return `needs judged strokes · ${exec.nClean + exec.nFaulty} so far`;
+  if (!exec.predictive) {
+    return `gap ${Math.round((exec.gap ?? 0) * 100)} pts, margin ${Math.round((exec.band ?? 0) * 100)}`;
+  }
+  return '';
+}
