@@ -721,3 +721,35 @@ export function roomSpare(rounds: AnyRound[]): RoomStat {
     nearlyMissed: vals.filter((v) => v < 0.25).length,
   };
 }
+
+export interface LooseEnd {
+  hole: number;
+  index: number;
+  d: number;
+  what: 'read amount' | 'stroke';
+}
+
+/**
+ * Tags that were started and not finished, so they can be closed after the round rather than
+ * slowing it down.
+ *
+ * Both of these are the difference between a putt the model can read and one it cannot, and
+ * neither is worth a prompt mid-round. A breaking putt with a direction and no amount is priced
+ * as "slight" by default, which is the honest fallback and wrong most of the time. A putt whose
+ * stroke was never judged sits out of the execution fit entirely.
+ */
+export function looseEnds(holes: { hole: number; putts: Putt[] }[]): LooseEnd[] {
+  const out: LooseEnd[] = [];
+  for (const h of holes) {
+    h.putts.forEach((p, index) => {
+      const bucket = breakBucket(breakDirsOf(p));
+      const turns = bucket === 'lr' || bucket === 'rl' || bucket === 'double';
+      if (turns && !(p.brokeAs ?? p.readAs)) {
+        out.push({ hole: h.hole, index, d: p.d, what: 'read amount' });
+      } else if (!p.executionAssessed && (!p.made || p.d >= 4)) {
+        out.push({ hole: h.hole, index, d: p.d, what: 'stroke' });
+      }
+    });
+  }
+  return out;
+}
