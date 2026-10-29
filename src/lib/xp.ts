@@ -3,6 +3,7 @@ import { irls, makeability, type MakeModel } from './makeability';
 import {
   breakBucket,
   breakDirsOf,
+  CUP_ANGLES,
   CUP_ENTRIES,
   CUP_LABELS,
   type CupEntry,
@@ -654,4 +655,63 @@ export function readBias(rounds: AnyRound[]): ReadBias {
     }
   }
   return { over, under, agreed, n: over + under + agreed, fromMakes, fromMisses };
+}
+
+/** Cup radius and ball radius, inches. A ball falls once its centre is inside the rim. */
+const CUP_R = 2.125;
+const BALL_R = 0.84;
+/** The most error a dead-centre putt can carry either way and still drop. */
+export const ROOM_MAX = CUP_R - BALL_R;
+
+/**
+ * How much room a holed putt had to spare, in inches.
+ *
+ * Geometry, not a model. Where the ball crossed the rim says how far from the lip it was, and
+ * that is the margin the stroke actually had. Nothing is fitted, so there is no sample gate and
+ * nothing to confound: it is as true on the first putt logged as on the thousandth, which is not
+ * something anything else in the app can say.
+ *
+ * The back half returns nothing rather than zero. A back-door ball was not holed by being on
+ * line, it was holed by still moving when it got there, and that is a question about pace this
+ * cannot answer.
+ */
+export function roomOf(entry: CupEntry | undefined): number | null {
+  if (!entry || entry === 'unsure') return null;
+  const deg = CUP_ANGLES[entry];
+  // Six o'clock is where the ball came from, so the front is 270 degrees in the drawing's frame.
+  const fromFront = Math.abs(((deg - 270 + 540) % 360) - 180);
+  if (fromFront > 90) return null;
+  return ROOM_MAX * Math.cos((fromFront * Math.PI) / 180);
+}
+
+export interface RoomStat {
+  n: number;
+  /** Holed putts whose entry says nothing about margin, the back half. */
+  onPace: number;
+  mean: number | null;
+  /** Makes that dropped with under a quarter inch to spare. */
+  nearlyMissed: number;
+}
+
+/** Room to spare across every holed putt carrying an entry. */
+export function roomSpare(rounds: AnyRound[]): RoomStat {
+  const vals: number[] = [];
+  let onPace = 0;
+  for (const r of rounds) {
+    if (r.deleted) continue;
+    for (const h of r.holes) {
+      for (const p of h.putts) {
+        if (!p.made || !p.cupEntry || p.cupEntry === 'unsure') continue;
+        const room = roomOf(p.cupEntry);
+        if (room === null) onPace += 1;
+        else vals.push(room);
+      }
+    }
+  }
+  return {
+    n: vals.length,
+    onPace,
+    mean: vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : null,
+    nearlyMissed: vals.filter((v) => v < 0.25).length,
+  };
 }

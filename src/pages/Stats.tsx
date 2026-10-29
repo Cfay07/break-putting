@@ -5,6 +5,8 @@ import { formTrial } from '../lib/formTrial';
 import {
   cupUse,
   readBias,
+  roomSpare,
+  ROOM_MAX,
   fitExecModel,
   VERDICT_LABEL,
   verdictTally,
@@ -160,6 +162,7 @@ export function Stats() {
   const spread = useMemo(() => beatSpread(state.baseline, rounds), [state.baseline, rounds]);
   const cup = useMemo(() => cupUse(rounds), [rounds]);
   const bias = useMemo(() => readBias(rounds), [rounds]);
+  const room = useMemo(() => roomSpare(rounds), [rounds]);
   const trial = useMemo(() => formTrial(rounds, state.baseline), [rounds, state.baseline]);
   const verdicts = useMemo(
     () => verdictTally(makeModel, state.baseline, rounds),
@@ -818,6 +821,33 @@ export function Stats() {
                     </div>
                   ))}
               </div>
+              {room.n > 0 && (
+                <>
+                  <div className="stat-row">
+                    <span className="k">Room to spare, typical</span>
+                    <span className="v num">
+                      {room.mean?.toFixed(2)} in
+                      <span className="small muted"> of {ROOM_MAX.toFixed(2)}</span>
+                    </span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="k">Dropped with almost none</span>
+                    <span className="v num">{room.nearlyMissed}</span>
+                  </div>
+                  {room.onPace > 0 && (
+                    <div className="stat-row">
+                      <span className="k">In off the back, on pace</span>
+                      <span className="v num muted">{room.onPace}</span>
+                    </div>
+                  )}
+                  <p className="note">
+                    Pure geometry. A ball dropping dead through the front had{' '}
+                    {ROOM_MAX.toFixed(2)} inches of error either way; one off the lip had none.
+                    Nothing is fitted here, so there is no sample to wait for and nothing to
+                    confound. It is as true on the first putt as the thousandth.
+                  </p>
+                </>
+              )}
               <p className="note">
                 Counting, not a model. It says nothing about pace or whether the read was right:
                 entry point is a joint result of line, speed and break, so a back door can come

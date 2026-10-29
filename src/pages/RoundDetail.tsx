@@ -9,6 +9,7 @@ import {
   fitExecModel,
   beatSpread,
   difficultyOf,
+  roomOf,
   xpotStatus,
   makeChanceOf,
   puttSGAdjusted,
@@ -628,6 +629,16 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                             {p.made ? 'holed' : leave !== null ? `missed · left ${leave} ft` : 'missed'}
                           </span>
                         </span>
+                        {p.made && p.cupEntry && p.cupEntry !== 'unsure' && (
+                          <span className="pc-line">
+                            <span className="pc-k">Room to spare</span>
+                            <span className="pc-t">
+                              {roomOf(p.cupEntry) === null
+                                ? 'went in on pace'
+                                : `${roomOf(p.cupEntry)!.toFixed(2)} in`}
+                            </span>
+                          </span>
+                        )}
                         <span className="pc-line">
                           <span className="pc-k">The stroke</span>
                           <span className={p.executionAssessed ? 'pc-t' : 'pc-t quiet'}>{execution}</span>
