@@ -44,6 +44,8 @@ export interface Tally {
   attempts: number;
   sg: number;
   sgPutts: number;
+  /** Expected putts summed over the attempts, so the band can show what it was worth. */
+  xpSum: number;
 }
 
 export interface Pattern {
@@ -114,7 +116,7 @@ export interface Stats {
 }
 
 function emptyTally(): Tally {
-  return { makes: 0, attempts: 0, sg: 0, sgPutts: 0 };
+  return { makes: 0, attempts: 0, sg: 0, sgPutts: 0, xpSum: 0 };
 }
 
 function emptyBuckets(): Record<BucketKey, Tally> {
@@ -225,6 +227,7 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
       const leave = p.made ? null : (h.putts[i + 1]?.d ?? null);
       const gained = puttSG(baseline, p.d, p.made, leave);
       buckets[b].attempts++;
+      buckets[b].xpSum += expectedPutts(baseline, p.d);
       if (gained !== null) {
         buckets[b].sg += gained;
         buckets[b].sgPutts++;

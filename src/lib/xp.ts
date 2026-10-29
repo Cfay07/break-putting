@@ -39,6 +39,8 @@ export function severityOf(p: Putt): number | undefined {
  * wide, so a tenth of a percent would be decoration.
  */
 export function makeChanceOf(model: MakeModel, p: Putt): number | null {
+  // Beyond anything that has been hit, the curve still answers and the answer means nothing.
+  if (model.longest && p.d > model.longest) return null;
   return makeability(model, p.d, breakDirsOf(p), severityOf(p));
 }
 

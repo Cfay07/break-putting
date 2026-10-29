@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Boundary } from './components/Boundary';
 import App from './App';
 import { AppProvider } from './lib/store';
 import './styles.css';
@@ -37,8 +38,12 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    {/* Inside the provider, so a crash in a screen still leaves the saved state intact and the
+        rest of the app reachable. */}
     <AppProvider>
-      <App />
+      <Boundary>
+        <App />
+      </Boundary>
     </AppProvider>
   </StrictMode>,
 );

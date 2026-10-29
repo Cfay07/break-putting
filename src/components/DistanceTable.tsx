@@ -20,6 +20,7 @@ export function DistanceTable({
             <th>Distance</th>
             <th>Made</th>
             <th>%</th>
+            <th>xP</th>
             <th>SG</th>
             {perRound && <th>SG/rd</th>}
           </tr>
@@ -33,6 +34,9 @@ export function DistanceTable({
                 <td>{b.label}</td>
                 <td>{t.attempts ? `${t.makes}/${t.attempts}` : '--'}</td>
                 <td>{p === null ? '--' : `${p.toFixed(0)}%`}</td>
+                <td className="dim">
+                  {t.attempts ? (t.xpSum / t.attempts).toFixed(2) : '--'}
+                </td>
                 <td className={t.sgPutts === 0 ? '' : t.sg >= 0 ? 'pos' : 'neg'}>
                   {t.sgPutts === 0 ? '--' : signed(t.sg)}
                 </td>
@@ -54,6 +58,14 @@ export function DistanceTable({
                 : '--'}
             </td>
             <td />
+            <td className="dim">
+              {stats.totalPutts
+                ? (
+                    BUCKETS.reduce((sum, b) => sum + stats.buckets[b.key].xpSum, 0) /
+                    BUCKETS.reduce((n, b) => n + stats.buckets[b.key].attempts, 0)
+                  ).toFixed(2)
+                : '--'}
+            </td>
             <td className={stats.sg >= 0 ? 'pos' : 'neg'}>{signed(stats.sg)}</td>
             {perRound && (
               <td>

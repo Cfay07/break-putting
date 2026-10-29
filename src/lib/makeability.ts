@@ -43,6 +43,12 @@ export interface MakeModel {
    * break: a fact about which putts get tagged. Held here so it stops contaminating the shapes.
    */
   taggedLift: number;
+  /**
+   * The longest putt anyone has actually hit. A logistic in ln(distance) will answer for any
+   * number you give it, so without this the model happily prices an eighty footer off three
+   * putts past seventy and prints two decimals on it.
+   */
+  longest: number;
   n: number;
   tagged: number;
   taggedBy: Record<Term, number>;
@@ -143,6 +149,7 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
     severityShift: 0,
     taggedSeverity: 0,
     taggedLift: 0,
+    longest: all.reduce((mx, p) => Math.max(mx, p.d), 0),
     n: all.length,
     tagged: 0,
     taggedBy: { ...zero },

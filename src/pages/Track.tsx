@@ -424,7 +424,9 @@ export function Track() {
               <span className="dx-k">Expected putts (xP)</span>
               <span className="dx-v">{draftXp.toFixed(2)}</span>
               <span className="dx-k">Chance it drops</span>
-              <span className="dx-v">{((draftChance ?? 0) * 100).toFixed(2)}%</span>
+              <span className="dx-v">
+                {draftChance === null ? '—' : `${(draftChance * 100).toFixed(2)}%`}
+              </span>
             </div>
           )}
 
