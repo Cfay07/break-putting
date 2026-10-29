@@ -20,7 +20,7 @@ export function DistanceTable({
             <th>Distance</th>
             <th>Made</th>
             <th>%</th>
-            <th>xP</th>
+            <th title="Typical expected putts for a putt in this band">xP</th>
             <th>SG</th>
             {perRound && <th>SG/rd</th>}
           </tr>
@@ -58,14 +58,10 @@ export function DistanceTable({
                 : '--'}
             </td>
             <td />
-            <td className="dim">
-              {stats.totalPutts
-                ? (
-                    BUCKETS.reduce((sum, b) => sum + stats.buckets[b.key].xpSum, 0) /
-                    BUCKETS.reduce((n, b) => n + stats.buckets[b.key].attempts, 0)
-                  ).toFixed(2)
-                : '--'}
-            </td>
+            {/* No total. Summing xP double counts, because every putt's figure already carries
+                the putt it leaves, and averaging across bands only describes which distances you
+                happened to face. The per-row number is context for its own row and nothing more. */}
+            <td />
             <td className={stats.sg >= 0 ? 'pos' : 'neg'}>{signed(stats.sg)}</td>
             {perRound && (
               <td>
