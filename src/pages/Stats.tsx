@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import { bleedSummary } from '../lib/bleed';
-import { go } from '../lib/router';
 import { fitMakeModel } from '../lib/makeability';
-import { cupUse, fitExecModel, hardestFaced, VERDICT_LABEL, xpSpread } from '../lib/xp';
+import { cupUse, fitExecModel, xpSpread } from '../lib/xp';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
@@ -149,10 +148,6 @@ export function Stats() {
     [rounds],
   );
   const makeModel = useMemo(() => fitMakeModel(rounds), [rounds]);
-  const hardest = useMemo(
-    () => hardestFaced(makeModel, state.baseline, rounds),
-    [makeModel, state.baseline, rounds],
-  );
   const spread = useMemo(
     () => xpSpread(makeModel, state.baseline, rounds),
     [makeModel, state.baseline, rounds],
@@ -695,49 +690,6 @@ export function Stats() {
             <>
               <h2>What the break costs you</h2>
               <LearnedPanel model={makeModel} />
-            </>
-          )}
-
-          {makeModel.ready && hardest.length > 0 && (
-            <>
-              <h2>The hardest putts you have faced</h2>
-              <p className="note">
-                By how much their shape added, not by how long they were. Length alone only ever
-                returns your longest putts. This asks which putts were hardest for their size.
-              </p>
-              <div className="putt-cards">
-                {hardest.map((x, i) => (
-                  <button
-                    key={i}
-                    className="putt-card"
-                    onClick={() => go(`/round/${x.roundId}`)}
-                  >
-                    <span className="pc-head">
-                      <span className="pc-d">{x.d} ft</span>
-                      <span className="pc-shape">{x.shape}</span>
-                      {x.verdict ? (
-                        <span className={`verdict v-${x.verdict}`}>{VERDICT_LABEL[x.verdict]}</span>
-                      ) : null}
-                    </span>
-                    <span className="pc-line">
-                      <span className="pc-k">The break added</span>
-                      <span className="pc-t pc-adj">+{x.added.toFixed(2)} putts</span>
-                    </span>
-                    <span className="pc-line">
-                      <span className="pc-k">Expected putts (xP)</span>
-                      <span className="pc-t">{x.xp.toFixed(2)}</span>
-                    </span>
-                    <span className="pc-line">
-                      <span className="pc-k">Chance it dropped</span>
-                      <span className="pc-t">{Math.round(x.chance * 100)}%</span>
-                    </span>
-                    <span className="pc-line">
-                      <span className="pc-k">{x.label} · hole {x.hole}</span>
-                      <span className={x.made ? 'pc-t pos' : 'pc-t'}>{x.made ? 'holed it' : 'missed'}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
             </>
           )}
 

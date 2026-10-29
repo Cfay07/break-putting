@@ -3,7 +3,6 @@ import { irls, makeability, type MakeModel } from './makeability';
 import {
   breakBucket,
   breakDirsOf,
-  breakLabel,
   CUP_ENTRIES,
   CUP_LABELS,
   type CupEntry,
@@ -190,33 +189,6 @@ export function roundSGAdjusted(
   return sum;
 }
 
-export interface XpPutt {
-  roundId: string;
-  label: string;
-  date: string;
-  hole: number;
-  d: number;
-  shape: string;
-  xp: number;
-  chance: number;
-  /** What the shape added over the same putt played straight and flat. */
-  added: number;
-  made: boolean;
-  verdict: Verdict | null;
-}
-
-export interface XpHole {
-  roundId: string;
-  label: string;
-  date: string;
-  hole: number;
-  putts: number;
-  firstFt: number;
-  shape: string;
-  xp: number;
-  sg: number;
-}
-
 type AnyRound = {
   id: string;
   label: string;
@@ -224,80 +196,6 @@ type AnyRound = {
   deleted?: boolean;
   holes: { hole: number; putts: Putt[] }[];
 };
-
-/**
- * The putts that were hardest **for their length**, by how much their shape added.
- *
- * Ranking on xP itself does not work: the baseline table stops at sixty feet, so every putt past
- * it returns the same 2.21 and the list fills with your longest putts, which is exactly the list
- * distance alone would have given you. Ranking on the shape adjustment asks the question distance
- * cannot answer, and it can genuinely put a five footer above a twenty five footer.
- */
-export function hardestFaced(
-  model: MakeModel,
-  baseline: [number, number][],
-  rounds: AnyRound[],
-  limit = 8,
-): XpPutt[] {
-  if (!model.ready) return [];
-  const out: XpPutt[] = [];
-  for (const r of rounds) {
-    if (r.deleted) continue;
-    for (const h of r.holes) {
-      h.putts.forEach((p, i) => {
-        // Only putts carrying a shape can be ranked on it; the rest are distance and nothing more.
-        if (!breakDirsOf(p).length) return;
-        const xp = xpOf(model, baseline, p);
-        const chance = makeChanceOf(model, p);
-        const added = difficultyOf(model, baseline, p);
-        if (xp === null || chance === null || added === null) return;
-        out.push({
-          roundId: r.id, label: r.label, date: r.date, hole: h.hole, d: p.d,
-          shape: breakLabel(breakDirsOf(p)), xp, chance, added, made: p.made,
-          verdict: verdictOf(model, baseline, h.putts, i),
-        });
-      });
-    }
-  }
-  return out
-    // Past the end of the baseline table every putt scores alike, so they say nothing about shape.
-    .filter((x) => x.d < 60)
-    .sort((a, b) => b.added - a.added)
-    .slice(0, limit);
-}
-
-/**
- * Holes ranked on what the putts were worth, not on how many you took.
- *
- * Two putts from a severe downhill double breaker and two from a flat ten footer are the same
- * hole to a putt count and a long way apart here.
- */
-export function holeHighlights(
-  model: MakeModel,
-  baseline: [number, number][],
-  rounds: AnyRound[],
-  limit = 5,
-): { best: XpHole[]; worst: XpHole[] } {
-  if (!model.ready) return { best: [], worst: [] };
-  const out: XpHole[] = [];
-  for (const r of rounds) {
-    if (r.deleted) continue;
-    for (const h of r.holes) {
-      if (!h.putts.length) continue;
-      const first = h.putts[0];
-      if (!breakDirsOf(first).length) continue;
-      const xp = xpOf(model, baseline, first);
-      if (xp === null) continue;
-      out.push({
-        roundId: r.id, label: r.label, date: r.date, hole: h.hole,
-        putts: h.putts.length, firstFt: first.d, shape: breakLabel(breakDirsOf(first)),
-        xp, sg: xp - h.putts.length,
-      });
-    }
-  }
-  const bySg = [...out].sort((a, b) => b.sg - a.sg);
-  return { best: bySg.slice(0, limit), worst: bySg.slice(-limit).reverse() };
-}
 
 export interface CupUse {
   /** Holed putts carrying an entry point you actually saw. */
