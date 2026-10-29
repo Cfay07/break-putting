@@ -3,6 +3,7 @@ import { bleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
 import {
   cupUse,
+  readBias,
   fitExecModel,
   VERDICT_LABEL,
   verdictTally,
@@ -157,6 +158,7 @@ export function Stats() {
   const makeModel = useMemo(() => fitMakeModel(rounds), [rounds]);
   const spread = useMemo(() => beatSpread(state.baseline, rounds), [state.baseline, rounds]);
   const cup = useMemo(() => cupUse(rounds), [rounds]);
+  const bias = useMemo(() => readBias(rounds), [rounds]);
   const verdicts = useMemo(
     () => verdictTally(makeModel, state.baseline, rounds),
     [makeModel, state.baseline, rounds],
@@ -682,6 +684,59 @@ export function Stats() {
             <>
               <h2>The read</h2>
               <ReadPanel read={read} />
+            </>
+          )}
+
+          {bias.n >= 10 && (
+            <>
+              <h2>Too much break or not enough</h2>
+              <p className="note">
+                One axis for every putt that turns. A miss finishing high and a make entering on
+                the high side say the same thing: more break than it took. Until the cup existed
+                only the misses could speak, which is the tail of the pattern rather than the
+                pattern.
+              </p>
+              <div className="biasbar">
+                <span
+                  className="bias-seg over"
+                  style={{ width: `${(bias.over / bias.n) * 100}%` }}
+                />
+                <span
+                  className="bias-seg agreed"
+                  style={{ width: `${(bias.agreed / bias.n) * 100}%` }}
+                />
+                <span
+                  className="bias-seg under"
+                  style={{ width: `${(bias.under / bias.n) * 100}%` }}
+                />
+              </div>
+              <div className="stat-row">
+                <span className="k">Too much break</span>
+                <span className="v num">
+                  {Math.round((bias.over / bias.n) * 100)}%
+                  <span className="small muted"> · {bias.over}</span>
+                </span>
+              </div>
+              <div className="stat-row">
+                <span className="k">Line and break agreed</span>
+                <span className="v num">
+                  {Math.round((bias.agreed / bias.n) * 100)}%
+                  <span className="small muted"> · {bias.agreed}</span>
+                </span>
+              </div>
+              <div className="stat-row">
+                <span className="k">Not enough break</span>
+                <span className="v num">
+                  {Math.round((bias.under / bias.n) * 100)}%
+                  <span className="small muted"> · {bias.under}</span>
+                </span>
+              </div>
+              <p className="note">
+                {bias.fromMisses} from misses, {bias.fromMakes} from cup entries.
+                {bias.fromMakes === 0
+                  ? ' Every one of these is a miss so far, so it only describes the putts that got away. Tag where a few drop and it starts describing all of them.'
+                  : ''}
+              </p>
             </>
           )}
 

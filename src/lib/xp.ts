@@ -580,3 +580,72 @@ export function xpotReason(exec: ExecModel): string {
   }
   return '';
 }
+
+export interface ReadBias {
+  /** Played more break than it took: the ball held the high side. */
+  over: number;
+  /** Played less than it took: the ball fell to the low side. */
+  under: number;
+  /** Line and break agreed. */
+  agreed: number;
+  n: number;
+  fromMakes: number;
+  fromMisses: number;
+}
+
+/** Which side of the hole a cup entry sits on, from the player's view with the ball at six. */
+function entrySide(e: CupEntry): 'left' | 'right' | 'centre' | null {
+  if (e === 'unsure') return null;
+  if (e === 'left' || e === 'inside-left' || e === 'back-left') return 'left';
+  if (e === 'right' || e === 'inside-right' || e === 'back-right') return 'right';
+  return 'centre';
+}
+
+/**
+ * Whether you tend to play too much break or too little, from what you watched rather than from
+ * what you decided about yourself.
+ *
+ * Both halves land on one axis, which is the point. A miss already records whether it finished
+ * high or low, where high is the side the ball breaks from. A make records which side of the cup
+ * it crossed, and on a left-to-right putt the high side is the left. So a miss finishing high and
+ * a make entering left say the same thing: more break than it took.
+ *
+ * Until now the makes were silent, so a read tendency was being inferred from misses alone, which
+ * is the tail of the pattern rather than the pattern.
+ */
+export function readBias(rounds: AnyRound[]): ReadBias {
+  let over = 0;
+  let under = 0;
+  let agreed = 0;
+  let fromMakes = 0;
+  let fromMisses = 0;
+
+  for (const r of rounds) {
+    if (r.deleted) continue;
+    for (const h of r.holes) {
+      for (const p of h.putts) {
+        const bucket = breakBucket(breakDirsOf(p));
+        // Only a putt that turns one way has a high side to miss on.
+        if (bucket !== 'lr' && bucket !== 'rl') continue;
+        const highIsLeft = bucket === 'lr';
+
+        if (p.made) {
+          if (!p.cupEntry) continue;
+          const side = entrySide(p.cupEntry);
+          if (!side) continue;
+          fromMakes += 1;
+          if (side === 'centre') agreed += 1;
+          else if ((side === 'left') === highIsLeft) over += 1;
+          else under += 1;
+        } else {
+          if (!p.missSide) continue;
+          fromMisses += 1;
+          if (p.missSide === 'online') agreed += 1;
+          else if (p.missSide === 'high') over += 1;
+          else under += 1;
+        }
+      }
+    }
+  }
+  return { over, under, agreed, n: over + under + agreed, fromMakes, fromMisses };
+}
