@@ -4,6 +4,7 @@ import { ConfirmButton } from '../components/ConfirmButton';
 import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
 import { Keypad } from '../components/Keypad';
 import { MissGrid } from '../components/MissGrid';
+import { CupEntry } from '../components/CupEntry';
 import { SegMulti } from '../components/SegMulti';
 import { ReadBreak } from '../components/ReadBreak';
 import { Sheet } from '../components/Sheet';
@@ -88,6 +89,7 @@ export function Track() {
   const d = Number(track.distanceInput);
   const canSubmit = track.distanceInput !== '' && d >= 1;
   const draft = track.draft ?? {};
+  const cleanCalled = !!draft.executionAssessed && !FACTORS.some((f: Factor) => draft[f]);
   const hasPars = round.holes.some((h) => h.par !== undefined);
 
   const setDraft = (patch: Record<string, unknown>) =>
@@ -296,6 +298,13 @@ export function Track() {
             </h3>
           </div>
 
+          {draft.made && (
+            <>
+              <div className="field-label">Where it went in</div>
+              <CupEntry value={draft.cupEntry} onPick={(cupEntry) => setDraft({ cupEntry })} />
+            </>
+          )}
+
           {!draft.made && (
             <>
               <div className="field-label">Where it finished</div>
@@ -354,14 +363,36 @@ export function Track() {
                 type="button"
                 className={draft.strike === k ? 'chip chip-on' : 'chip'}
                 aria-pressed={draft.strike === k}
-                onClick={() => setDraft({ strike: draft.strike === k ? undefined : k })}
+                onClick={() =>
+                  setDraft({ strike: draft.strike === k ? undefined : k, executionAssessed: true })
+                }
               >
                 {k === 'centre' ? 'Middle' : k === 'toe' ? 'Toe' : 'Heel'}
               </button>
             ))}
           </div>
 
-          {!draft.made && <div className="field-label">Factors</div>}
+          <div className="field-label">Factors</div>
+          <div className="chips">
+            {/* Without this an empty set means both "nothing was wrong" and "nobody looked". */}
+            <button
+              type="button"
+              className={cleanCalled ? 'chip chip-on' : 'chip'}
+              aria-pressed={cleanCalled}
+              onClick={() =>
+                setDraft(
+                  cleanCalled
+                    ? { executionAssessed: undefined }
+                    : {
+                        ...Object.fromEntries(FACTORS.map((f: Factor) => [f, false])),
+                        executionAssessed: true,
+                      },
+                )
+              }
+            >
+              Nothing wrong
+            </button>
+          </div>
           <div className="chips" style={draft.made ? { display: 'none' } : undefined}>
             {FACTORS.map((f: Factor) => (
               <button
@@ -369,7 +400,7 @@ export function Track() {
                 type="button"
                 className={draft[f] ? 'chip chip-on' : 'chip'}
                 aria-pressed={!!draft[f]}
-                onClick={() => setDraft({ [f]: !draft[f] })}
+                onClick={() => setDraft({ [f]: !draft[f], executionAssessed: true })}
               >
                 {FACTOR_LABELS[f]}
               </button>
