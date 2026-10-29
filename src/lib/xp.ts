@@ -476,3 +476,59 @@ export function xpSpread(
     pastTwo: all.filter((x) => x >= 2).length,
   };
 }
+
+export interface VerdictTally {
+  rows: { verdict: Verdict; n: number; avgFt: number; says: string }[];
+  judged: number;
+  /** Misses that could not be split because nobody judged the stroke. */
+  unjudgedMisses: number;
+}
+
+/**
+ * Bailed, Robbed and Sold across every round, with the distance they happened from.
+ *
+ * The distance is the point. Robbed from three feet and Robbed from thirty are not the same
+ * complaint, and a Sold column full of short putts says something a count on its own cannot.
+ */
+export function verdictTally(
+  model: MakeModel,
+  baseline: [number, number][],
+  rounds: AnyRound[],
+): VerdictTally {
+  const acc: Record<Verdict, { n: number; ft: number }> = {
+    bailed: { n: 0, ft: 0 },
+    robbed: { n: 0, ft: 0 },
+    sold: { n: 0, ft: 0 },
+  };
+  let judged = 0;
+  let unjudgedMisses = 0;
+  for (const r of rounds) {
+    if (r.deleted) continue;
+    for (const h of r.holes) {
+      h.putts.forEach((p, i) => {
+        const v = verdictOf(model, baseline, h.putts, i);
+        if (!v) {
+          // A miss big enough to earn a label, held back only because the stroke was never judged.
+          const sg = puttSGAdjusted(model, baseline, h.putts, i);
+          if (sg !== null && sg <= -0.5 && !p.executionAssessed) unjudgedMisses++;
+          return;
+        }
+        judged++;
+        acc[v].n += 1;
+        acc[v].ft += p.d;
+      });
+    }
+  }
+  return {
+    judged,
+    unjudgedMisses,
+    rows: (['bailed', 'robbed', 'sold'] as Verdict[])
+      .map((verdict) => ({
+        verdict,
+        n: acc[verdict].n,
+        avgFt: acc[verdict].n ? acc[verdict].ft / acc[verdict].n : 0,
+        says: VERDICT_SAYS[verdict],
+      }))
+      ,
+  };
+}

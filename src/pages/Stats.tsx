@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { bleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
-import { cupUse, fitExecModel, xpSpread } from '../lib/xp';
+import { cupUse, fitExecModel, VERDICT_LABEL, verdictTally, xpSpread } from '../lib/xp';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
@@ -153,6 +153,10 @@ export function Stats() {
     [makeModel, state.baseline, rounds],
   );
   const cup = useMemo(() => cupUse(rounds), [rounds]);
+  const verdicts = useMemo(
+    () => verdictTally(makeModel, state.baseline, rounds),
+    [makeModel, state.baseline, rounds],
+  );
   const exec = useMemo(() => fitExecModel(makeModel, rounds), [makeModel, rounds]);
   const drift = useMemo(() => driftOf(rounds), [rounds]);
   const stakes = useMemo(() => stakesOf(rounds), [rounds]);
@@ -520,6 +524,40 @@ export function Stats() {
                 score how you hit them, while how they finished covers all {form.rounds}. The
                 untagged ones score on the finish alone, which is what the faint rail on the
                 rounds list means. Open any round to see what built its number.
+              </p>
+            </>
+          )}
+
+          {verdicts.judged + verdicts.unjudgedMisses > 0 && (
+            <>
+              <div className="field-label">What it earned you</div>
+              <div className="board">
+                {verdicts.rows.map((row) => (
+                  <div className="lb-row" key={row.verdict}>
+                    <span className={`verdict v-${row.verdict}`}>{VERDICT_LABEL[row.verdict]}</span>
+                    <span className="nm">
+                      <span className="small muted">{row.says}</span>
+                      <span className="putt-xp">from {row.avgFt.toFixed(1)} ft on average</span>
+                    </span>
+                    <span className="val num">{row.n}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="note">
+                Against what the putt was worth, not against its length. Robbed and Sold are both
+                misses you should have made, split on whether the stroke was clean.
+                {verdicts.unjudgedMisses > 0 && (
+                  <>
+                    {' '}
+                    <b>
+                      {verdicts.unjudgedMisses} miss
+                      {verdicts.unjudgedMisses === 1 ? '' : 'es'} big enough to earn a label are
+                      waiting on one
+                    </b>
+                    , because nobody said whether the stroke was clean. Tap a fault, or "Nothing
+                    wrong", and they land in one column or the other.
+                  </>
+                )}
               </p>
             </>
           )}
