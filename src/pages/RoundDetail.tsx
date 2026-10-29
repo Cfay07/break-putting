@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { lagSaves } from '../lib/stats';
-import { holeSG } from '../lib/sg';
+import { expectedPutts, holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
 import {
   holeAdjustments,
   makeChanceOf,
+  puttSGAdjusted,
   roundSGAdjusted,
   verdictOf,
   VERDICT_LABEL,
@@ -44,6 +45,14 @@ import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
  * break and starts being the reason the round went: those get the weight so the eye finds them
  * without reading every number.
  */
+const FAULT_WORDS: [string, string][] = [
+  ['push', 'push'],
+  ['pull', 'pull'],
+  ['decel', 'quit on it'],
+  ['accel', 'jabbed it'],
+  ['wrongWay', 'read it the wrong way'],
+];
+
 function SgCell({ value }: { value: number | null }) {
   if (value === null) return <span className="sg" />;
   const cls =
@@ -439,42 +448,82 @@ export function RoundDetail({ id }: { id: string }) {
                   No putts logged on this hole.
                 </p>
               ) : (
-                <div className="board">
+                <div className="putt-cards">
                   {hole.putts.map((p, i) => {
                     const xp = xpOf(makeModel, state.baseline, p);
                     const chance = makeChanceOf(makeModel, p);
                     const verdict = verdictOf(makeModel, state.baseline, hole.putts, i);
                     // Telescoped, so the leftover putt's difficulty is not charged twice.
                     const adj = holeAdjustments(makeModel, state.baseline, hole.putts)[i];
-                    const shaped = adj !== null && Math.abs(adj) >= 0.005;
+                    const base = expectedPutts(state.baseline, p.d);
+                    const leave = i + 1 < hole.putts.length ? hole.putts[i + 1].d : null;
+                    const sgPlain = puttSG(state.baseline, p.d, p.made, leave);
+                    const sgAdj = puttSGAdjusted(makeModel, state.baseline, hole.putts, i);
+                    const faults = FAULT_WORDS.filter(([k]) => (p as never)[k]).map(([, w]) => w);
+                    if (p.strike === 'toe') faults.push('toe strike');
+                    if (p.strike === 'heel') faults.push('heel strike');
+                    const execution = faults.length
+                      ? faults.join(', ')
+                      : p.executionAssessed
+                        ? 'nothing wrong'
+                        : 'not assessed';
                     return (
-                      <button className="lb-row" key={i} onClick={() => setEditPutt(i)}>
-                        <span className="place num">{i + 1}</span>
-                        <span className="nm">
-                          {p.d} ft
-                          {breakLabel(breakDirsOf(p)) ? (
-                            <span className="small muted"> · {breakLabel(breakDirsOf(p))}</span>
-                          ) : null}
-                          {xp !== null && (
-                            <span className="putt-xp">
-                              xP {xp.toFixed(2)}
-                              {chance !== null ? (
-                                <span> · {Math.round(chance * 100)}% to drop</span>
-                              ) : null}
-                              {shaped ? (
-                                <span className="muted">
-                                  {' '}· {adj > 0 ? '+' : ''}{adj.toFixed(2)} on its shape
-                                </span>
-                              ) : null}
-                            </span>
-                          )}
-                        </span>
-                        <span className={p.made ? 'val num pos' : 'val num none'}>
+                      <button className="putt-card" key={i} onClick={() => setEditPutt(i)}>
+                        <span className="pc-head">
+                          <span className="pc-n">{i + 1}</span>
+                          <span className="pc-d">{p.d} ft</span>
+                          <span className="pc-shape">{breakLabel(breakDirsOf(p)) || 'untagged'}</span>
                           {verdict ? (
                             <span className={`verdict v-${verdict}`}>{VERDICT_LABEL[verdict]}</span>
                           ) : null}
-                          {p.made ? 'holed' : 'missed'}
                         </span>
+
+                        {xp !== null && (
+                          <span className="pc-grid">
+                            <span className="pc-cell">
+                              <span className="pc-k">Expected putts</span>
+                              <span className="pc-v">{xp.toFixed(2)}</span>
+                            </span>
+                            <span className="pc-cell">
+                              <span className="pc-k">Chance it drops</span>
+                              <span className="pc-v">{Math.round((chance ?? 0) * 100)}%</span>
+                            </span>
+                            <span className="pc-cell">
+                              <span className="pc-k">Distance alone</span>
+                              <span className="pc-v quiet">{base.toFixed(2)}</span>
+                            </span>
+                            <span className="pc-cell">
+                              <span className="pc-k">Its shape</span>
+                              <span className="pc-v quiet">
+                                {adj === null || Math.abs(adj) < 0.005
+                                  ? '—'
+                                  : `${adj > 0 ? '+' : ''}${adj.toFixed(2)}`}
+                              </span>
+                            </span>
+                          </span>
+                        )}
+
+                        <span className="pc-line">
+                          <span className="pc-k">Result</span>
+                          <span className="pc-t">
+                            {p.made ? 'holed' : leave !== null ? `missed · left ${leave} ft` : 'missed'}
+                          </span>
+                        </span>
+                        <span className="pc-line">
+                          <span className="pc-k">Execution</span>
+                          <span className={p.executionAssessed ? 'pc-t' : 'pc-t quiet'}>{execution}</span>
+                        </span>
+                        {sgPlain !== null && (
+                          <span className="pc-line">
+                            <span className="pc-k">Strokes gained</span>
+                            <span className="pc-t">
+                              {signed(sgPlain)}
+                              {sgAdj !== null && Math.abs(sgAdj - sgPlain) >= 0.005 ? (
+                                <span className="pc-adj"> → {signed(sgAdj)} with break</span>
+                              ) : null}
+                            </span>
+                          </span>
+                        )}
                       </button>
                     );
                   })}
