@@ -1182,3 +1182,4 @@ button.pick:active { background-color: #f4f1e8; }
 .bias-seg.over { background: #6d5a9c; }
 .bias-seg.agreed { background: #15603b; }
 .bias-seg.under { background: #b5603a; }
+.beat-n { color: var(--ink-3); font-weight: 400; }

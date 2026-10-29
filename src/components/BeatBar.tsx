@@ -64,6 +64,7 @@ export function BeatBar({ spread, compact = false }: { spread: BeatSpread; compa
       <div className="beat-legend">
         <span>
           <b>{spread.n ? Math.round((spread.beat / spread.n) * 100) : 0}%</b> of holes beaten
+          <span className="beat-n"> · {spread.n} holes</span>
         </span>
         {!compact && spread.best && (
           <button

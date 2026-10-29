@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { bleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
+import { formTrial } from '../lib/formTrial';
 import {
   cupUse,
   readBias,
@@ -159,6 +160,7 @@ export function Stats() {
   const spread = useMemo(() => beatSpread(state.baseline, rounds), [state.baseline, rounds]);
   const cup = useMemo(() => cupUse(rounds), [rounds]);
   const bias = useMemo(() => readBias(rounds), [rounds]);
+  const trial = useMemo(() => formTrial(rounds, state.baseline), [rounds, state.baseline]);
   const verdicts = useMemo(
     () => verdictTally(makeModel, state.baseline, rounds),
     [makeModel, state.baseline, rounds],
@@ -484,6 +486,45 @@ export function Stats() {
           {form && (
             <>
               <h2>Form</h2>
+              <div className="stat-row">
+                <span className="k">
+                  Does Form say anything strokes gained does not
+                </span>
+                <span className="v small muted">
+                  {trial.verdict === 'waiting'
+                    ? `${trial.judged} of ${trial.needed} rounds judged`
+                    : `r = ${trial.r?.toFixed(3)}`}
+                </span>
+              </div>
+              <p className="why-note">
+                {trial.verdict === 'waiting' ? (
+                  <>
+                    Form only earns its place if it ranks rounds differently from strokes gained.
+                    The test needs <b>{trial.needed} rounds</b> with enough tagged putts to unlock
+                    the process layer, and <b>{trial.judged}</b> have it. Until then this is an
+                    open question, not a passed one.
+                  </>
+                ) : trial.verdict === 'retire' ? (
+                  <>
+                    <b>Form is a second name for strokes gained.</b> r = {trial.r?.toFixed(3)}{' '}
+                    across {trial.judged} judged rounds, and {trial.moved} change position. The
+                    threshold was written down before the answer was known, and this clears it.
+                    It should go the way expected makes went.
+                  </>
+                ) : trial.verdict === 'keep' ? (
+                  <>
+                    <b>Form earns its place.</b> r = {trial.r?.toFixed(3)} across {trial.judged}{' '}
+                    judged rounds, with {trial.moved} changing position. It is measuring something
+                    strokes gained is not.
+                  </>
+                ) : (
+                  <>
+                    <b>Undecided.</b> r = {trial.r?.toFixed(3)} across {trial.judged} judged
+                    rounds. Between the two thresholds, so the 50/50 blend gets one attempt at
+                    reweighting before anyone reaches for delete.
+                  </>
+                )}
+              </p>
               <div className="card">
                 <div className="form-hero">
                   <span className="form-big" style={{ color: formBand(form.avg).ink }}>
