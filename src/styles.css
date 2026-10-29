@@ -1078,3 +1078,19 @@ button.pick:active { background-color: #f4f1e8; }
   color: var(--ink-2); cursor: pointer;
 }
 .secnav-chip:active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* The spread of xP you actually face. Two anchors, no new unit to learn. */
+.xps-bars {
+  position: relative; display: flex; align-items: flex-end; gap: 2px; height: 72px;
+  padding: 0 1px; border-bottom: 1px solid var(--line);
+}
+.xps-bar { flex: 1; background: var(--ink-2); border-radius: 2px 2px 0 0; opacity: 0.75; }
+.xps-bar.past { background: var(--accent, #b5603a); opacity: 0.85; }
+.xps-mark { position: absolute; top: -4px; bottom: 0; width: 1px; background: rgba(20, 57, 43, 0.4); }
+.xps-median { position: absolute; top: -4px; bottom: 0; width: 2px; background: var(--ink); border-radius: 1px; }
+.xps-axis {
+  display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-3);
+  letter-spacing: 0.04em; margin-top: 5px;
+}
+.xps-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 9px; font-size: 11.5px; color: var(--ink-3); }
+.xps-legend b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }

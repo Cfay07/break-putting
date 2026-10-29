@@ -497,3 +497,60 @@ export function strokeCostOf(
   const before = xpOf(model, baseline, p);
   return after === null || before === null ? null : after - before;
 }
+
+export interface XpSpread {
+  /** Buckets across the xP range, each holding how many putts landed in it. */
+  bins: { from: number; to: number; n: number }[];
+  n: number;
+  median: number | null;
+  hardest: number | null;
+  /** Putts at or past the two-putt mark. */
+  pastTwo: number;
+}
+
+/**
+ * The spread of what you have actually stood over.
+ *
+ * One putt is the floor and two is the mark where holing it and three-putting it are equally
+ * likely, so those two anchors give the scale a meaning without anyone having to learn a new
+ * unit. Only putts carrying a shape are in: the rest would pile up on the distance curve and
+ * say nothing about break.
+ */
+export function xpSpread(
+  model: MakeModel,
+  baseline: [number, number][],
+  rounds: AnyRound[],
+): XpSpread {
+  const LO = 1.0;
+  const HI = 2.3;
+  const STEP = 0.1;
+  const bins = Array.from({ length: Math.round((HI - LO) / STEP) }, (_, i) => ({
+    from: +(LO + i * STEP).toFixed(2),
+    to: +(LO + (i + 1) * STEP).toFixed(2),
+    n: 0,
+  }));
+  const all: number[] = [];
+  if (!model.ready) return { bins, n: 0, median: null, hardest: null, pastTwo: 0 };
+
+  for (const r of rounds) {
+    if (r.deleted) continue;
+    for (const h of r.holes) {
+      for (const p of h.putts) {
+        if (!breakDirsOf(p).length) continue;
+        const x = xpOf(model, baseline, p);
+        if (x === null) continue;
+        all.push(x);
+        const i = Math.min(bins.length - 1, Math.max(0, Math.floor((x - LO) / STEP)));
+        bins[i].n += 1;
+      }
+    }
+  }
+  all.sort((a, b) => a - b);
+  return {
+    bins,
+    n: all.length,
+    median: all.length ? all[Math.floor(all.length / 2)] : null,
+    hardest: all.length ? all[all.length - 1] : null,
+    pastTwo: all.filter((x) => x >= 2).length,
+  };
+}

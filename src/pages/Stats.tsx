@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { bleedSummary } from '../lib/bleed';
 import { go } from '../lib/router';
 import { fitMakeModel } from '../lib/makeability';
-import { cupUse, fitExecModel, hardestFaced, holeHighlights, VERDICT_LABEL } from '../lib/xp';
+import { cupUse, fitExecModel, hardestFaced, VERDICT_LABEL, xpSpread } from '../lib/xp';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
@@ -20,6 +20,7 @@ import { formOf, formBand } from '../lib/form';
 import { StrikePanel } from '../components/StrikePanel';
 import { SampleTag } from '../components/SampleTag';
 import { SectionNav } from '../components/SectionNav';
+import { XpSpreadBar } from '../components/XpSpreadBar';
 import { sample } from '../lib/sample';
 import { byStrike } from '../lib/stats';
 import { LearnedPanel } from '../components/LearnedPanel';
@@ -152,8 +153,8 @@ export function Stats() {
     () => hardestFaced(makeModel, state.baseline, rounds),
     [makeModel, state.baseline, rounds],
   );
-  const highlights = useMemo(
-    () => holeHighlights(makeModel, state.baseline, rounds),
+  const spread = useMemo(
+    () => xpSpread(makeModel, state.baseline, rounds),
     [makeModel, state.baseline, rounds],
   );
   const cup = useMemo(() => cupUse(rounds), [rounds]);
@@ -528,6 +529,18 @@ export function Stats() {
             </>
           )}
 
+          {makeModel.ready && spread.n > 0 && (
+            <>
+              <h2>The putts you actually face</h2>
+              <p className="note">
+                Every putt you tagged a break on, by expected putts (xP). One is holed. Two is the
+                point where holing it and three-putting it are equally likely, which falls out of
+                the arithmetic rather than being a line anyone drew.
+              </p>
+              <XpSpreadBar spread={spread} />
+            </>
+          )}
+
           <h2>By distance</h2>
           <DistanceTable stats={o.pooled} rounds={o.rounds} sgPerRound={o.bucketSgPerRound} />
           <p className="small muted" style={{ marginTop: 6 }}>
@@ -555,35 +568,7 @@ export function Stats() {
           <p className="act">Why you miss</p>
           {strike.length > 0 && (
             <>
-              <h2>Where on the face</h2>
-              <StrikePanel rows={strike} />
-            </>
-          )}
-
-          <h2>When you miss, why</h2>
-          <MissAnatomyPanel miss={miss} />
-
-          <div className="field-label">Your most common miss</div>
-          <MissShapesPanel shapes={shapes} />
-
-          {read.judged > 0 && (
-            <>
-              <h2>The read</h2>
-              <ReadPanel read={read} />
-            </>
-          )}
-
-          <h2>Miss patterns</h2>
-          <PatternPanel stats={o.pooled} taggedRounds={taggedRounds} />
-
-          {makeModel.ready && (
-            <>
-              <h2>What the break costs you</h2>
-              <LearnedPanel model={makeModel} />
-            </>
-          )}
-
-          <h2>Does your stroke tagging predict misses</h2>
+              <h2>Does your stroke tagging predict misses</h2>
           {exec.nClean < 5 || exec.nFaulty < 5 ? (
             <p className="note">
               Not enough strokes judged yet. This needs putts where you either ticked a fault or
@@ -632,6 +617,24 @@ export function Stats() {
             </>
           )}
 
+          <h2>Where on the face</h2>
+              <StrikePanel rows={strike} />
+            </>
+          )}
+
+          <h2>When you miss, why</h2>
+          <MissAnatomyPanel miss={miss} />
+
+          <div className="field-label">Your most common miss</div>
+          <MissShapesPanel shapes={shapes} />
+
+          {read.judged > 0 && (
+            <>
+              <h2>The read</h2>
+              <ReadPanel read={read} />
+            </>
+          )}
+
           <h2>How much of the hole you use</h2>
           {cup.n + cup.unsure === 0 ? (
             <p className="note">
@@ -677,6 +680,16 @@ export function Stats() {
             </>
           )}
 
+          <h2>Miss patterns</h2>
+          <PatternPanel stats={o.pooled} taggedRounds={taggedRounds} />
+
+          {makeModel.ready && (
+            <>
+              <h2>What the break costs you</h2>
+              <LearnedPanel model={makeModel} />
+            </>
+          )}
+
           {makeModel.ready && hardest.length > 0 && (
             <>
               <h2>The hardest putts you have faced</h2>
@@ -703,7 +716,7 @@ export function Stats() {
                       <span className="pc-t pc-adj">+{x.added.toFixed(2)} putts</span>
                     </span>
                     <span className="pc-line">
-                      <span className="pc-k">Expected putts</span>
+                      <span className="pc-k">Expected putts (xP)</span>
                       <span className="pc-t">{x.xp.toFixed(2)}</span>
                     </span>
                     <span className="pc-line">
@@ -719,47 +732,6 @@ export function Stats() {
               </div>
             </>
           )}
-
-          {makeModel.ready && highlights.best.length > 0 && (
-            <>
-              <h2>Best and worst holes</h2>
-              <p className="note">
-                Against what the putts were worth. Two putts from a severe downhill breaker and two
-                from a flat ten footer are the same hole to a putt count, and a long way apart here.
-                Only holes whose first putt carries a break are in.
-              </p>
-              <div className="board">
-                {highlights.best.map((h, i) => (
-                  <button key={`b${i}`} className="lb-row" onClick={() => go(`/round/${h.roundId}`)}>
-                    <span className="place num">{i + 1}</span>
-                    <span className="nm">
-                      {h.firstFt} ft <span className="small muted">· {h.shape}</span>
-                      <span className="putt-xp">
-                        {h.label} · hole {h.hole} · {h.putts} putt{h.putts === 1 ? '' : 's'}
-                      </span>
-                    </span>
-                    <span className="val num pos">{signed(h.sg)}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="field-label">Worst</div>
-              <div className="board">
-                {highlights.worst.map((h, i) => (
-                  <button key={`w${i}`} className="lb-row" onClick={() => go(`/round/${h.roundId}`)}>
-                    <span className="place num">{i + 1}</span>
-                    <span className="nm">
-                      {h.firstFt} ft <span className="small muted">· {h.shape}</span>
-                      <span className="putt-xp">
-                        {h.label} · hole {h.hole} · {h.putts} putt{h.putts === 1 ? '' : 's'}
-                      </span>
-                    </span>
-                    <span className="val num neg">{signed(h.sg)}</span>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
 
           <h2>Drift</h2>
           <DriftPanel drift={drift} />

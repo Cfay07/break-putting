@@ -501,7 +501,7 @@ export function RoundDetail({ id }: { id: string }) {
                         {xp !== null && (
                           <span className="pc-grid">
                             <span className="pc-cell">
-                              <span className="pc-k">Expected putts</span>
+                              <span className="pc-k">Expected putts (xP)</span>
                               <span className="pc-v">{xp.toFixed(2)}</span>
                             </span>
                             <span className="pc-cell">
@@ -530,7 +530,7 @@ export function RoundDetail({ id }: { id: string }) {
                           </span>
                         </span>
                         <span className="pc-line">
-                          <span className="pc-k">Execution</span>
+                          <span className="pc-k">The stroke</span>
                           <span className={p.executionAssessed ? 'pc-t' : 'pc-t quiet'}>{execution}</span>
                         </span>
                         {sgPlain !== null && (
