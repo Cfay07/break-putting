@@ -1,6 +1,14 @@
 import { expectedPutts } from './sg';
-import { makeability, type MakeModel } from './makeability';
-import { breakBucket, breakDirsOf, type Putt } from './types';
+import { irls, makeability, type MakeModel } from './makeability';
+import {
+  breakBucket,
+  breakDirsOf,
+  breakLabel,
+  CUP_ENTRIES,
+  CUP_LABELS,
+  type CupEntry,
+  type Putt,
+} from './types';
 
 /**
  * Expected putts to hole out, reading break and slope rather than distance alone.
@@ -180,4 +188,312 @@ export function roundSGAdjusted(
     sum += first - h.putts.length;
   }
   return sum;
+}
+
+export interface XpPutt {
+  roundId: string;
+  label: string;
+  date: string;
+  hole: number;
+  d: number;
+  shape: string;
+  xp: number;
+  chance: number;
+  /** What the shape added over the same putt played straight and flat. */
+  added: number;
+  made: boolean;
+  verdict: Verdict | null;
+}
+
+export interface XpHole {
+  roundId: string;
+  label: string;
+  date: string;
+  hole: number;
+  putts: number;
+  firstFt: number;
+  shape: string;
+  xp: number;
+  sg: number;
+}
+
+type AnyRound = {
+  id: string;
+  label: string;
+  date: string;
+  deleted?: boolean;
+  holes: { hole: number; putts: Putt[] }[];
+};
+
+/**
+ * The putts that were hardest **for their length**, by how much their shape added.
+ *
+ * Ranking on xP itself does not work: the baseline table stops at sixty feet, so every putt past
+ * it returns the same 2.21 and the list fills with your longest putts, which is exactly the list
+ * distance alone would have given you. Ranking on the shape adjustment asks the question distance
+ * cannot answer, and it can genuinely put a five footer above a twenty five footer.
+ */
+export function hardestFaced(
+  model: MakeModel,
+  baseline: [number, number][],
+  rounds: AnyRound[],
+  limit = 8,
+): XpPutt[] {
+  if (!model.ready) return [];
+  const out: XpPutt[] = [];
+  for (const r of rounds) {
+    if (r.deleted) continue;
+    for (const h of r.holes) {
+      h.putts.forEach((p, i) => {
+        // Only putts carrying a shape can be ranked on it; the rest are distance and nothing more.
+        if (!breakDirsOf(p).length) return;
+        const xp = xpOf(model, baseline, p);
+        const chance = makeChanceOf(model, p);
+        const added = difficultyOf(model, baseline, p);
+        if (xp === null || chance === null || added === null) return;
+        out.push({
+          roundId: r.id, label: r.label, date: r.date, hole: h.hole, d: p.d,
+          shape: breakLabel(breakDirsOf(p)), xp, chance, added, made: p.made,
+          verdict: verdictOf(model, baseline, h.putts, i),
+        });
+      });
+    }
+  }
+  return out
+    // Past the end of the baseline table every putt scores alike, so they say nothing about shape.
+    .filter((x) => x.d < 60)
+    .sort((a, b) => b.added - a.added)
+    .slice(0, limit);
+}
+
+/**
+ * Holes ranked on what the putts were worth, not on how many you took.
+ *
+ * Two putts from a severe downhill double breaker and two from a flat ten footer are the same
+ * hole to a putt count and a long way apart here.
+ */
+export function holeHighlights(
+  model: MakeModel,
+  baseline: [number, number][],
+  rounds: AnyRound[],
+  limit = 5,
+): { best: XpHole[]; worst: XpHole[] } {
+  if (!model.ready) return { best: [], worst: [] };
+  const out: XpHole[] = [];
+  for (const r of rounds) {
+    if (r.deleted) continue;
+    for (const h of r.holes) {
+      if (!h.putts.length) continue;
+      const first = h.putts[0];
+      if (!breakDirsOf(first).length) continue;
+      const xp = xpOf(model, baseline, first);
+      if (xp === null) continue;
+      out.push({
+        roundId: r.id, label: r.label, date: r.date, hole: h.hole,
+        putts: h.putts.length, firstFt: first.d, shape: breakLabel(breakDirsOf(first)),
+        xp, sg: xp - h.putts.length,
+      });
+    }
+  }
+  const bySg = [...out].sort((a, b) => b.sg - a.sg);
+  return { best: bySg.slice(0, limit), worst: bySg.slice(-limit).reverse() };
+}
+
+export interface CupUse {
+  /** Holed putts carrying an entry point you actually saw. */
+  n: number;
+  /** Holed putts where you said you did not see it drop. */
+  unsure: number;
+  /** Straight through the front, the centre cut. */
+  centre: number;
+  /** Came in off a side or round the back. */
+  edge: number;
+  byPoint: { point: CupEntry; label: string; n: number }[];
+}
+
+/**
+ * How much of the hole you are using.
+ *
+ * A make is a make to every putting stat there is, so a centre cut and a ball that fell in off
+ * the back lip have identical records. They are not identical strokes, and a run of edge-entry
+ * makes is the kind of thing that stops happening. Counting, no model: this is an observation
+ * you made, not a number anything inferred.
+ *
+ * It says nothing about pace or about whether the read was right. Entry point is a joint result
+ * of line, speed and break together, so a back door can come from too much pace or from a putt
+ * that took the break late, and this cannot tell those apart.
+ */
+export function cupUse(rounds: AnyRound[]): CupUse {
+  const counts = new Map<CupEntry, number>();
+  let n = 0;
+  let unsure = 0;
+  for (const r of rounds) {
+    if (r.deleted) continue;
+    for (const h of r.holes) {
+      for (const p of h.putts) {
+        if (!p.made || !p.cupEntry) continue;
+        if (p.cupEntry === 'unsure') {
+          unsure++;
+          continue;
+        }
+        n++;
+        counts.set(p.cupEntry, (counts.get(p.cupEntry) ?? 0) + 1);
+      }
+    }
+  }
+  const centre = counts.get('front') ?? 0;
+  return {
+    n,
+    unsure,
+    centre,
+    edge: n - centre,
+    byPoint: CUP_ENTRIES.map((point) => ({
+      point,
+      label: CUP_LABELS[point],
+      n: counts.get(point) ?? 0,
+    })).sort((a, b) => b.n - a.n),
+  };
+}
+
+export interface ExecModel {
+  /**
+   * Recalibration for the execution layer. Stages one and two are fitted across every putt,
+   * good strokes and bad mixed together, so an explicitly clean stroke would otherwise inherit
+   * the all-strokes average and read too low. This is the intercept that fixes that.
+   */
+  alpha: number;
+  /** Log-odds carried by a putt with a recorded fault. Not constrained to be negative. */
+  beta: number;
+  nClean: number;
+  nFaulty: number;
+  cleanRate: number | null;
+  faultyRate: number | null;
+  /** Clean make rate minus faulty, in points. */
+  gap: number | null;
+  /** Half-width of the 95% interval on that gap. */
+  band: number | null;
+  /** True only where the gap clears its own interval. */
+  predictive: boolean;
+  estimable: boolean;
+}
+
+const EMPTY_EXEC: ExecModel = {
+  alpha: 0, beta: 0, nClean: 0, nFaulty: 0, cleanRate: null, faultyRate: null,
+  gap: null, band: null, predictive: false, estimable: false,
+};
+
+/** A fault anyone actually recorded. Absence is not evidence of a clean stroke. */
+export function faultyOf(p: Putt): boolean {
+  return (
+    !!p.push || !!p.pull || !!p.decel || !!p.accel || !!p.wrongWay ||
+    p.strike === 'toe' || p.strike === 'heel'
+  );
+}
+
+/**
+ * Whether the stroke was looked at.
+ *
+ * `executionAssessed` is the honest flag and only exists on putts logged since it shipped. A
+ * strike tag counts too, because picking "middle" is an explicit judgement that the strike was
+ * fine, not a blank. An untouched putt is neither clean nor faulty, it is unknown, and it stays
+ * out of the fit entirely.
+ */
+export function assessedOf(p: Putt): boolean {
+  return !!p.executionAssessed || p.strike !== undefined;
+}
+
+/**
+ * Does your stroke tagging predict anything?
+ *
+ * The honest form of xPOT. Fitted only on putts whose stroke was actually judged, as
+ * `logit(p) = logit(p_conditions) + alpha + beta * fault`, with the conditions prediction as a
+ * fixed offset so this layer cannot re-estimate difficulty.
+ *
+ * `beta` is deliberately unconstrained. Forcing it negative and then presenting the result as a
+ * finding would be deciding the answer in advance; if your tags turn out not to predict misses,
+ * the number should be allowed to say so.
+ */
+export function fitExecModel(model: MakeModel, rounds: AnyRound[]): ExecModel {
+  const rows: { p: Putt; fault: boolean; made: boolean }[] = [];
+  for (const r of rounds) {
+    if (r.deleted) continue;
+    for (const h of r.holes) {
+      for (const p of h.putts) {
+        if (!assessedOf(p)) continue;
+        rows.push({ p, fault: faultyOf(p), made: p.made });
+      }
+    }
+  }
+  const clean = rows.filter((r) => !r.fault);
+  const faulty = rows.filter((r) => r.fault);
+  if (clean.length < 5 || faulty.length < 5) {
+    return { ...EMPTY_EXEC, nClean: clean.length, nFaulty: faulty.length };
+  }
+
+  const rate = (xs: typeof rows) => xs.filter((x) => x.made).length / xs.length;
+  const cleanRate = rate(clean);
+  const faultyRate = rate(faulty);
+  const gap = cleanRate - faultyRate;
+  const band =
+    1.96 *
+    Math.sqrt(
+      (cleanRate * (1 - cleanRate)) / clean.length +
+        (faultyRate * (1 - faultyRate)) / faulty.length,
+    );
+
+  const offset = rows.map((r) => {
+    const chance = makeChanceOf(model, r.p);
+    const safe = Math.min(Math.max(chance ?? 0.5, 1e-4), 1 - 1e-4);
+    return Math.log(safe / (1 - safe));
+  });
+  const fit = irls(
+    rows.map((r) => [1, r.fault ? 1 : 0]),
+    rows.map((r) => (r.made ? 1 : 0)),
+    [0, 0.5],
+    offset,
+  );
+
+  return {
+    alpha: fit ? fit[0] : 0,
+    beta: fit ? fit[1] : 0,
+    nClean: clean.length,
+    nFaulty: faulty.length,
+    cleanRate, faultyRate, gap, band,
+    predictive: band < Math.abs(gap),
+    estimable: !!fit,
+  };
+}
+
+/**
+ * Expected putts given how the stroke actually came out.
+ *
+ * Only speaks on a putt whose stroke was judged, and only where the gap has cleared its own
+ * interval. Until then the tags have not been shown to predict anything and a number here would
+ * be dressing up noise.
+ */
+export function xpotOf(
+  model: MakeModel,
+  exec: ExecModel,
+  baseline: [number, number][],
+  p: Putt,
+): number | null {
+  if (!exec.estimable || !exec.predictive || !assessedOf(p)) return null;
+  const chance = makeChanceOf(model, p);
+  if (chance === null) return null;
+  const safe = Math.min(Math.max(chance, 1e-4), 1 - 1e-4);
+  const eta = Math.log(safe / (1 - safe)) + exec.alpha + (faultyOf(p) ? exec.beta : 0);
+  const after = 1 / (1 + Math.exp(-eta));
+  return Math.max(1, expectedPutts(baseline, p.d) + (chance - after));
+}
+
+/** What the stroke cost, in putts. Null wherever xPOT cannot speak. */
+export function strokeCostOf(
+  model: MakeModel,
+  exec: ExecModel,
+  baseline: [number, number][],
+  p: Putt,
+): number | null {
+  const after = xpotOf(model, exec, baseline, p);
+  const before = xpOf(model, baseline, p);
+  return after === null || before === null ? null : after - before;
 }

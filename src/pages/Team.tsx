@@ -75,7 +75,7 @@ function RoundCard({ round, onClose }: { round: TeamRound; onClose: () => void }
         <div className="stat-row">
           <span className="k">Strokes gained</span>
           <span className={(round.sg ?? 0) < 0 ? 'v num neg' : 'v num pos'}>
-            {round.sg === null ? '--' : round.sg >= 0 ? `+${round.sg.toFixed(1)}` : round.sg.toFixed(1)}
+            {round.sg === null ? '--' : round.sg >= 0 ? `+${round.sg.toFixed(2)}` : round.sg.toFixed(2)}
           </span>
         </div>
         <div className="stat-row">
@@ -211,7 +211,7 @@ function PlayerPanel({
                 </span>
                 <span className="val num">{r.putts ?? '--'}</span>
                 <span className={(r.sg ?? 0) < 0 ? 'val num neg' : 'val num pos'}>
-                  {r.sg === null ? '--' : r.sg >= 0 ? `+${r.sg.toFixed(1)}` : r.sg.toFixed(1)}
+                  {r.sg === null ? '--' : r.sg >= 0 ? `+${r.sg.toFixed(2)}` : r.sg.toFixed(2)}
                 </span>
               </button>
             ))}

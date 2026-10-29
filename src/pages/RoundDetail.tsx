@@ -59,7 +59,7 @@ function SgCell({ value }: { value: number | null }) {
     value <= -0.5 ? 'sg down big' : value < 0 ? 'sg down' : value > 0 ? 'sg up' : 'sg';
   return (
     <span className={cls}>
-      {value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
+      {value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2)}
     </span>
   );
 }
@@ -80,6 +80,7 @@ export function RoundDetail({ id }: { id: string }) {
   const [editing, setEditing] = useState(false);
   const [speedSheet, setSpeedSheet] = useState(false);
   const [courseOpen, setCourseOpen] = useState(false);
+  const [whyBreak, setWhyBreak] = useState(false);
 
   if (!round) {
     return (
@@ -260,12 +261,31 @@ export function RoundDetail({ id }: { id: string }) {
         {/* Only worth a row where the break model actually moves it. Condition-adjusted, never
             "corrected": it changes the verdict, which is not the same as having earned it. */}
         {sgAdjusted !== null && Math.abs(sgAdjusted - s.sg) >= 0.05 && (
-          <div className="stat-row">
-            <span className="k">
-              With break and slope<span className="small muted"> · preliminary</span>
-            </span>
-            <span className={sgAdjusted >= 0 ? 'v num pos' : 'v num neg'}>{signed(sgAdjusted)}</span>
-          </div>
+          <>
+            <div className="stat-row">
+              <span className="k">
+                Counting the break
+                <button
+                  type="button"
+                  className="why"
+                  aria-expanded={whyBreak}
+                  onClick={() => setWhyBreak(!whyBreak)}
+                >
+                  ?
+                </button>
+              </span>
+              <span className={sgAdjusted >= 0 ? 'v num pos' : 'v num neg'}>{signed(sgAdjusted)}</span>
+            </div>
+            {whyBreak && (
+              <p className="why-note">
+                Strokes gained treats every ten footer as the same ten footer. This one reads
+                which way yours broke and whether they ran uphill or down, so a round full of hard
+                putts stops looking like a round full of easy ones. It only appears when the two
+                disagree, and it is still learning: {makeModel.tagged} of your putts carry a break
+                so far.
+              </p>
+            )}
+          </>
         )}
         <div className="stat-row">
           <span className="k">1 / 2 / 3+ putts</span>

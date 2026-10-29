@@ -1053,3 +1053,15 @@ button.pick:active { background-color: #f4f1e8; }
 .pc-t { color: var(--ink-2); font-weight: 600; text-align: right; }
 .pc-t.quiet { color: var(--ink-3); font-weight: 400; font-style: italic; }
 .pc-adj { color: var(--accent, #b5603a); font-weight: 700; }
+
+/* Inline "what is this" for a number that needs one sentence, not a glossary. */
+.why {
+  width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--line);
+  background: none; color: var(--ink-3); font: 700 10px/1 inherit; margin-left: 6px;
+  cursor: pointer; padding: 0; vertical-align: 1px;
+}
+.why[aria-expanded='true'] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.why-note {
+  font-size: 12px; line-height: 1.5; color: var(--ink-2); background: rgba(20, 57, 43, 0.05);
+  border-radius: 7px; padding: 10px 12px; margin: 2px 0 8px;
+}

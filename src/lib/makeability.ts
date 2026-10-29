@@ -70,7 +70,7 @@ function solve(a: number[][], b: number[]): number[] | null {
  * prediction the fit is not allowed to re-estimate, which is how the break stage sits on top of
  * the distance stage. `penalty` is per coefficient so an intercept can stay unpenalised.
  */
-function irls(
+export function irls(
   x: number[][],
   y: number[],
   penalty: number[],

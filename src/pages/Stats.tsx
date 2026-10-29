@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { bleedSummary } from '../lib/bleed';
+import { go } from '../lib/router';
 import { fitMakeModel } from '../lib/makeability';
+import { cupUse, fitExecModel, hardestFaced, holeHighlights, VERDICT_LABEL } from '../lib/xp';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
@@ -145,6 +147,16 @@ export function Stats() {
     [rounds],
   );
   const makeModel = useMemo(() => fitMakeModel(rounds), [rounds]);
+  const hardest = useMemo(
+    () => hardestFaced(makeModel, state.baseline, rounds),
+    [makeModel, state.baseline, rounds],
+  );
+  const highlights = useMemo(
+    () => holeHighlights(makeModel, state.baseline, rounds),
+    [makeModel, state.baseline, rounds],
+  );
+  const cup = useMemo(() => cupUse(rounds), [rounds]);
+  const exec = useMemo(() => fitExecModel(makeModel, rounds), [makeModel, rounds]);
   const drift = useMemo(() => driftOf(rounds), [rounds]);
   const stakes = useMemo(() => stakesOf(rounds), [rounds]);
   const courses = useMemo(() => byCourse(rounds, state.baseline), [rounds, state.baseline]);
@@ -416,8 +428,8 @@ export function Stats() {
 
           {vol && (
             <p className="small muted" style={{ marginTop: 8 }}>
-              Strokes gained has run from {signed(vol.best, 1)} at your best to{' '}
-              {signed(vol.worst, 1)} at your worst, and most rounds land within {vol.sd.toFixed(1)}
+              Strokes gained has run from {signed(vol.best)} at your best to{' '}
+              {signed(vol.worst)} at your worst, and most rounds land within {vol.sd.toFixed(1)}
               {' '}of the average. That spread is why one round tells you almost nothing.
             </p>
           )}
@@ -566,6 +578,183 @@ export function Stats() {
             <>
               <h2>What the break costs you</h2>
               <LearnedPanel model={makeModel} />
+            </>
+          )}
+
+          <h2>Does your stroke tagging predict misses</h2>
+          {exec.nClean < 5 || exec.nFaulty < 5 ? (
+            <p className="note">
+              Not enough strokes judged yet. This needs putts where you either ticked a fault or
+              said outright that nothing was wrong, because a blank cannot tell the two apart.
+            </p>
+          ) : (
+            <>
+              <div className="stat-row">
+                <span className="k">Clean strokes</span>
+                <span className="v num">
+                  {Math.round((exec.cleanRate ?? 0) * 100)}%
+                  <span className="small muted"> · {exec.nClean} putts</span>
+                </span>
+              </div>
+              <div className="stat-row">
+                <span className="k">With a fault recorded</span>
+                <span className="v num">
+                  {Math.round((exec.faultyRate ?? 0) * 100)}%
+                  <span className="small muted"> · {exec.nFaulty} putts</span>
+                </span>
+              </div>
+              <div className="stat-row">
+                <span className="k">The gap</span>
+                <span className="v num">
+                  {Math.round((exec.gap ?? 0) * 100)} pts
+                  <span className="small muted"> ± {Math.round((exec.band ?? 0) * 100)}</span>
+                </span>
+              </div>
+              <p className={exec.predictive ? 'note' : 'why-note'}>
+                {exec.predictive ? (
+                  <>
+                    <b>Yes.</b> Clean strokes drop{' '}
+                    {Math.round((exec.gap ?? 0) * 100)} points more often than faulty ones, and the
+                    margin is narrower than the gap. Stroke cost now shows on each putt.
+                  </>
+                ) : (
+                  <>
+                    <b>Not yet.</b> The margin ({Math.round((exec.band ?? 0) * 100)} points) is wider
+                    than the gap ({Math.round((exec.gap ?? 0) * 100)}), so this cannot be told apart
+                    from no effect at all. It is not evidence your stroke does not matter, only that
+                    {' '}{exec.nClean + exec.nFaulty} judged putts cannot settle it. Until it clears,
+                    nothing in the app prices a fault.
+                  </>
+                )}
+              </p>
+            </>
+          )}
+
+          <h2>How much of the hole you use</h2>
+          {cup.n + cup.unsure === 0 ? (
+            <p className="note">
+              Nothing logged yet. A make is a make to every putting stat there is, so a centre cut
+              and a ball that fell in off the back lip read identically. Tag where a few drop and
+              this will tell you what share you are cutting through the middle, which is the part
+              that keeps happening, against the edges, which is the part that stops.
+            </p>
+          ) : (
+            <>
+              <div className="stat-row">
+                <span className="k">Centre cut</span>
+                <span className="v num">
+                  {cup.n ? Math.round((cup.centre / cup.n) * 100) : 0}%
+                  <span className="small muted"> · {cup.centre} of {cup.n}</span>
+                </span>
+              </div>
+              <div className="stat-row">
+                <span className="k">In off an edge</span>
+                <span className="v num">{cup.edge}</span>
+              </div>
+              {cup.unsure > 0 && (
+                <div className="stat-row">
+                  <span className="k">Did not see it drop</span>
+                  <span className="v num muted">{cup.unsure}</span>
+                </div>
+              )}
+              <div className="board" style={{ marginTop: 8 }}>
+                {cup.byPoint
+                  .filter((b) => b.n > 0)
+                  .map((b) => (
+                    <div className="lb-row" key={b.point}>
+                      <span className="nm">{b.label}</span>
+                      <span className="val num">{b.n}</span>
+                    </div>
+                  ))}
+              </div>
+              <p className="note">
+                Counting, not a model. It says nothing about pace or whether the read was right:
+                entry point is a joint result of line, speed and break, so a back door can come
+                from too much pace or from a putt that took the break late.
+              </p>
+            </>
+          )}
+
+          {makeModel.ready && hardest.length > 0 && (
+            <>
+              <h2>The hardest putts you have faced</h2>
+              <p className="note">
+                By how much their shape added, not by how long they were. Length alone only ever
+                returns your longest putts. This asks which putts were hardest for their size.
+              </p>
+              <div className="putt-cards">
+                {hardest.map((x, i) => (
+                  <button
+                    key={i}
+                    className="putt-card"
+                    onClick={() => go(`/round/${x.roundId}`)}
+                  >
+                    <span className="pc-head">
+                      <span className="pc-d">{x.d} ft</span>
+                      <span className="pc-shape">{x.shape}</span>
+                      {x.verdict ? (
+                        <span className={`verdict v-${x.verdict}`}>{VERDICT_LABEL[x.verdict]}</span>
+                      ) : null}
+                    </span>
+                    <span className="pc-line">
+                      <span className="pc-k">Its shape added</span>
+                      <span className="pc-t pc-adj">+{x.added.toFixed(2)} putts</span>
+                    </span>
+                    <span className="pc-line">
+                      <span className="pc-k">Expected putts</span>
+                      <span className="pc-t">{x.xp.toFixed(2)}</span>
+                    </span>
+                    <span className="pc-line">
+                      <span className="pc-k">Chance it dropped</span>
+                      <span className="pc-t">{Math.round(x.chance * 100)}%</span>
+                    </span>
+                    <span className="pc-line">
+                      <span className="pc-k">{x.label} · hole {x.hole}</span>
+                      <span className={x.made ? 'pc-t pos' : 'pc-t'}>{x.made ? 'holed it' : 'missed'}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {makeModel.ready && highlights.best.length > 0 && (
+            <>
+              <h2>Best and worst holes</h2>
+              <p className="note">
+                Against what the putts were worth. Two putts from a severe downhill breaker and two
+                from a flat ten footer are the same hole to a putt count, and a long way apart here.
+                Only holes whose first putt carries a break are in.
+              </p>
+              <div className="board">
+                {highlights.best.map((h, i) => (
+                  <button key={`b${i}`} className="lb-row" onClick={() => go(`/round/${h.roundId}`)}>
+                    <span className="place num">{i + 1}</span>
+                    <span className="nm">
+                      {h.firstFt} ft <span className="small muted">· {h.shape}</span>
+                      <span className="putt-xp">
+                        {h.label} · hole {h.hole} · {h.putts} putt{h.putts === 1 ? '' : 's'}
+                      </span>
+                    </span>
+                    <span className="val num pos">{signed(h.sg)}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="field-label">Worst</div>
+              <div className="board">
+                {highlights.worst.map((h, i) => (
+                  <button key={`w${i}`} className="lb-row" onClick={() => go(`/round/${h.roundId}`)}>
+                    <span className="place num">{i + 1}</span>
+                    <span className="nm">
+                      {h.firstFt} ft <span className="small muted">· {h.shape}</span>
+                      <span className="putt-xp">
+                        {h.label} · hole {h.hole} · {h.putts} putt{h.putts === 1 ? '' : 's'}
+                      </span>
+                    </span>
+                    <span className="val num neg">{signed(h.sg)}</span>
+                  </button>
+                ))}
+              </div>
             </>
           )}
 

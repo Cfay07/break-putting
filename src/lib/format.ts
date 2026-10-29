@@ -16,7 +16,12 @@ export function today(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function signed(n: number, digits = 1): string {
+/**
+ * Strokes, signed. Two places by default: a twentieth of a stroke is a real difference in
+ * putting and a single place was rounding it away. Never three, which is precision this
+ * measurement does not have.
+ */
+export function signed(n: number, digits = 2): string {
   const v = n.toFixed(digits);
   return n > 0 ? `+${v}` : v;
 }

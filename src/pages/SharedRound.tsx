@@ -248,5 +248,5 @@ function Row({ k, v, cls = 'v num' }: { k: string; v: string; cls?: string }) {
 function Sg({ value }: { value: number | null }) {
   if (value === null) return <span className="sg" />;
   const cls = value <= -0.5 ? 'sg down big' : value < 0 ? 'sg down' : value > 0 ? 'sg up' : 'sg';
-  return <span className={cls}>{value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}</span>;
+  return <span className={cls}>{value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2)}</span>;
 }
