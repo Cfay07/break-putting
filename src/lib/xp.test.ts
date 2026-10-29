@@ -153,13 +153,25 @@ describe('room to spare', () => {
     expect(roomOf('right')).toBeCloseTo(0, 10);
   });
 
-  it('gives the inside edges something, but much less than half', async () => {
+  it('falls monotonically from the centre out to the lip', async () => {
     const { roomOf, ROOM_MAX } = await import('./xp');
+    const front = roomOf('front')!;
+    const just = roomOf('just-left')!;
     const inside = roomOf('inside-left')!;
-    expect(inside).toBeGreaterThan(0);
-    // The ball sat 71% of the way out, so it keeps under a third of the window, not most of it.
-    expect(inside).toBeLessThan(ROOM_MAX * 0.35);
-    expect(roomOf('inside-right')).toBeCloseTo(inside, 10);
+    const lip = roomOf('left')!;
+    expect(front).toBeCloseTo(ROOM_MAX, 10);
+    expect(just).toBeLessThan(front);
+    expect(inside).toBeLessThan(just);
+    expect(lip).toBeCloseTo(0, 10);
+    // Four readings a side now, where eight points gave three.
+    expect(new Set([front, just, inside, lip]).size).toBe(4);
+  });
+
+  it('is symmetric across every pair', async () => {
+    const { roomOf } = await import('./xp');
+    expect(roomOf('just-left')).toBeCloseTo(roomOf('just-right')!, 10);
+    expect(roomOf('inside-left')).toBeCloseTo(roomOf('inside-right')!, 10);
+    expect(roomOf('left')).toBeCloseTo(roomOf('right')!, 10);
   });
 
   it('refuses the back half rather than calling it zero', async () => {

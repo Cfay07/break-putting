@@ -1004,7 +1004,7 @@ button.pick:active { background-color: #f4f1e8; }
 
 /* Cup entry. Eight points on the rim, no centre: a ball crosses the rim somewhere. */
 .cup-wrap { display: flex; gap: 14px; align-items: center; }
-.cup-svg { flex: none; width: 104px; height: 104px; }
+.cup-svg { flex: none; width: 132px; height: 132px; }
 .cup-rim { fill: rgba(20, 57, 43, 0.045); stroke: var(--line); stroke-width: 1.5; }
 .cup-approach { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.6; }
 .cup-dot { fill: rgba(20, 57, 43, 0.17); transition: fill 0.12s; }

@@ -16,6 +16,7 @@ export type Speed = 'short' | 'good' | 'long';
  */
 export type CupEntry =
   | 'front'
+  | 'just-left'
   | 'inside-left'
   | 'left'
   | 'back-left'
@@ -23,16 +24,26 @@ export type CupEntry =
   | 'back-right'
   | 'right'
   | 'inside-right'
+  | 'just-right'
   | 'unsure';
 
-/** Clockwise from the near side, so the order matches the ring the picker draws. */
+/**
+ * Clockwise from the near side, so the order matches the ring the picker draws.
+ *
+ * Ten rather than eight, and the two extra both sit in the front half on purpose. Room to spare
+ * only varies there, and with eight points a side had three readings: dead centre, inside edge,
+ * lip. "Just left" and "just right" put a fourth between the first two, which is where most
+ * holed putts actually cross.
+ */
 export const CUP_ENTRIES: Exclude<CupEntry, 'unsure'>[] = [
-  'front', 'inside-left', 'left', 'back-left',
-  'back', 'back-right', 'right', 'inside-right',
+  'front', 'just-left', 'inside-left', 'left', 'back-left',
+  'back', 'back-right', 'right', 'inside-right', 'just-right',
 ];
 
 export const CUP_LABELS: Record<CupEntry, string> = {
   front: 'Front door',
+  'just-left': 'Just left of centre',
+  'just-right': 'Just right of centre',
   'inside-left': 'Inside left edge',
   left: 'Left edge',
   'back-left': 'Back door left',
@@ -45,8 +56,8 @@ export const CUP_LABELS: Record<CupEntry, string> = {
 
 /** Degrees anticlockwise from three o'clock, for drawing. Six o'clock is where the ball started. */
 export const CUP_ANGLES: Record<Exclude<CupEntry, 'unsure'>, number> = {
-  right: 0, 'back-right': 45, back: 90, 'back-left': 135,
-  left: 180, 'inside-left': 225, front: 270, 'inside-right': 315,
+  right: 0, 'back-right': 45, back: 90, 'back-left': 135, left: 180,
+  'inside-left': 210, 'just-left': 240, front: 270, 'just-right': 300, 'inside-right': 330,
 };
 export type BreakDir = 'L→R' | 'R→L' | 'straight' | 'uphill' | 'downhill';
 
