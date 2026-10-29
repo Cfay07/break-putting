@@ -38,6 +38,11 @@ export interface MakeModel {
   severityShift: number;
   /** Putts carrying a severity, so a reader can see what that shift stands on. */
   taggedSeverity: number;
+  /**
+   * How much better the tagged putts do than the distance stage alone expects. Not a fact about
+   * break: a fact about which putts get tagged. Held here so it stops contaminating the shapes.
+   */
+  taggedLift: number;
   n: number;
   tagged: number;
   taggedBy: Record<Term, number>;
@@ -137,6 +142,7 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
     breakShift: { ...zero },
     severityShift: 0,
     taggedSeverity: 0,
+    taggedLift: 0,
     n: all.length,
     tagged: 0,
     taggedBy: { ...zero },
@@ -164,21 +170,29 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
 
   model.taggedSeverity = tagged.filter((p) => p.sev !== undefined).length;
 
+  // An intercept, unpenalised, and it matters more than it looks. The putts carrying a break tag
+  // are not a random sample of putts: they beat the distance-only stage by about five points,
+  // because they are the ones worth reading. Without a term to hold that, the offset leaks into
+  // the break coefficients and every shape comes out "easier", which is how a selection effect
+  // disguises itself as a finding about break.
   const shift = irls(
     tagged.map((p) => {
       const ts = termsOf(p.dirs);
       // Slight is the reference, so a severity of 1 adds nothing and an untagged one assumes
       // slight rather than inventing a middle.
-      return [...TERMS.map((t) => (ts.includes(t) ? 1 : 0)), p.sev ? p.sev - 1 : 0];
+      return [1, ...TERMS.map((t) => (ts.includes(t) ? 1 : 0)), p.sev ? p.sev - 1 : 0];
     }),
     tagged.map((p) => (p.made ? 1 : 0)),
-    [...TERMS.map(() => RIDGE), RIDGE],
+    [0, ...TERMS.map(() => RIDGE), RIDGE],
     tagged.map((p) => distance[0] + distance[1] * ln(p.d)),
   );
   if (!shift) return model;
 
-  model.breakShift = Object.fromEntries(TERMS.map((t, i) => [t, shift[i]])) as Record<Term, number>;
-  model.severityShift = shift[TERMS.length];
+  model.taggedLift = shift[0];
+  model.breakShift = Object.fromEntries(
+    TERMS.map((t, i) => [t, shift[i + 1]]),
+  ) as Record<Term, number>;
+  model.severityShift = shift[TERMS.length + 1];
   model.ready = true;
   return model;
 }

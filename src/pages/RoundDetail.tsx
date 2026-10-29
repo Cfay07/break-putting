@@ -4,6 +4,7 @@ import { lagSaves } from '../lib/stats';
 import { expectedPutts, holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
 import {
+  fitExecModel,
   holeAdjustments,
   makeChanceOf,
   puttSGAdjusted,
@@ -69,6 +70,21 @@ export function RoundDetail({ id }: { id: string }) {
   const round = state.rounds.find((r) => r.id === id);
   // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
   const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
+  const roundXp = useMemo(() => {
+    if (!round || !makeModel.ready) return null;
+    let sum = 0;
+    for (const h of round.holes) {
+      if (!h.putts.length) continue;
+      const v = xpOf(makeModel, state.baseline, h.putts[0]);
+      if (v === null) return null;
+      sum += v;
+    }
+    return sum;
+  }, [makeModel, state.baseline, round]);
+  const exec = useMemo(
+    () => fitExecModel(makeModel, state.rounds),
+    [makeModel, state.rounds],
+  );
   const sgAdjusted = useMemo(
     () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
     [makeModel, state.baseline, round],
@@ -260,7 +276,9 @@ export function RoundDetail({ id }: { id: string }) {
         </div>
         {/* Only worth a row where the break model actually moves it. Condition-adjusted, never
             "corrected": it changes the verdict, which is not the same as having earned it. */}
-        {sgAdjusted !== null && Math.abs(sgAdjusted - s.sg) >= 0.05 && (
+        {/* A quarter of a stroke. Across 27 rounds the break moves one by 0.14 on average, so a
+            fiftieth-of-a-stroke threshold printed it on twenty rounds where it was noise. */}
+        {sgAdjusted !== null && Math.abs(sgAdjusted - s.sg) >= 0.25 && (
           <>
             <div className="stat-row">
               <span className="k">
@@ -286,6 +304,20 @@ export function RoundDetail({ id }: { id: string }) {
               </p>
             )}
           </>
+        )}
+        {roundXp !== null && (
+          <div className="stat-row">
+            <span className="k">Expected putts (xP)</span>
+            <span className="v num">{roundXp.toFixed(2)}</span>
+          </div>
+        )}
+        {roundXp !== null && (
+          <div className="stat-row">
+            <span className="k">After the stroke (xPOT)</span>
+            <span className="v num muted">
+              {exec.confounded ? 'needs faulty makes' : exec.predictive ? '' : 'not settled yet'}
+            </span>
+          </div>
         )}
         <div className="stat-row">
           <span className="k">1 / 2 / 3+ putts</span>
