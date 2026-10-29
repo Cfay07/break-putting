@@ -148,9 +148,11 @@ export default function App() {
     );
   }
 
-  const roundMatch = route.match(/^\/round\/(.+)$/);
+  // /round/<id> and /round/<id>/hole/<n>, so a stat can land on the hole it is talking about
+  // rather than the top of the round.
+  const roundMatch = route.match(/^\/round\/([^/]+)(?:\/hole\/(\d+))?$/);
   const page = roundMatch ? (
-    <RoundDetail id={roundMatch[1]} />
+    <RoundDetail id={roundMatch[1]} openHole={roundMatch[2] ? Number(roundMatch[2]) : undefined} />
   ) : route === '/track' ? (
     <Track />
   ) : route === '/stats' ? (

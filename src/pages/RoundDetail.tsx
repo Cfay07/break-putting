@@ -65,7 +65,7 @@ function SgCell({ value }: { value: number | null }) {
   );
 }
 
-export function RoundDetail({ id }: { id: string }) {
+export function RoundDetail({ id, openHole }: { id: string; openHole?: number }) {
   const { state, dispatch } = useApp();
   const round = state.rounds.find((r) => r.id === id);
   // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
@@ -89,7 +89,8 @@ export function RoundDetail({ id }: { id: string }) {
     () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
     [makeModel, state.baseline, round],
   );
-  const [editHole, setEditHole] = useState<number | null>(null);
+  // Opened straight from a stat that names a hole, so the link lands where it is pointing.
+  const [editHole, setEditHole] = useState<number | null>(openHole ?? null);
   const [editPutt, setEditPutt] = useState<number | null>(null);
   const [shareNote, setShareNote] = useState('');
   const [sharing, setSharing] = useState(false);

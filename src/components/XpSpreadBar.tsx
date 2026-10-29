@@ -83,7 +83,7 @@ export function XpSpreadBar({ spread }: { spread: XpSpread }) {
           <button
             type="button"
             className="xps-jump"
-            onClick={() => go(`/round/${spread.hardest!.roundId}`)}
+            onClick={() => go(`/round/${spread.hardest!.roundId}/hole/${spread.hardest!.hole}`)}
           >
             <b>{spread.hardest.xp.toFixed(2)}</b> hardest faced
             <span className="xps-where">
