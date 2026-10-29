@@ -198,8 +198,10 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
         const lineOk = !p.push && !p.pull;
         const paceOk = !p.decel && !p.accel && p.speed !== 'short' && p.speed !== 'long';
         const clean = readOk && strikeOk && lineOk && paceOk;
-        if (p.made) clean ? venn.earned++ : venn.gotAway++;
-        else clean ? venn.robbed++ : venn.deserved++;
+        if (p.made && clean) venn.earned++;
+        else if (p.made) venn.gotAway++;
+        else if (clean) venn.robbed++;
+        else venn.deserved++;
       }
     }
   }

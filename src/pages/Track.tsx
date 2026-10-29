@@ -45,6 +45,10 @@ function nextUnplayed(round: Round, from: number): number {
 
 export function Track() {
   const { state, dispatch } = useApp();
+  // Above every early return. This used to sit beside the draft readout, below the branch for
+  // "no live round", so finishing a round dropped a hook between renders and React threw. With no
+  // boundary at the time that was a white screen on the last tap of a round.
+  const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
   const round = liveRound(state);
   const [finishing, setFinishing] = useState(false);
   const [courseOpen, setCourseOpen] = useState(false);
@@ -92,7 +96,6 @@ export function Track() {
   const d = Number(track.distanceInput);
   const canSubmit = track.distanceInput !== '' && d >= 1;
   const draft = track.draft ?? {};
-  const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
   const draftPutt = draft.d ? ({ ...draft, d: draft.d, made: !!draft.made } as Putt) : null;
   const draftXp = draftPutt ? xpOf(makeModel, state.baseline, draftPutt) : null;
   const draftChance = draftPutt ? makeChanceOf(makeModel, draftPutt) : null;

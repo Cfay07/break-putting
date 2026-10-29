@@ -93,7 +93,7 @@ export function parsePaste(text: string, holeCount: number): ParseResult {
     const line = beforePipe.trim();
     if (!line) continue;
 
-    const head = line.match(/^(\d+)\s*[:.)\-]\s*(.+)$/);
+    const head = line.match(/^(\d+)\s*[:.)-]\s*(.+)$/);
     if (!head) {
       errors.push(`Could not read "${raw.trim()}". Start the line with the hole number and a colon.`);
       continue;
