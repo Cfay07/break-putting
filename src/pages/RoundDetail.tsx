@@ -452,10 +452,9 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           {/* Housekeeping, next to the mistyped-distance warning, because both are the same job:
               fix the data before reading anything off it. Never mid-round. */}
           <p className="small muted" style={{ margin: '0 0 8px' }}>
-            <b>{loose.length} putt{loose.length === 1 ? '' : 's'}</b> started and not finished. A
-            breaking putt with a direction and no amount is priced as "slight", which is wrong more
-            often than not, and a stroke nobody judged sits out of the execution model. Tap one to
-            close it.
+            <b>{loose.length} breaking putt{loose.length === 1 ? '' : 's'}</b> tagged which way
+            but not how much, so they are priced as "slight" — wrong more often than not. One tap
+            each.
           </p>
           <div className="board" style={{ marginBottom: 12 }}>
             {loose.slice(0, 8).map((l) => (
@@ -469,9 +468,9 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
               >
                 <span className="place num">{l.hole}</span>
                 <span className="nm">
-                  {l.d} ft <span className="small muted">· needs the {l.what}</span>
+                  {l.d} ft <span className="small muted">· no read amount</span>
                 </span>
-                <span className="val small muted">open</span>
+                <span className="val small muted">›</span>
               </button>
             ))}
           </div>

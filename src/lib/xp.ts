@@ -726,17 +726,22 @@ export interface LooseEnd {
   hole: number;
   index: number;
   d: number;
-  what: 'read amount' | 'stroke';
+  what: 'read amount';
 }
 
 /**
  * Tags that were started and not finished, so they can be closed after the round rather than
  * slowing it down.
  *
- * Both of these are the difference between a putt the model can read and one it cannot, and
- * neither is worth a prompt mid-round. A breaking putt with a direction and no amount is priced
- * as "slight" by default, which is the honest fallback and wrong most of the time. A putt whose
- * stroke was never judged sits out of the execution fit entirely.
+ * Only one thing qualifies: a breaking putt with a direction and no amount, which gets priced as
+ * "slight" by default. That is the honest fallback and wrong more often than not, and a single tap
+ * fixes it.
+ *
+ * A missing `executionAssessed` deliberately does not qualify, though it is the other thing the
+ * models want. That flag only exists on putts logged since it shipped, so listing it would ask
+ * someone to reopen every older putt and re-confirm a stroke they had already tagged. Those putts
+ * cannot enter the execution fit and that is the cost of adding the flag honestly, not a chore to
+ * hand back to the player.
  */
 export function looseEnds(holes: { hole: number; putts: Putt[] }[]): LooseEnd[] {
   const out: LooseEnd[] = [];
@@ -746,8 +751,6 @@ export function looseEnds(holes: { hole: number; putts: Putt[] }[]): LooseEnd[] 
       const turns = bucket === 'lr' || bucket === 'rl' || bucket === 'double';
       if (turns && !(p.brokeAs ?? p.readAs)) {
         out.push({ hole: h.hole, index, d: p.d, what: 'read amount' });
-      } else if (!p.executionAssessed && (!p.made || p.d >= 4)) {
-        out.push({ hole: h.hole, index, d: p.d, what: 'stroke' });
       }
     });
   }
