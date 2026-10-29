@@ -292,17 +292,22 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         )}
         {whyRoundXp && (
           <p className="why-note">
-            Only the first putt on each hole is counted, and the putt cards will not add up to
-            this. A twenty two footer worth 1.98 <b>already contains</b> the putt it leaves you,
-            so adding the three footer underneath it would charge that one twice. The same reason
-            strokes gained takes the first putt and the total, never every putt in between.
+            What these holes were worth before you putted them. <b>The putt cards will not add up
+            to it</b>, and they should not: xP is putts to finish the hole from where you stood,
+            so a 22 footer worth 1.90 already contains the three footer it leaves you. Adding that
+            three footer underneath would charge it twice and turn an ordinary two-putt into
+            nearly a stroke gained. Each hole is counted once, from where it started.
+            <br />
+            <br />
+            The per-putt number that <b>does</b> add up is strokes gained, on every card. It
+            credits each putt with what it changed rather than what was left, so the overlap
+            cancels and the putts sum to the hole exactly.
           </p>
         )}
         {roundXp !== null && (
           <div className="stat-row">
             <span className="k">
               Expected putts (xP)
-              <span className="small muted"> · first putts</span>
               <button
                 type="button"
                 className="why"
