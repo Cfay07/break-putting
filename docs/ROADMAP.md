@@ -113,6 +113,42 @@ habits. Seth is already in. A college team is eight people putting thirty times 
 
 ---
 
+## Phase 7 · Form as a player rating, with an xGOT-shaped core
+
+Conor's idea, and it is the right one: Form as a football player rating, a composite out of ten
+from weighted components, with an expected-goals family underneath it.
+
+The mapping is clean. **xP** is the chance a putt goes in given distance and break, which is
+`makeability.ts` and already exists. **xPOT** is the xGOT analogue: the chance given *how it was
+struck*. In football xGOT earns its place by conditioning on something xG cannot see, namely
+where in the goal the ball went. The putting equivalent is read, strike, start line and pace,
+which is exactly the information strokes gained has no access to.
+
+**This has been attempted once and deleted** in `a0dfd64`, at r=0.905 against strokes gained.
+The reason matters: that version was built from distance and outcome, the same ingredients
+strokes gained uses, so it could only ever restate it. Rebuilding that half and giving it a
+football name would reproduce the failure with better branding.
+
+Measured 2026-10-28, the two halves are nowhere near each other:
+
+| Needed for | Have | Gate |
+|---|---|---|
+| xP, break-tagged putts | **188** | 150, and every shape clears its 30 |
+| xPOT, read + strike together | **39** | far short |
+| xPOT, read + strike + line + pace | **29** | far short |
+
+So the half that is ready is the half that already failed, and the half that is new stands on 29
+putts.
+
+**Do not start this until the execution-tagged count is in the high hundreds.** Then build xPOT
+first, measure it against strokes gained before building anything on top of it, and only then
+consider the composite rating. If xPOT correlates above 0.95 like its predecessor, it goes, and
+the rating idea goes with it.
+
+**Exit:** xPOT built on real tagged data and measured. Kept only if it disagrees with strokes
+gained in the cases it was designed for: pure strokes that missed, and bad strokes that dropped.
+
+
 ## What would make it legendary
 
 Not more features. There are already more than the data supports.
