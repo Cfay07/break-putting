@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { lagSaves } from '../lib/stats';
-import { expectedPutts, holeSG, puttSG } from '../lib/sg';
+import { holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
 import {
   fitExecModel,
@@ -520,7 +520,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                     // This putt's own adjustment, so the grid reads as xP minus the straight
                     // baseline. The telescoped version belongs to the hole, not to one cell.
                     const adj = difficultyOf(makeModel, state.baseline, p);
-                    const base = expectedPutts(state.baseline, p.d);
                     const leave = i + 1 < hole.putts.length ? hole.putts[i + 1].d : null;
                     const sgPlain = puttSG(state.baseline, p.d, p.made, leave);
                     const sgAdj = puttSGAdjusted(makeModel, state.baseline, hole.putts, i);
@@ -553,21 +552,24 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                               <span className="pc-k">Chance it drops</span>
                               <span className="pc-v">{Math.round((chance ?? 0) * 100)}%</span>
                             </span>
-                            <span className="pc-cell">
-                              <span className="pc-k">Same length, straight</span>
-                              <span className="pc-v quiet">{base.toFixed(2)}</span>
-                            </span>
-                            <span className="pc-cell">
-                              <span className="pc-k">The break added</span>
-                              <span className="pc-v quiet">
-                                {adj === null || Math.abs(adj) < 0.005
-                                  ? '—'
-                                  : `${adj > 0 ? '+' : ''}${adj.toFixed(2)}`}
-                              </span>
-                            </span>
+
                           </span>
                         )}
 
+                        {adj !== null && Math.abs(adj) >= 0.005 && (
+                          <span className="pc-line">
+                            <span className="pc-k">
+                              The break added
+                              <span className="pc-sub">
+                                {' '}vs the same length straight
+                              </span>
+                            </span>
+                            <span className="pc-t pc-adj">
+                              {adj > 0 ? '+' : ''}
+                              {adj.toFixed(2)}
+                            </span>
+                          </span>
+                        )}
                         <span className="pc-line">
                           <span className="pc-k">Result</span>
                           <span className="pc-t">

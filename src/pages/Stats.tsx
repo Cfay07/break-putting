@@ -7,7 +7,7 @@ import {
   VERDICT_LABEL,
   verdictTally,
   xpotReason,
-  xpSpread,
+  beatSpread,
 } from '../lib/xp';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
@@ -26,7 +26,7 @@ import { formOf, formBand } from '../lib/form';
 import { StrikePanel } from '../components/StrikePanel';
 import { SampleTag } from '../components/SampleTag';
 import { SectionNav } from '../components/SectionNav';
-import { XpSpreadBar } from '../components/XpSpreadBar';
+import { BeatBar } from '../components/BeatBar';
 import { sample } from '../lib/sample';
 import { byStrike } from '../lib/stats';
 import { LearnedPanel } from '../components/LearnedPanel';
@@ -155,10 +155,7 @@ export function Stats() {
     [rounds],
   );
   const makeModel = useMemo(() => fitMakeModel(rounds), [rounds]);
-  const spread = useMemo(
-    () => xpSpread(makeModel, state.baseline, rounds),
-    [makeModel, state.baseline, rounds],
-  );
+  const spread = useMemo(() => beatSpread(state.baseline, rounds), [state.baseline, rounds]);
   const cup = useMemo(() => cupUse(rounds), [rounds]);
   const verdicts = useMemo(
     () => verdictTally(makeModel, state.baseline, rounds),
@@ -569,15 +566,16 @@ export function Stats() {
             </>
           )}
 
-          {makeModel.ready && spread.n > 0 && (
+          {spread.n > 0 && (
             <>
-              <h2>The putts you actually face</h2>
+              <h2>How often you beat the number</h2>
               <p className="note">
-                Every putt you tagged a break on, by expected putts (xP). One is holed. Two is the
-                point where holing it and three-putting it are equally likely, which falls out of
-                the arithmetic rather than being a line anyone drew.
+                One bar per hole, against what its first putt was worth. Left of zero cost you,
+                right of zero you took it. This used to chart expected putts instead, which sorted
+                holes in almost exactly the order their length does, so it drew what the course
+                handed you rather than what you did with it.
               </p>
-              <XpSpreadBar spread={spread} />
+              <BeatBar spread={spread} />
             </>
           )}
 

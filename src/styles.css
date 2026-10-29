@@ -1079,6 +1079,50 @@ button.pick:active { background-color: #f4f1e8; }
 }
 .secnav-chip:active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
+/* How often you beat the number. One bar per bucket of hole strokes gained. */
+.beat-bars {
+  position: relative; display: flex; align-items: flex-end; gap: 2px; height: 76px;
+  padding: 0 1px; border-bottom: 1px solid var(--line);
+}
+.beat-col {
+  flex: 1; display: flex; align-items: flex-end; height: 100%; padding: 0; border: none;
+  background: none; cursor: pointer; min-width: 0;
+}
+.beat-bar { width: 100%; border-radius: 2px 2px 0 0; opacity: 0.8; }
+.beat-bar.down { background: #a52a1f; }
+.beat-bar.up { background: #15603b; }
+.beat-col.on .beat-bar { opacity: 1; }
+.beat-zero { position: absolute; top: -4px; bottom: 0; width: 1px; background: rgba(20, 57, 43, 0.45); }
+.beat-axis {
+  display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-3);
+  letter-spacing: 0.04em; margin-top: 5px;
+}
+.beat-read { font-size: 12px; line-height: 1.5; color: var(--ink-2); margin: 9px 0 0; min-height: 34px; }
+.beat-read.muted { color: var(--ink-3); }
+.beat-legend {
+  display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 6px; font-size: 11.5px;
+  color: var(--ink-3); align-items: baseline;
+}
+.beat-legend b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.beat-jump {
+  background: none; border: none; padding: 0; font: inherit; color: var(--accent, #b5603a);
+  cursor: pointer; white-space: nowrap;
+}
+.beat-jump b { color: var(--ink); }
+
+/* Jump list for a long page. Nothing is hidden; this just makes it navigable. */
+.secnav {
+  display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 10px; margin-bottom: 4px;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.secnav::-webkit-scrollbar { display: none; }
+.secnav-chip {
+  flex: none; font: 500 11.5px/1 inherit; white-space: nowrap; padding: 7px 11px;
+  border-radius: 999px; border: 1px solid var(--line); background: var(--card);
+  color: var(--ink-2); cursor: pointer;
+}
+.secnav-chip:active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
 /* The spread of xP you actually face. Two anchors, no new unit to learn. */
 .xps-bars {
   position: relative; display: flex; align-items: flex-end; gap: 2px; height: 72px;
@@ -1118,3 +1162,5 @@ button.pick:active { background-color: #f4f1e8; }
 .xps-jump b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 .xps-where { font-size: 10.5px; color: var(--accent, #b5603a); }
 .xps-note { font-size: 11.5px; line-height: 1.45; color: var(--ink-3); margin: 8px 0 0; }
+
+.pc-sub { font-size: 10px; color: var(--ink-3); }

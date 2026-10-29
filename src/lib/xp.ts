@@ -420,82 +420,57 @@ export function strokeCostOf(
   return after === null || before === null ? null : after - before;
 }
 
-export interface XpSpread {
-  /** Buckets across the xP range, each holding how many putts landed in it. */
+export interface BeatSpread {
   bins: { from: number; to: number; n: number }[];
   n: number;
-  median: number | null;
-  /** Putts at or past the two-putt mark. */
-  pastTwo: number;
-  /**
-   * The hardest putt the model can actually tell apart, and where it was.
-   *
-   * Only putts inside the baseline table count. Past sixty feet `expectedPutts` returns its last
-   * value for everything, so a 61 footer and a 77 footer score identically and "hardest" becomes
-   * a tie between whichever lag putts happened to be longest. That is the table running out, not
-   * a fact about the putt.
-   */
-  hardest: { xp: number; d: number; roundId: string; label: string; hole: number } | null;
-  /** Putts past the end of the table, which cannot be ranked against each other. */
-  beyondTable: number;
+  beat: number;
+  level: number;
+  best: { sg: number; roundId: string; label: string; hole: number; ft: number } | null;
+  worst: { sg: number; roundId: string; label: string; hole: number; ft: number } | null;
 }
 
 /**
- * The spread of what you have actually stood over.
+ * How often you beat what the hole was worth, and by how much.
  *
- * One putt is the floor and two is the mark where holing it and three-putting it are equally
- * likely, so those two anchors give the scale a meaning without anyone having to learn a new
- * unit. Only putts carrying a shape are in: the rest would pile up on the distance curve and
- * say nothing about break.
+ * This replaced a histogram of xP itself, which ranked putts in almost exactly the order their
+ * length does: Spearman 0.99 against distance, with a By distance table sitting directly beneath
+ * it. That chart measured what you faced, which you already knew. This measures what you did
+ * with it.
+ *
+ * One bar per hole rather than per putt, because the expectation covers finishing the hole: a
+ * twenty two footer already carries the putt it leaves you.
  */
-export function xpSpread(
-  model: MakeModel,
-  baseline: [number, number][],
-  rounds: AnyRound[],
-): XpSpread {
-  const LO = 1.0;
-  const HI = 2.3;
-  const STEP = 0.1;
+export function beatSpread(baseline: [number, number][], rounds: AnyRound[]): BeatSpread {
+  const LO = -2;
+  const HI = 1;
+  const STEP = 0.25;
   const bins = Array.from({ length: Math.round((HI - LO) / STEP) }, (_, i) => ({
     from: +(LO + i * STEP).toFixed(2),
     to: +(LO + (i + 1) * STEP).toFixed(2),
     n: 0,
   }));
-  const all: number[] = [];
-  let hardest: XpSpread['hardest'] = null;
-  let beyondTable = 0;
-  const TABLE_END = baseline[baseline.length - 1][0];
-  if (!model.ready) {
-    return { bins, n: 0, median: null, hardest: null, pastTwo: 0, beyondTable: 0 };
-  }
+  let beat = 0;
+  let level = 0;
+  let n = 0;
+  let best: BeatSpread['best'] = null;
+  let worst: BeatSpread['worst'] = null;
 
   for (const r of rounds) {
     if (r.deleted) continue;
     for (const h of r.holes) {
-      for (const p of h.putts) {
-        if (!breakDirsOf(p).length) continue;
-        const x = xpOf(model, baseline, p);
-        if (x === null) continue;
-        all.push(x);
-        const i = Math.min(bins.length - 1, Math.max(0, Math.floor((x - LO) / STEP)));
-        bins[i].n += 1;
-        if (p.d >= TABLE_END) {
-          beyondTable += 1;
-        } else if (!hardest || x > hardest.xp) {
-          hardest = { xp: x, d: p.d, roundId: r.id, label: r.label, hole: h.hole };
-        }
-      }
+      if (!h.putts.length) continue;
+      const sg = expectedPutts(baseline, h.putts[0].d) - h.putts.length;
+      n += 1;
+      if (sg > 0.005) beat += 1;
+      else if (sg >= -0.005) level += 1;
+      const where = { sg, roundId: r.id, label: r.label, hole: h.hole, ft: h.putts[0].d };
+      if (!best || sg > best.sg) best = where;
+      if (!worst || sg < worst.sg) worst = where;
+      const i = Math.min(bins.length - 1, Math.max(0, Math.floor((sg - LO) / STEP)));
+      bins[i].n += 1;
     }
   }
-  all.sort((a, b) => a - b);
-  return {
-    bins,
-    n: all.length,
-    median: all.length ? all[Math.floor(all.length / 2)] : null,
-    hardest,
-    beyondTable,
-    pastTwo: all.filter((x) => x >= 2).length,
-  };
+  return { bins, n, beat, level, best, worst };
 }
 
 export interface VerdictTally {
