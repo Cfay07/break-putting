@@ -403,7 +403,7 @@ export function Track() {
                 were also hidden on a holed putt, so a putt you pushed and holed anyway could not
                 be recorded at all. Across 431 makes that produced exactly zero faulty ones, which
                 left "has a fault" standing in for "missed" in anything that read it. */}
-            {FACTORS.map((f: Factor) => (
+            {FACTORS.filter((f) => !(draft.made && f === 'lip')).map((f: Factor) => (
               <button
                 key={f}
                 type="button"

@@ -177,7 +177,10 @@ export function PuttEditor({
       <div className="chips">
         {/* An empty set of factors used to mean two different things at once: nothing was wrong,
             and nobody looked. This chip separates them, so the clean pile only holds putts that
-            were actually judged. */}
+            were actually judged.
+
+            Lip is dropped on a holed putt: lipping out means it stayed out, and a make that
+            catches the lip is a lip-in, which the cup already records by which edge it fell off. */}
         <button
           type="button"
           className={cleanCalled ? 'chip chip-sel' : 'chip'}
@@ -192,7 +195,7 @@ export function PuttEditor({
         >
           Nothing wrong
         </button>
-        {FACTORS.map((f) => (
+        {FACTORS.filter((f) => !(putt.made && f === 'lip')).map((f) => (
           <button
             key={f}
             type="button"
