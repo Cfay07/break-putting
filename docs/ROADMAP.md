@@ -6,6 +6,51 @@ stats, accurate with ourselves and our data**, and **easy to use and good to loo
 Update this file as phases land. An exit condition that is not met is not met, however much
 work went in.
 
+## Where it actually stands, 2026-10-29
+
+Written after a long build session. Phases are marked by their own exit conditions, not by effort
+spent on them.
+
+| Phase | Exit condition | State |
+|---|---|---|
+| 1 · Tagging economics | Closed on evidence | **Closed** |
+| 2 · One sufficiency standard | No number renders without saying what it stands on | **Most of the way** |
+| 3 · Navigation, not deletion | Any stat in one tap, nothing removed | **Closed** |
+| 4 · Form's trial | Form proven or gone | **Open, data-gated** |
+| 5 · Baseline provenance | Every number traces to something citable | **Open, blocked** |
+| 6 · A second player | One finding confirmed on somebody else | **Open, data-gated** |
+| 7 · Form as a player rating | xP shipped, xPOT gated | **Half shipped** |
+
+### Phase 2, what is left
+Gating now enforces itself rather than only displaying: `MIN_TERM` stops the model using an
+undersampled shape, `makeChanceOf` returns nothing past the longest putt ever hit, `xpotStatus`
+refuses with a stated reason, the verdict tally explains its own zeros. What is missing is a
+`SampleTag` on every remaining number. The exit condition says *every*, and it is not every.
+
+### Phase 4, why it cannot be closed by writing code
+`formTrial` runs on every load and prints its own verdict against thresholds fixed before the
+answer was known: under 0.90 Form stays, over 0.95 it goes, between them the blend gets one
+reweighting. It needs ten rounds whose process layer unlocked and has three. The task is no longer
+"remember to check"; it is "play more tagged rounds".
+
+### Phase 5, why fitting the baseline is not the fix
+The obvious move is to fit `DEFAULT_BASELINE` to the player's own putts. It is wrong. Strokes
+gained measures you against a reference, so a self-fitted baseline makes it zero by construction.
+Measured: his putts-to-finish run 0.12 to 0.47 above the current table at every distance, which is
+what losing strokes putting *means*. The table is doing its job; it just cannot be cited. This
+needs a published source, and inventing numbers that look published would be the exact dishonesty
+the phase exists to prevent.
+
+### Phase 6, the reason it matters more than it looks
+Two separate findings this session turned out to be tagging habits wearing the clothes of results.
+Stage two had no intercept, so "putts worth tagging convert better" leaked into the break
+coefficients and made every shape look easier. And faults were impossible to record on a holed
+putt, so "has a fault" was standing in for "missed". Both were invisible until the data was
+checked against itself. One user cannot tell a finding from a habit, which is the whole argument
+for this phase.
+
+---
+
 ## The diagnosis everything follows from
 
 **The app has more metrics than data.** Twenty stats on the Stats page, one player, 27 rounds.
