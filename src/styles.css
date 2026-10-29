@@ -1167,6 +1167,7 @@ button.pick:active { background-color: #f4f1e8; }
 
 /* Where the makes went in, on the same cup you tapped them into. */
 .cupmap { display: flex; gap: 14px; align-items: center; }
+.cupmap:has(.cupmap-svg:only-child) { justify-content: center; margin-bottom: 6px; }
 .cupmap-svg { flex: none; width: 112px; height: 112px; }
 .cupmap-dot { fill: rgba(20, 57, 43, 0.13); }
 .cupmap-dot.on { fill: var(--accent, #b5603a); }

@@ -14,9 +14,12 @@ const at = (deg: number) => [50 + R * Math.cos((deg * Math.PI) / 180), 50 - R * 
 export function CupMap({
   counts,
   unsure = 0,
+  chartOnly = false,
 }: {
   counts: Partial<Record<CupEntry, number>>;
   unsure?: number;
+  /** Where the same figures already sit in rows beneath, draw the cup and nothing else. */
+  chartOnly?: boolean;
 }) {
   const seen = CUP_ENTRIES.map((e) => counts[e] ?? 0);
   const total = seen.reduce((s, n) => s + n, 0);
@@ -62,6 +65,7 @@ export function CupMap({
           );
         })}
       </svg>
+      {!chartOnly && (
       <div className="cupmap-side">
         <p className="cupmap-lead">
           <b>{total ? Math.round((front / total) * 100) : 0}%</b> straight through the front
@@ -85,6 +89,7 @@ export function CupMap({
           <p className="cupmap-note">Mostly edges. Those are the ones that stop dropping.</p>
         )}
       </div>
+      )}
     </div>
   );
 }

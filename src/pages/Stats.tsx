@@ -30,6 +30,7 @@ import { formOf, formBand } from '../lib/form';
 import { StrikePanel } from '../components/StrikePanel';
 import { SampleTag } from '../components/SampleTag';
 import { SectionNav } from '../components/SectionNav';
+import { CupMap } from '../components/CupMap';
 import { BeatBar } from '../components/BeatBar';
 import { sample } from '../lib/sample';
 import { byStrike } from '../lib/stats';
@@ -794,6 +795,11 @@ export function Stats() {
             </p>
           ) : (
             <>
+              <CupMap
+                counts={Object.fromEntries(cup.byPoint.map((b) => [b.point, b.n]))}
+                unsure={cup.unsure}
+                chartOnly
+              />
               <div className="stat-row">
                 <span className="k">Centre cut</span>
                 <span className="v num">
