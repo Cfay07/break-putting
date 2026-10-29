@@ -3,8 +3,11 @@ import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { lagSaves } from '../lib/stats';
 import { holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
+import { BeatBar } from '../components/BeatBar';
+import { CupMap, cupCounts } from '../components/CupMap';
 import {
   fitExecModel,
+  beatSpread,
   difficultyOf,
   xpotStatus,
   makeChanceOf,
@@ -97,6 +100,11 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     }
     return sum;
   }, [makeModel, exec, state.baseline, round]);
+  const beats = useMemo(
+    () => (round ? beatSpread(state.baseline, [round as never]) : null),
+    [state.baseline, round],
+  );
+  const cup = useMemo(() => (round ? cupCounts(round.holes) : null), [round]);
   const sgAdjusted = useMemo(
     () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
     [makeModel, state.baseline, round],
@@ -394,6 +402,20 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
 
       <h2>What to work on</h2>
       <InsightList stats={s} />
+
+      {beats && beats.n >= 6 && (
+        <>
+          <h2>How often you beat the number</h2>
+          <BeatBar spread={beats} compact />
+        </>
+      )}
+
+      {cup && cup.total + cup.unsure > 0 && (
+        <>
+          <h2>Where they went in</h2>
+          <CupMap counts={cup.counts} unsure={cup.unsure} />
+        </>
+      )}
 
       <h2>Scorecard</h2>
       {suspect.length > 0 && (

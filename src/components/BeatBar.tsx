@@ -26,7 +26,7 @@ function saying(from: number, to: number, n: number, total: number): string {
  * their length does. It drew a picture of what the course handed you. This one is about what you
  * did with it, and zero is the only line it needs.
  */
-export function BeatBar({ spread }: { spread: BeatSpread }) {
+export function BeatBar({ spread, compact = false }: { spread: BeatSpread; compact?: boolean }) {
   const [open, setOpen] = useState<number | null>(null);
   const tallest = Math.max(1, ...spread.bins.map((b) => b.n));
   const picked = open === null ? null : spread.bins[open];
@@ -65,7 +65,7 @@ export function BeatBar({ spread }: { spread: BeatSpread }) {
         <span>
           <b>{spread.n ? Math.round((spread.beat / spread.n) * 100) : 0}%</b> of holes beaten
         </span>
-        {spread.best && (
+        {!compact && spread.best && (
           <button
             type="button"
             className="beat-jump"
@@ -74,7 +74,7 @@ export function BeatBar({ spread }: { spread: BeatSpread }) {
             <b>+{spread.best.sg.toFixed(2)}</b> best · {spread.best.ft} ft →
           </button>
         )}
-        {spread.worst && (
+        {!compact && spread.worst && (
           <button
             type="button"
             className="beat-jump"

@@ -1164,3 +1164,14 @@ button.pick:active { background-color: #f4f1e8; }
 .xps-note { font-size: 11.5px; line-height: 1.45; color: var(--ink-3); margin: 8px 0 0; }
 
 .pc-sub { font-size: 10px; color: var(--ink-3); }
+
+/* Where the makes went in, on the same cup you tapped them into. */
+.cupmap { display: flex; gap: 14px; align-items: center; }
+.cupmap-svg { flex: none; width: 112px; height: 112px; }
+.cupmap-dot { fill: rgba(20, 57, 43, 0.13); }
+.cupmap-dot.on { fill: var(--accent, #b5603a); }
+.cupmap-n { font-size: 7px; font-weight: 700; fill: #fff; font-family: inherit; }
+.cupmap-side { flex: 1; min-width: 0; }
+.cupmap-lead { margin: 0 0 4px; font-size: 13px; color: var(--ink-2); }
+.cupmap-lead b { font-size: 19px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cupmap-note { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--ink-3); }
