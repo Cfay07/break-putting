@@ -120,6 +120,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const [courseOpen, setCourseOpen] = useState(false);
   const [whyBreak, setWhyBreak] = useState(false);
   const [whyXp, setWhyXp] = useState(false);
+  const [whyRoundXp, setWhyRoundXp] = useState(false);
 
   if (!round) {
     return (
@@ -289,9 +290,28 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             <span className="v num neg">{round.recordedPutts}</span>
           </div>
         )}
+        {whyRoundXp && (
+          <p className="why-note">
+            Only the first putt on each hole is counted, and the putt cards will not add up to
+            this. A twenty two footer worth 1.98 <b>already contains</b> the putt it leaves you,
+            so adding the three footer underneath it would charge that one twice. The same reason
+            strokes gained takes the first putt and the total, never every putt in between.
+          </p>
+        )}
         {roundXp !== null && (
           <div className="stat-row">
-            <span className="k">Expected putts (xP)</span>
+            <span className="k">
+              Expected putts (xP)
+              <span className="small muted"> · first putts</span>
+              <button
+                type="button"
+                className="why"
+                aria-expanded={whyRoundXp}
+                onClick={() => setWhyRoundXp(!whyRoundXp)}
+              >
+                ?
+              </button>
+            </span>
             <span className="v num">{roundXp.toFixed(2)}</span>
           </div>
         )}

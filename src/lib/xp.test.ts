@@ -175,3 +175,19 @@ describe('room to spare', () => {
     expect(roomOf('left')).toBeCloseTo(roomOf('right')!, 10);
   });
 });
+
+describe('round xP sums first putts, not every putt', () => {
+  it('a hole is worth its first putt, which already contains the leave', () => {
+    const hole = [putt(22, false, ['R→L', 'downhill'], 3), putt(3, true)];
+    const first = xpOf(M, B, hole[0]);
+    const second = xpOf(M, B, hole[1]);
+    if (first === null || second === null) return;
+    // Adding every putt would charge the three footer twice over.
+    expect(first + second).toBeGreaterThan(first);
+    // The hole's own strokes gained uses the first putt and the count, nothing in between.
+    const holeSg = first - hole.length;
+    const each = hole.map((_, i) => puttSGAdjusted(M, B, hole, i));
+    if (each.some((v) => v === null)) return;
+    expect((each as number[]).reduce((s, v) => s + v, 0)).toBeCloseTo(holeSg, 10);
+  });
+});

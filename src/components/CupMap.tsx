@@ -1,4 +1,5 @@
 import { CUP_ANGLES, CUP_ENTRIES, type CupEntry } from '../lib/types';
+import { roomOf, ROOM_MAX } from '../lib/xp';
 
 const R = 34;
 const at = (deg: number) => [50 + R * Math.cos((deg * Math.PI) / 180), 50 - R * Math.sin((deg * Math.PI) / 180)];
@@ -21,6 +22,23 @@ export function CupMap({
   const total = seen.reduce((s, n) => s + n, 0);
   const most = Math.max(1, ...seen);
   const front = counts.front ?? 0;
+
+  // Room to spare, weighted by how many went in at each point. The back half carries no margin
+  // reading, so it is counted separately rather than dragged into the average as a zero.
+  let roomSum = 0;
+  let roomN = 0;
+  let onPace = 0;
+  for (const e of CUP_ENTRIES) {
+    const n = counts[e] ?? 0;
+    if (!n) continue;
+    const room = roomOf(e);
+    if (room === null) onPace += n;
+    else {
+      roomSum += room * n;
+      roomN += n;
+    }
+  }
+  const meanRoom = roomN ? roomSum / roomN : null;
 
   return (
     <div className="cupmap">
@@ -51,10 +69,21 @@ export function CupMap({
         <p className="cupmap-note">
           {total} make{total === 1 ? '' : 's'} logged
           {unsure > 0 ? `, ${unsure} you did not see` : ''}.
-          {total > 0 && front / total < 0.4
-            ? ' Mostly edges. Those are the ones that stop dropping.'
-            : ''}
         </p>
+        {meanRoom !== null && (
+          <p className="cupmap-room">
+            <b>{meanRoom.toFixed(2)} in</b> of room to spare, typical
+            <span className="cupmap-of"> of {ROOM_MAX.toFixed(2)} dead centre</span>
+          </p>
+        )}
+        {onPace > 0 && (
+          <p className="cupmap-note">
+            {onPace} went in off the back, on pace. Those carry no margin to read.
+          </p>
+        )}
+        {total > 0 && front / total < 0.4 && (
+          <p className="cupmap-note">Mostly edges. Those are the ones that stop dropping.</p>
+        )}
       </div>
     </div>
   );
