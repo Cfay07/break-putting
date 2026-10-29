@@ -31,6 +31,7 @@ import { StrikePanel } from '../components/StrikePanel';
 import { SampleTag } from '../components/SampleTag';
 import { SectionNav } from '../components/SectionNav';
 import { CupMap } from '../components/CupMap';
+import { Why } from '../components/Why';
 import { BeatBar } from '../components/BeatBar';
 import { sample } from '../lib/sample';
 import { byStrike } from '../lib/stats';
@@ -594,9 +595,9 @@ export function Stats() {
                   </div>
                 ))}
               </div>
-              <p className="note">
-                Against what the putt was worth, not against its length. Robbed and Sold are both
-                misses you should have made, split on whether the stroke was clean.
+              <Why lead="Against what the putt was worth, not against its length.">
+                Robbed and Sold are both misses you should have made, split on whether the stroke
+                was clean.
                 {verdicts.unjudgedMisses > 0 && (
                   <>
                     {' '}
@@ -609,19 +610,18 @@ export function Stats() {
                     wrong", and they land in one column or the other.
                   </>
                 )}
-              </p>
+              </Why>
             </>
           )}
 
           {spread.n > 0 && (
             <>
               <h2>How often you beat the number</h2>
-              <p className="note">
-                One bar per hole, against what its first putt was worth. Left of zero cost you,
-                right of zero you took it. This used to chart expected putts instead, which sorted
-                holes in almost exactly the order their length does, so it drew what the course
-                handed you rather than what you did with it.
-              </p>
+              <Why lead="One bar per hole, against what its first putt was worth.">
+                Left of zero cost you, right of zero you took it. This charted expected putts once
+                and that sorted holes in almost the order their length does, so it drew what the
+                course handed you rather than what you did with it.
+              </Why>
               <BeatBar spread={spread} />
             </>
           )}
@@ -663,10 +663,10 @@ export function Stats() {
               Tag a few putts you struck badly and holed anyway and this can start answering.
             </p>
           ) : exec.nClean < 5 || exec.nFaulty < 5 ? (
-            <p className="note">
-              Not enough strokes judged yet. This needs putts where you either ticked a fault or
-              said outright that nothing was wrong, because a blank cannot tell the two apart.
-            </p>
+            <Why lead="Not enough strokes judged yet.">
+              This needs putts where you either ticked a fault or said outright that nothing was
+              wrong, because a blank cannot tell the two apart.
+            </Why>
           ) : (
             <>
               <div className="stat-row">
@@ -735,12 +735,11 @@ export function Stats() {
           {bias.n >= 10 && (
             <>
               <h2>Too much break or not enough</h2>
-              <p className="note">
-                One axis for every putt that turns. A miss finishing high and a make entering on
-                the high side say the same thing: more break than it took. Until the cup existed
-                only the misses could speak, which is the tail of the pattern rather than the
-                pattern.
-              </p>
+              <Why lead="One axis for every putt that turns.">
+                A miss finishing high and a make entering on the high side say the same thing:
+                more break than it took. Until the cup existed only the misses could speak, which
+                is the tail of the pattern rather than the pattern.
+              </Why>
               <div className="biasbar">
                 <span
                   className="bias-seg over"
@@ -787,12 +786,12 @@ export function Stats() {
 
           <h2>How much of the hole you use</h2>
           {cup.n + cup.unsure === 0 ? (
-            <p className="note">
-              Nothing logged yet. A make is a make to every putting stat there is, so a centre cut
-              and a ball that fell in off the back lip read identically. Tag where a few drop and
-              this will tell you what share you are cutting through the middle, which is the part
-              that keeps happening, against the edges, which is the part that stops.
-            </p>
+            <Why lead="Nothing logged yet.">
+              A make is a make to every putting stat there is, so a centre cut and a ball off the
+              back lip read identically. Tag where a few drop and this tells you what share you
+              cut through the middle, the part that keeps happening, against the edges, the part
+              that stops.
+            </Why>
           ) : (
             <>
               <CupMap
@@ -846,19 +845,17 @@ export function Stats() {
                       <span className="v num muted">{room.onPace}</span>
                     </div>
                   )}
-                  <p className="note">
-                    Pure geometry. A ball dropping dead through the front had{' '}
-                    {ROOM_MAX.toFixed(2)} inches of error either way; one off the lip had none.
-                    Nothing is fitted here, so there is no sample to wait for and nothing to
-                    confound. It is as true on the first putt as the thousandth.
-                  </p>
+                  <Why lead="Pure geometry, so there is no sample to wait for.">
+                    A ball dead through the front had {ROOM_MAX.toFixed(2)} inches of error either
+                    way; one off the lip had none. Nothing is fitted, nothing can confound it, and
+                    it is as true on the first putt as the thousandth. It says nothing about pace
+                    or whether the read was right: entry point is a joint result of line, speed
+                    and break, so a back door can come from too much pace or from a putt that took
+                    the break late.
+                  </Why>
                 </>
               )}
-              <p className="note">
-                Counting, not a model. It says nothing about pace or whether the read was right:
-                entry point is a joint result of line, speed and break, so a back door can come
-                from too much pace or from a putt that took the break late.
-              </p>
+
             </>
           )}
 
