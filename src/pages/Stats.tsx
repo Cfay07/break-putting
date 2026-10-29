@@ -19,6 +19,7 @@ import { readError } from '../lib/readError';
 import { formOf, formBand } from '../lib/form';
 import { StrikePanel } from '../components/StrikePanel';
 import { SampleTag } from '../components/SampleTag';
+import { SectionNav } from '../components/SectionNav';
 import { sample } from '../lib/sample';
 import { byStrike } from '../lib/stats';
 import { LearnedPanel } from '../components/LearnedPanel';
@@ -258,7 +259,7 @@ export function Stats() {
   ];
 
   return (
-    <>
+    <div id="stats-root">
       <div className="board-bar" style={{ marginTop: 0 }}>
         <span className="field-label" style={{ margin: 0 }}>
           Showing
@@ -269,6 +270,7 @@ export function Stats() {
             : SCOPE_LABELS[scope]}
         </button>
       </div>
+      <SectionNav scope="#stats-root" />
 
       {scopeSheet && (
         <Sheet title="Showing" onClose={() => setScopeSheet(false)}>
@@ -697,7 +699,7 @@ export function Stats() {
                       ) : null}
                     </span>
                     <span className="pc-line">
-                      <span className="pc-k">Its shape added</span>
+                      <span className="pc-k">The break added</span>
                       <span className="pc-t pc-adj">+{x.added.toFixed(2)} putts</span>
                     </span>
                     <span className="pc-line">
@@ -1131,6 +1133,6 @@ export function Stats() {
         </>
 
       )}
-    </>
+    </div>
   );
 }

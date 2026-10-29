@@ -509,11 +509,11 @@ export function RoundDetail({ id }: { id: string }) {
                               <span className="pc-v">{Math.round((chance ?? 0) * 100)}%</span>
                             </span>
                             <span className="pc-cell">
-                              <span className="pc-k">Distance alone</span>
+                              <span className="pc-k">Same length, straight</span>
                               <span className="pc-v quiet">{base.toFixed(2)}</span>
                             </span>
                             <span className="pc-cell">
-                              <span className="pc-k">Its shape</span>
+                              <span className="pc-k">The break added</span>
                               <span className="pc-v quiet">
                                 {adj === null || Math.abs(adj) < 0.005
                                   ? '—'
@@ -536,12 +536,15 @@ export function RoundDetail({ id }: { id: string }) {
                         {sgPlain !== null && (
                           <span className="pc-line">
                             <span className="pc-k">Strokes gained</span>
-                            <span className="pc-t">
-                              {signed(sgPlain)}
-                              {sgAdj !== null && Math.abs(sgAdj - sgPlain) >= 0.005 ? (
-                                <span className="pc-adj"> → {signed(sgAdj)} with break</span>
-                              ) : null}
-                            </span>
+                            <span className="pc-t">{signed(sgPlain)}</span>
+                          </span>
+                        )}
+                        {/* A separate row, never an arrow off the first one. Strokes gained itself
+                            is untouched and distance-only; this is a second reading beside it. */}
+                        {sgPlain !== null && sgAdj !== null && Math.abs(sgAdj - sgPlain) >= 0.005 && (
+                          <span className="pc-line">
+                            <span className="pc-k">Counting the break</span>
+                            <span className="pc-t pc-adj">{signed(sgAdj)}</span>
                           </span>
                         )}
                       </button>
