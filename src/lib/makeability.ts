@@ -23,8 +23,22 @@ export const MIN_TAGGED_PUTTS_FOR_MODEL = 150;
 /** A single shape needs its own sample before its row means anything, whatever the total says. */
 export const MIN_TERM = 30;
 
-const TERMS = ['lr', 'rl', 'double', 'uphill', 'downhill'] as const;
-type Term = (typeof TERMS)[number];
+/**
+ * `slopeKnown` and `downhill` rather than `uphill` and `downhill`, and the reason is the whole
+ * downhill puzzle.
+ *
+ * There is no flat tag. A putt with no slope on it is not a level putt, it is a putt whose slope
+ * was never stated, and the old terms measured uphill and downhill against that mixture. Putts
+ * whose slope got noted are the ones that were read carefully, and they convert better for that
+ * reason alone, so both slopes inherited the attention and downhill came out *easier* than a
+ * reference it should have been harder than.
+ *
+ * Split in two: `slopeKnown` holds whatever is different about a putt somebody bothered to
+ * describe, and `downhill` becomes the straight contrast against uphill, which is the physical
+ * question and the only one worth a coefficient.
+ */
+const TERMS = ['lr', 'rl', 'double', 'slopeKnown', 'downhill'] as const;
+export type Term = (typeof TERMS)[number];
 
 export interface MakeModel {
   /** Intercept and slope on ln(distance). Always present once there is any putt at all. */
@@ -122,7 +136,11 @@ function termsOf(dirs: BreakDir[]): Term[] {
   if (bucket === 'rl') out.push('rl');
   if (bucket === 'double') out.push('double');
   const slope = slopeOf(dirs);
-  if (slope) out.push(slope);
+  if (slope) {
+    out.push('slopeKnown');
+    // Uphill is the reference inside the known group, so downhill carries the contrast alone.
+    if (slope === 'downhill') out.push('downhill');
+  }
   return out;
 }
 
@@ -228,6 +246,21 @@ export function makeability(
 }
 
 /** What the break alone is worth, in percentage points, against a straight flat putt of the same length. */
+/**
+ * Downhill against uphill, in points of make chance.
+ *
+ * The slope question the data can actually answer. Comparing either slope against a putt with no
+ * slope on it compares it against "nobody said", which is not level ground: it is the putts that
+ * were not read closely, and they convert worse for that reason alone.
+ */
+export function downhillCost(model: MakeModel, d: number): number | null {
+  if (!model.ready) return null;
+  const up = makeability(model, d, ['uphill']);
+  const down = makeability(model, d, ['downhill']);
+  if (up === null || down === null) return null;
+  return (down - up) * 100;
+}
+
 export function breakCost(model: MakeModel, d: number, dirs: BreakDir[]): number | null {
   if (!model.ready) return null;
   const plain = makeability(model, d, []);

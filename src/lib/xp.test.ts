@@ -204,3 +204,91 @@ describe('round xP sums first putts, not every putt', () => {
     expect((each as number[]).reduce((s, v) => s + v, 0)).toBeCloseTo(holeSg, 10);
   });
 });
+
+describe('slope: stated-ness and direction are different questions', () => {
+  // Downhill is genuinely harder than uphill here, and putts whose slope gets noted convert
+  // better for a reason that has nothing to do with slope. Measuring downhill against "not
+  // stated" then reports it as easier, which is how a reading of +0.108 appears on real data.
+  const A = 3.2;
+  const B = -2.06;
+  const TRUTH = { attention: 0.45, downhillVsUphill: -0.4 };
+
+  function rng(a: number) {
+    return () => {
+      a |= 0;
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function sample(n: number) {
+    const r = rng(20261029);
+    const out: { d: number; noted: boolean; downhill: boolean; made: boolean }[] = [];
+    for (let i = 0; i < n; i++) {
+      const d = 3 + Math.floor(r() * 30);
+      const noted = r() < 0.45;
+      const downhill = noted && r() < 0.5;
+      let eta = A + B * Math.log(d);
+      if (noted) eta += TRUTH.attention;
+      if (downhill) eta += TRUTH.downhillVsUphill;
+      out.push({ d, noted, downhill, made: r() < 1 / (1 + Math.exp(-eta)) });
+    }
+    return out;
+  }
+
+  function fit(
+    putts: ReturnType<typeof sample>,
+    design: (p: ReturnType<typeof sample>[number]) => [number, number],
+  ): [number, number] {
+    let beta: [number, number] = [0, 0];
+    for (let s = 0; s < 80; s++) {
+      const M = [
+        [0, 0],
+        [0, 0],
+      ];
+      const v = [0, 0];
+      for (const p of putts) {
+        const x = design(p);
+        const off = A + B * Math.log(p.d);
+        const eta = off + x[0] * beta[0] + x[1] * beta[1];
+        const mu = 1 / (1 + Math.exp(-eta));
+        const w = Math.max(mu * (1 - mu), 1e-9);
+        const z = eta - off + ((p.made ? 1 : 0) - mu) / w;
+        for (let r = 0; r < 2; r++) {
+          v[r] += x[r] * w * z;
+          for (let c = 0; c < 2; c++) M[r][c] += x[r] * w * x[c];
+        }
+      }
+      const det = M[0][0] * M[1][1] - M[0][1] * M[1][0];
+      if (!det) break;
+      beta = [
+        (v[0] * M[1][1] - v[1] * M[0][1]) / det,
+        (M[0][0] * v[1] - M[1][0] * v[0]) / det,
+      ];
+    }
+    return beta;
+  }
+
+  const putts = sample(40000);
+
+  it('measuring each slope against "not stated" calls downhill easier than it is', () => {
+    const [, downhill] = fit(putts, (p) => [
+      p.noted && !p.downhill ? 1 : 0,
+      p.noted && p.downhill ? 1 : 0,
+    ]);
+    // Nowhere near the real -0.40: it lands at the sum of attention and slope, around zero.
+    expect(downhill).toBeGreaterThan(-0.2);
+  });
+
+  it('holding stated-ness separately recovers downhill as harder', () => {
+    const [stated, downhill] = fit(putts, (p) => [
+      p.noted ? 1 : 0,
+      p.noted && p.downhill ? 1 : 0,
+    ]);
+    expect(stated).toBeGreaterThan(0.25);
+    expect(downhill).toBeLessThan(-0.25);
+    expect(downhill).toBeCloseTo(TRUTH.downhillVsUphill, 1);
+  });
+});

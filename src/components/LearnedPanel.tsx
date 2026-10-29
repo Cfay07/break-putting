@@ -1,12 +1,28 @@
-import { MIN_TERM, breakCost, makeability, type MakeModel } from '../lib/makeability';
+import {
+  MIN_TERM,
+  breakCost,
+  downhillCost,
+  makeability,
+  type MakeModel,
+  type Term,
+} from '../lib/makeability';
 import type { BreakDir } from '../lib/types';
 
-const SHAPES: { label: string; dirs: BreakDir[]; term: 'lr' | 'rl' | 'double' | 'uphill' | 'downhill' }[] = [
+/**
+ * `term` names the coefficient whose sample size this row stands on. Uphill leans on slopeKnown,
+ * because uphill is the reference inside the slope-stated group and has no coefficient of its own;
+ * downhill leans on the contrast against it.
+ */
+/**
+ * Direction only. Slope is not in this table, because the comparison it offers is against a
+ * straight putt and there is no level-ground tag to be straight against: a putt with no slope on
+ * it means nobody said, not that the green was flat. Slope gets its own row underneath, as the
+ * one contrast the record supports.
+ */
+const SHAPES: { label: string; dirs: BreakDir[]; term: Term }[] = [
   { label: 'L→R', dirs: ['L→R'], term: 'lr' },
   { label: 'L←R', dirs: ['R→L'], term: 'rl' },
   { label: 'Double break', dirs: ['L→R', 'R→L'], term: 'double' },
-  { label: 'Uphill', dirs: ['uphill'], term: 'uphill' },
-  { label: 'Downhill', dirs: ['downhill'], term: 'downhill' },
 ];
 
 const pct = (v: number | null) => (v === null ? '--' : `${(v * 100).toFixed(0)}%`);
@@ -71,6 +87,15 @@ export function LearnedPanel({ model }: { model: MakeModel }) {
           </tbody>
         </table>
       </div>
+      {model.taggedBy.downhill >= MIN_TERM && downhillCost(model, 6) !== null && (
+        <div className="stat-row" style={{ marginTop: 8 }}>
+          <span className="k">Downhill, against uphill</span>
+          <span className={downhillCost(model, 6)! < 0 ? 'v num neg' : 'v num pos'}>
+            {downhillCost(model, 6)! >= 0 ? '+' : ''}
+            {downhillCost(model, 6)!.toFixed(0)} pts
+          </span>
+        </div>
+      )}
       <p className="small muted" style={{ margin: '6px 0 0' }}>
         Learned from the {model.tagged} putts you tagged a break on. A shape needs {MIN_TERM} of
         its own before it gets a number, and thin ones are pulled toward no effect on purpose, so
