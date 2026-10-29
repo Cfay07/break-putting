@@ -572,7 +572,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                             </span>
                             <span className="pc-cell">
                               <span className="pc-k">Chance it drops</span>
-                              <span className="pc-v">{Math.round((chance ?? 0) * 100)}%</span>
+                              <span className="pc-v">{((chance ?? 0) * 100).toFixed(2)}%</span>
                             </span>
 
                           </span>

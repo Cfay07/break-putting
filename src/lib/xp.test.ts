@@ -42,8 +42,8 @@ describe('xP', () => {
     expect(severityOf({ d: 8, made: false, breakDirs: ['straight'], brokeAs: 3 } as Putt)).toBeUndefined();
   });
 
-  it('clamps past the end of the baseline table', () => {
-    expect(expectedPutts(B, 60)).toBe(expectedPutts(B, 200));
+  it('keeps rising past the end of the table rather than tying every long putt', () => {
+    expect(expectedPutts(B, 77)).toBeGreaterThan(expectedPutts(B, 60));
   });
 });
 
@@ -119,5 +119,28 @@ describe('under-sampled shapes do not price putts', () => {
     expect(withDouble).toBeCloseTo(noShape as number, 10);
     // And a well-sampled shape still moves the number.
     expect(makeability(m, 10, ['L→R'])).not.toBeCloseTo(noShape as number, 4);
+  });
+});
+
+describe('past the end of the baseline table', () => {
+  it('keeps rising instead of flattening into a tie', () => {
+    const a = expectedPutts(B, 60);
+    const b = expectedPutts(B, 77);
+    const c = expectedPutts(B, 95);
+    expect(b).toBeGreaterThan(a);
+    expect(c).toBeGreaterThan(b);
+    // and not by a silly amount: a 95 footer is not a four-putt
+    expect(c).toBeLessThan(a + 0.25);
+  });
+
+  it('stops reaching somewhere sane', () => {
+    expect(expectedPutts(B, 100)).toBeCloseTo(expectedPutts(B, 400), 10);
+  });
+
+  it('is unchanged inside the table', () => {
+    for (const d of [3, 7, 12, 25, 40, 59]) {
+      expect(expectedPutts(B, d)).toBeGreaterThan(1);
+      expect(expectedPutts(B, d)).toBeLessThan(2.25);
+    }
   });
 });
