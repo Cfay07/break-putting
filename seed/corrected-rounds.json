@@ -1,0 +1,3823 @@
+{
+  "version": 1,
+  "putters": [
+    {
+      "id": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "name": "L.A.B. DF3",
+      "active": false,
+      "retired": true
+    },
+    {
+      "id": "8e04c73f-45ff-4dee-ab0c-57a33ec0dbba",
+      "name": "Cobra Stingray 2026",
+      "active": true,
+      "retired": false
+    }
+  ],
+  "courses": [],
+  "rounds": [
+    {
+      "id": "08167495-1450-4c84-ba41-e294820c584c",
+      "label": "Ives Grove",
+      "date": "2026-09-15",
+      "course": "Ives Grove",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "putts": [
+            {
+              "d": 7,
+              "made": false,
+              "missSide": "low"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 5,
+          "strokes": 5
+        },
+        {
+          "hole": 2,
+          "putts": [
+            {
+              "d": 44,
+              "made": false,
+              "missSide": "high",
+              "speed": "long"
+            },
+            {
+              "d": 4,
+              "made": false,
+              "missSide": "high",
+              "lip": true
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 3,
+          "strokes": 4
+        },
+        {
+          "hole": 3,
+          "putts": [
+            {
+              "d": 28,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 4,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 5,
+          "putts": [
+            {
+              "d": 11,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 5,
+          "strokes": 5
+        },
+        {
+          "hole": 6,
+          "putts": [
+            {
+              "d": 4,
+              "made": false,
+              "missSide": "low"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 4,
+          "strokes": 5
+        },
+        {
+          "hole": 7,
+          "putts": [
+            {
+              "d": 54,
+              "made": false,
+              "missSide": "high",
+              "speed": "short"
+            },
+            {
+              "d": 6,
+              "made": false,
+              "speed": "short"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 4,
+          "strokes": 5
+        },
+        {
+          "hole": 8,
+          "putts": [
+            {
+              "d": 59,
+              "made": true
+            }
+          ],
+          "vsPar": -1,
+          "par": 3,
+          "strokes": 2
+        },
+        {
+          "hole": 9,
+          "putts": [
+            {
+              "d": 32,
+              "made": false,
+              "missSide": "high",
+              "speed": "long"
+            },
+            {
+              "d": 12,
+              "made": false,
+              "missSide": "low",
+              "lip": true
+            },
+            {
+              "d": 4,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 2,
+          "par": 4,
+          "strokes": 6
+        },
+        {
+          "hole": 10,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": -1,
+          "par": 5,
+          "strokes": 4
+        },
+        {
+          "hole": 11,
+          "putts": [
+            {
+              "d": 5,
+              "made": false,
+              "missSide": "low",
+              "lip": true
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 12,
+          "putts": [
+            {
+              "d": 22,
+              "made": false,
+              "missSide": "high",
+              "speed": "short"
+            },
+            {
+              "d": 2,
+              "made": false,
+              "missSide": "high",
+              "push": true
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 4,
+          "strokes": 5
+        },
+        {
+          "hole": 13,
+          "putts": [
+            {
+              "d": 34,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 2,
+          "par": 4,
+          "strokes": 6
+        },
+        {
+          "hole": 14,
+          "putts": [
+            {
+              "d": 11,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 3,
+          "strokes": 3
+        },
+        {
+          "hole": 15,
+          "putts": [
+            {
+              "d": 3,
+              "made": false,
+              "missSide": "low",
+              "pull": true
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 4,
+          "strokes": 5
+        },
+        {
+          "hole": 16,
+          "putts": [
+            {
+              "d": 10,
+              "made": false,
+              "missSide": "low"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 3,
+          "strokes": 4
+        },
+        {
+          "hole": 17,
+          "putts": [
+            {
+              "d": 14,
+              "made": false,
+              "missSide": "high",
+              "speed": "long"
+            },
+            {
+              "d": 4,
+              "made": false,
+              "missSide": "low"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 4,
+          "strokes": 5
+        },
+        {
+          "hole": 18,
+          "putts": [
+            {
+              "d": 32,
+              "made": false,
+              "missSide": "high",
+              "speed": "short"
+            },
+            {
+              "d": 4,
+              "made": false,
+              "missSide": "low"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 5,
+          "strokes": 5
+        }
+      ],
+      "finished": true,
+      "score": 81,
+      "recordedPutts": 40,
+      "firstNine": "White",
+      "secondNine": "Blue"
+    },
+    {
+      "id": "78d1184e-b5a3-460c-af5d-2b1681a433ef",
+      "label": "Ives Grove",
+      "date": "2026-09-14",
+      "course": "Ives Grove",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "putts": [
+            {
+              "d": 8,
+              "made": false,
+              "missSide": "high",
+              "lip": true
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 5,
+          "strokes": 5
+        },
+        {
+          "hole": 2,
+          "putts": [
+            {
+              "d": 11,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 4,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 3,
+          "putts": [
+            {
+              "d": 38,
+              "made": false,
+              "missSide": "low"
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 4,
+          "putts": [
+            {
+              "d": 14,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 5,
+              "made": false,
+              "missSide": "low"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 4,
+          "strokes": 5
+        },
+        {
+          "hole": 5,
+          "putts": [
+            {
+              "d": 3,
+              "made": false,
+              "missSide": "high",
+              "lip": true
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 3,
+          "strokes": 4
+        },
+        {
+          "hole": 6,
+          "putts": [
+            {
+              "d": 18,
+              "made": false,
+              "missSide": "low",
+              "lip": true
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 7,
+          "putts": [
+            {
+              "d": 8,
+              "made": false,
+              "missSide": "high",
+              "lip": true
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 3,
+          "strokes": 4
+        },
+        {
+          "hole": 8,
+          "putts": [
+            {
+              "d": 10,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 4,
+          "par": 4,
+          "strokes": 8
+        },
+        {
+          "hole": 9,
+          "putts": [
+            {
+              "d": 8,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 3,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 5,
+          "strokes": 6
+        },
+        {
+          "hole": 10,
+          "putts": [
+            {
+              "d": 8,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 4,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 11,
+          "putts": [
+            {
+              "d": 8,
+              "made": false,
+              "missSide": "low"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 4,
+          "strokes": 5
+        },
+        {
+          "hole": 12,
+          "putts": [
+            {
+              "d": 44,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 12,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 1,
+          "par": 3,
+          "strokes": 4
+        },
+        {
+          "hole": 13,
+          "putts": [
+            {
+              "d": 18,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 14,
+          "putts": [
+            {
+              "d": 8,
+              "made": true
+            }
+          ],
+          "vsPar": -1,
+          "par": 5,
+          "strokes": 4
+        },
+        {
+          "hole": 15,
+          "putts": [
+            {
+              "d": 13,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 3,
+          "strokes": 3
+        },
+        {
+          "hole": 16,
+          "putts": [
+            {
+              "d": 34,
+              "made": false,
+              "missSide": "high"
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 17,
+          "putts": [
+            {
+              "d": 6,
+              "made": false,
+              "speed": "short",
+              "chunk": true
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ],
+          "vsPar": 0,
+          "par": 4,
+          "strokes": 4
+        },
+        {
+          "hole": 18,
+          "putts": [
+            {
+              "d": 8,
+              "made": true
+            }
+          ],
+          "vsPar": -1,
+          "par": 5,
+          "strokes": 4
+        }
+      ],
+      "finished": true,
+      "score": 80,
+      "recordedPutts": 37,
+      "firstNine": "Blue",
+      "secondNine": "Red"
+    },
+    {
+      "id": "43d9b54b-01cd-40af-af3b-cdcbed14b9fc",
+      "label": "White Birch-Brighton Dale Links",
+      "date": "2026-09-13",
+      "course": "White Birch-Brighton Dale Links",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 42,
+              "made": false
+            },
+            {
+              "d": 4,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 28,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 4,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 10,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 17,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 5,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 18,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 47,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 6,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 21,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 22,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 4,
+          "strokes": 7,
+          "putts": [
+            {
+              "d": 10,
+              "made": false
+            },
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 77,
+      "recordedPutts": 38,
+      "updated": "2026-09-19T22:00:00.000Z"
+    },
+    {
+      "id": "274ba043-af67-4625-8701-36fa0b23bf92",
+      "label": "Sun Prairie Golf Club",
+      "date": "2026-09-11",
+      "course": "Sun Prairie Golf Club",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 14,
+              "made": false
+            },
+            {
+              "d": 4,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 4,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 32,
+              "made": false
+            },
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 14,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 27,
+              "made": false
+            },
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 5,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 13,
+              "made": false
+            },
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 3,
+          "strokes": 2,
+          "putts": []
+        },
+        {
+          "hole": 9,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 14,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 4,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 26,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 79,
+      "recordedPutts": 37,
+      "updated": "2026-09-19T22:00:00.000Z"
+    },
+    {
+      "id": "036fa002-d797-44a7-9f18-6a99a779be71",
+      "label": "Sun Prairie Golf Club",
+      "date": "2026-09-10",
+      "course": "Sun Prairie Golf Club",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 11,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 14,
+              "made": false
+            },
+            {
+              "d": 6,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 5,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 15,
+              "made": false
+            },
+            {
+              "d": 4,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 3,
+          "strokes": 2,
+          "putts": [
+            {
+              "d": 30,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 4,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 10,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 5,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 15,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 9,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 14,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 4,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 20,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 21,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 9,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 71,
+      "recordedPutts": 31,
+      "updated": "2026-09-19T22:00:00.000Z"
+    },
+    {
+      "id": "3466b92f-4e05-4254-b707-015a223f7db6",
+      "label": "Browns Lake Golf Course",
+      "date": "2026-09-05",
+      "course": "Browns Lake Golf Course",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 40,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 5,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 14,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 11,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 11,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 9,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 9,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 5,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 9,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 14,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 4,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 78,
+      "recordedPutts": 32,
+      "updated": "2026-09-19T22:00:00.000Z"
+    },
+    {
+      "id": "6c0d7c7b-ea2f-4869-8006-cda2954708a5",
+      "label": "Ives Grove Golf Links",
+      "date": "2026-08-29",
+      "course": "Ives Grove Golf Links",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 14,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 33,
+              "made": false
+            },
+            {
+              "d": 4,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 32,
+              "made": false
+            },
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 10,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 13,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 5,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 30,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 13,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 11,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 5,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 6,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 25,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 19,
+              "made": false
+            },
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 74,
+      "recordedPutts": 36,
+      "updated": "2026-09-19T22:00:00.000Z",
+      "firstNine": "Red",
+      "secondNine": "White"
+    },
+    {
+      "id": "aabe0097-17f4-44ae-9d79-9031e5826dd5",
+      "label": "Blue Spruce-Brighton Dale Links",
+      "date": "2026-08-20",
+      "course": "Blue Spruce-Brighton Dale Links",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 5,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 5,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 22,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 5,
+          "strokes": 7,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 4,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 5,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 5,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 10,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 38,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 26,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 76,
+      "recordedPutts": 31,
+      "updated": "2026-09-19T22:00:00.000Z"
+    },
+    {
+      "id": "8bdbfeac-da04-4a54-82a0-4b08ced96402",
+      "label": "Ives Grove Golf Links",
+      "date": "2026-08-19",
+      "course": "Ives Grove Golf Links",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 6,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 5,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 5,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 4,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 11,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 11,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 10,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 11,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 17,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 38,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 5,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 10,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 27,
+              "made": false
+            },
+            {
+              "d": 5,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 13,
+              "made": false
+            },
+            {
+              "d": 4,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 5,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 74,
+      "recordedPutts": 32,
+      "updated": "2026-09-19T22:00:00.000Z",
+      "firstNine": "Red",
+      "secondNine": "White"
+    },
+    {
+      "id": "4307830e-14a1-4c28-9b2d-8ebf89566186",
+      "label": "Meadowbrook Country Club",
+      "date": "2026-08-18",
+      "course": "Meadowbrook Country Club",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 44,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 9,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 19,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 3,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 8,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 4,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 30,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 85,
+      "recordedPutts": 33,
+      "updated": "2026-09-19T22:00:00.000Z"
+    },
+    {
+      "id": "f4625aef-2358-4ecb-a0b8-9ebb4397ce22",
+      "label": "Como Crossings-Hawks View Golf Club",
+      "date": "2026-08-17",
+      "course": "Como Crossings-Hawks View Golf Club",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 23,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 17,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 14,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 41,
+              "made": false
+            },
+            {
+              "d": 9,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 22,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 10,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 23,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 12,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 6,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 4,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 38,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 15,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 11,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 77,
+      "recordedPutts": 35,
+      "updated": "2026-09-19T22:00:00.000Z"
+    },
+    {
+      "id": "27cc1bcc-63fc-45aa-b6e4-f9e960f36fb3",
+      "label": "Morningstar Golfers Club",
+      "date": "2026-08-16",
+      "course": "Morningstar Golfers Club",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 5,
+          "strokes": 7,
+          "putts": [
+            {
+              "d": 2,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 4,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 3,
+          "strokes": 2,
+          "putts": [
+            {
+              "d": 4,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 7,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 13,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 5,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 31,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 24,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 27,
+              "made": false
+            },
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 8,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 28,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 18,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 4,
+          "strokes": 7,
+          "putts": [
+            {
+              "d": 5,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 5,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 82,
+      "recordedPutts": 35,
+      "updated": "2026-09-19T22:00:00.000Z"
+    },
+    {
+      "id": "33869f8b-ed98-434e-859a-f8ba27ce4718",
+      "label": "Johnson Park Golf Course",
+      "date": "2026-08-15",
+      "course": "Johnson Park Golf Course",
+      "putterId": "e23300a7-b406-48c0-ad01-6eadd200ec2d",
+      "holeCount": 18,
+      "holes": [
+        {
+          "hole": 1,
+          "par": 5,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 28,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 2,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 40,
+              "made": false
+            },
+            {
+              "d": 21,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 3,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 18,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 4,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 39,
+              "made": false
+            },
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 19,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 5,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 6,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 19,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 7,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 14,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 8,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 11,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 9,
+          "par": 4,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 3,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 10,
+          "par": 5,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 4,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 11,
+          "par": 3,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 2,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 12,
+          "par": 5,
+          "strokes": 5,
+          "putts": [
+            {
+              "d": 9,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 13,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 14,
+              "made": false
+            },
+            {
+              "d": 5,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 14,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 3,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 15,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 16,
+          "par": 5,
+          "strokes": 6,
+          "putts": [
+            {
+              "d": 14,
+              "made": false
+            },
+            {
+              "d": 2,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 17,
+          "par": 4,
+          "strokes": 4,
+          "putts": [
+            {
+              "d": 7,
+              "made": false
+            },
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        },
+        {
+          "hole": 18,
+          "par": 3,
+          "strokes": 3,
+          "putts": [
+            {
+              "d": 1,
+              "made": true
+            }
+          ]
+        }
+      ],
+      "finished": true,
+      "score": 80,
+      "recordedPutts": 33,
+      "updated": "2026-09-19T22:00:00.000Z"
+    }
+  ],
+  "baseline": [
+    [
+      1,
+      1
+    ],
+    [
+      2,
+      1.01
+    ],
+    [
+      3,
+      1.04
+    ],
+    [
+      4,
+      1.13
+    ],
+    [
+      5,
+      1.23
+    ],
+    [
+      6,
+      1.34
+    ],
+    [
+      7,
+      1.42
+    ],
+    [
+      8,
+      1.5
+    ],
+    [
+      9,
+      1.56
+    ],
+    [
+      10,
+      1.61
+    ],
+    [
+      12,
+      1.7
+    ],
+    [
+      15,
+      1.78
+    ],
+    [
+      20,
+      1.87
+    ],
+    [
+      25,
+      1.94
+    ],
+    [
+      30,
+      2
+    ],
+    [
+      35,
+      2.02
+    ],
+    [
+      40,
+      2.06
+    ],
+    [
+      50,
+      2.14
+    ],
+    [
+      60,
+      2.21
+    ]
+  ],
+  "track": {
+    "hole": 1,
+    "phase": "distance",
+    "distanceInput": "",
+    "draft": null
+  },
+  "tombstones": []
+}

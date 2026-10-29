@@ -31,6 +31,13 @@ export interface MakeModel {
   distance: [number, number];
   /** Log-odds shift per break term, straight and flat being the reference. */
   breakShift: Record<Term, number>;
+  /**
+   * Log-odds per step of break severity above "slight". Ridge-penalised like the rest, so with
+   * little of it tagged this shrinks towards nothing rather than inventing an effect.
+   */
+  severityShift: number;
+  /** Putts carrying a severity, so a reader can see what that shift stands on. */
+  taggedSeverity: number;
   n: number;
   tagged: number;
   taggedBy: Record<Term, number>;
@@ -109,10 +116,18 @@ function termsOf(dirs: BreakDir[]): Term[] {
 }
 
 export function fitMakeModel(rounds: Round[]): MakeModel {
-  const all: { d: number; made: boolean; dirs: BreakDir[] }[] = [];
+  const all: { d: number; made: boolean; dirs: BreakDir[]; sev?: number }[] = [];
   for (const r of rounds) {
     for (const h of r.holes) {
-      for (const p of h.putts) all.push({ d: p.d, made: p.made, dirs: breakDirsOf(p) });
+      for (const p of h.putts) {
+        const dirs = breakDirsOf(p);
+        const bucket = breakBucket(dirs);
+        const turns = bucket === 'lr' || bucket === 'rl' || bucket === 'double';
+        // brokeAs is what the putt did, readAs is only what the player thought it would do.
+        // Reading severity off the latter would make a misread putt look easier.
+        const sev = turns ? p.brokeAs ?? p.readAs : undefined;
+        all.push({ d: p.d, made: p.made, dirs, sev: sev && sev > 0 ? sev : undefined });
+      }
     }
   }
 
@@ -120,6 +135,8 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
   const empty: MakeModel = {
     distance: [0, 0],
     breakShift: { ...zero },
+    severityShift: 0,
+    taggedSeverity: 0,
     n: all.length,
     tagged: 0,
     taggedBy: { ...zero },
@@ -145,27 +162,47 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
   model.taggedBy = taggedBy;
   if (tagged.length < MIN_TAGGED_PUTTS_FOR_MODEL) return model;
 
+  model.taggedSeverity = tagged.filter((p) => p.sev !== undefined).length;
+
   const shift = irls(
     tagged.map((p) => {
       const ts = termsOf(p.dirs);
-      return TERMS.map((t) => (ts.includes(t) ? 1 : 0));
+      // Slight is the reference, so a severity of 1 adds nothing and an untagged one assumes
+      // slight rather than inventing a middle.
+      return [...TERMS.map((t) => (ts.includes(t) ? 1 : 0)), p.sev ? p.sev - 1 : 0];
     }),
     tagged.map((p) => (p.made ? 1 : 0)),
-    TERMS.map(() => RIDGE),
+    [...TERMS.map(() => RIDGE), RIDGE],
     tagged.map((p) => distance[0] + distance[1] * ln(p.d)),
   );
   if (!shift) return model;
 
   model.breakShift = Object.fromEntries(TERMS.map((t, i) => [t, shift[i]])) as Record<Term, number>;
+  model.severityShift = shift[TERMS.length];
   model.ready = true;
   return model;
 }
 
 /** Chance this player holes it, 0 to 1. Break only counts once there is enough of it tagged. */
-export function makeability(model: MakeModel, d: number, dirs: BreakDir[] = []): number | null {
+export function makeability(
+  model: MakeModel,
+  d: number,
+  dirs: BreakDir[] = [],
+  severity?: number,
+): number | null {
   if (!model.n || (model.distance[0] === 0 && model.distance[1] === 0)) return null;
   let eta = model.distance[0] + model.distance[1] * ln(d);
-  if (model.ready) for (const t of termsOf(dirs)) eta += model.breakShift[t];
+  if (model.ready) {
+    // A shape that has not cleared MIN_TERM is shown as "needs more" on the learned panel, and
+    // used to be applied here anyway. That was tolerable while this fed one panel; it is not now
+    // that xP reads it, because a fifteen-putt shift would price real putts.
+    for (const t of termsOf(dirs)) {
+      if (model.taggedBy[t] >= MIN_TERM) eta += model.breakShift[t];
+    }
+    const bucket = breakBucket(dirs);
+    const turns = bucket === 'lr' || bucket === 'rl' || bucket === 'double';
+    if (turns && severity && severity > 1) eta += model.severityShift * (severity - 1);
+  }
   return sigmoid(eta);
 }
 

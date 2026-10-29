@@ -1,7 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { lagSaves } from '../lib/stats';
 import { holeSG } from '../lib/sg';
+import { fitMakeModel } from '../lib/makeability';
+import {
+  holeAdjustments,
+  makeChanceOf,
+  roundSGAdjusted,
+  verdictOf,
+  VERDICT_LABEL,
+  xpOf,
+} from '../lib/xp';
 import { drawRoundSheet, pngFile } from '../lib/shareCard';
 import { publishRound, shareUrl } from '../lib/shareLink';
 import { currentSession } from '../lib/cloud';
@@ -13,7 +22,6 @@ import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { ReadPanel } from '../components/ReadPanel';
-import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
 import { formOf } from '../lib/form';
 import { FormPanel } from '../components/FormPanel';
@@ -50,6 +58,12 @@ function SgCell({ value }: { value: number | null }) {
 export function RoundDetail({ id }: { id: string }) {
   const { state, dispatch } = useApp();
   const round = state.rounds.find((r) => r.id === id);
+  // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
+  const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
+  const sgAdjusted = useMemo(
+    () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
+    [makeModel, state.baseline, round],
+  );
   const [editHole, setEditHole] = useState<number | null>(null);
   const [editPutt, setEditPutt] = useState<number | null>(null);
   const [shareNote, setShareNote] = useState('');
@@ -234,6 +248,16 @@ export function RoundDetail({ id }: { id: string }) {
           <span className="k">Strokes gained putting</span>
           <span className={s.sg >= 0 ? 'v num pos' : 'v num neg'}>{signed(s.sg)}</span>
         </div>
+        {/* Only worth a row where the break model actually moves it. Condition-adjusted, never
+            "corrected": it changes the verdict, which is not the same as having earned it. */}
+        {sgAdjusted !== null && Math.abs(sgAdjusted - s.sg) >= 0.05 && (
+          <div className="stat-row">
+            <span className="k">
+              With break and slope<span className="small muted"> · preliminary</span>
+            </span>
+            <span className={sgAdjusted >= 0 ? 'v num pos' : 'v num neg'}>{signed(sgAdjusted)}</span>
+          </div>
+        )}
         <div className="stat-row">
           <span className="k">1 / 2 / 3+ putts</span>
           <span className="v num">
@@ -289,11 +313,6 @@ export function RoundDetail({ id }: { id: string }) {
       {read.judged > 0 && (
         <>
           <h2>The read</h2>
-          {read.blamed > 0 && (
-            <BlameTriangle
-              season={{ read: read.blameRead, stroke: read.blameStroke, speed: read.blameSpeed }}
-            />
-          )}
           <ReadPanel read={read} />
         </>
       )}
@@ -421,20 +440,44 @@ export function RoundDetail({ id }: { id: string }) {
                 </p>
               ) : (
                 <div className="board">
-                  {hole.putts.map((p, i) => (
-                    <button className="lb-row" key={i} onClick={() => setEditPutt(i)}>
-                      <span className="place num">{i + 1}</span>
-                      <span className="nm">
-                        {p.d} ft
-                        {breakLabel(breakDirsOf(p)) ? (
-                          <span className="small muted"> · {breakLabel(breakDirsOf(p))}</span>
-                        ) : null}
-                      </span>
-                      <span className={p.made ? 'val num pos' : 'val num none'}>
-                        {p.made ? 'holed' : 'missed'}
-                      </span>
-                    </button>
-                  ))}
+                  {hole.putts.map((p, i) => {
+                    const xp = xpOf(makeModel, state.baseline, p);
+                    const chance = makeChanceOf(makeModel, p);
+                    const verdict = verdictOf(makeModel, state.baseline, hole.putts, i);
+                    // Telescoped, so the leftover putt's difficulty is not charged twice.
+                    const adj = holeAdjustments(makeModel, state.baseline, hole.putts)[i];
+                    const shaped = adj !== null && Math.abs(adj) >= 0.005;
+                    return (
+                      <button className="lb-row" key={i} onClick={() => setEditPutt(i)}>
+                        <span className="place num">{i + 1}</span>
+                        <span className="nm">
+                          {p.d} ft
+                          {breakLabel(breakDirsOf(p)) ? (
+                            <span className="small muted"> · {breakLabel(breakDirsOf(p))}</span>
+                          ) : null}
+                          {xp !== null && (
+                            <span className="putt-xp">
+                              xP {xp.toFixed(2)}
+                              {chance !== null ? (
+                                <span> · {Math.round(chance * 100)}% to drop</span>
+                              ) : null}
+                              {shaped ? (
+                                <span className="muted">
+                                  {' '}· {adj > 0 ? '+' : ''}{adj.toFixed(2)} on its shape
+                                </span>
+                              ) : null}
+                            </span>
+                          )}
+                        </span>
+                        <span className={p.made ? 'val num pos' : 'val num none'}>
+                          {verdict ? (
+                            <span className={`verdict v-${verdict}`}>{VERDICT_LABEL[verdict]}</span>
+                          ) : null}
+                          {p.made ? 'holed' : 'missed'}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 

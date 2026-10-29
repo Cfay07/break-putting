@@ -13,7 +13,6 @@ import { StakesPanel } from '../components/StakesPanel';
 import { driftOf } from '../lib/drift';
 import { stakesOf } from '../lib/stakes';
 import { byConditions } from '../lib/conditions';
-import { BlameTriangle } from '../components/BlameTriangle';
 import { readError } from '../lib/readError';
 import { formOf, formBand } from '../lib/form';
 import { StrikePanel } from '../components/StrikePanel';
@@ -171,15 +170,6 @@ export function Stats() {
     };
   }, [rounds, state.baseline]);
   const conditions = useMemo(() => byConditions(rounds, state.baseline), [rounds, state.baseline]);
-  // One dot a round, so the spread shows whether a season average hides two different games.
-  const perRoundBlame = useMemo(
-    () =>
-      rounds
-        .map((r) => readError([r]))
-        .filter((x) => x.blamed > 0)
-        .map((x) => ({ read: x.blameRead, stroke: x.blameStroke, speed: x.blameSpeed })),
-    [rounds],
-  );
   const miss = useMemo(() => missAnatomy(rounds), [rounds]);
   const shapes = useMemo(() => missShapes(rounds), [rounds]);
   const vol = useMemo(() => volatility(rounds, state.baseline), [rounds, state.baseline]);
@@ -565,12 +555,6 @@ export function Stats() {
           {read.judged > 0 && (
             <>
               <h2>The read</h2>
-              {read.blamed > 0 && (
-                <BlameTriangle
-                  season={{ read: read.blameRead, stroke: read.blameStroke, speed: read.blameSpeed }}
-                  rounds={perRoundBlame}
-                />
-              )}
               <ReadPanel read={read} />
             </>
           )}

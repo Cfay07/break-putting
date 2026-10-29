@@ -1,5 +1,53 @@
 export type MissSide = 'high' | 'low' | 'online';
 export type Speed = 'short' | 'good' | 'long';
+
+/**
+ * Where the ball crossed the rim on a holed putt. Eight points round the edge and no middle:
+ * a ball always enters somewhere on the rim, so the centre-cut putt is the front door rather
+ * than a ninth option in the middle.
+ *
+ * Six o'clock is always the side the ball came from, so left and right mean the same thing for
+ * every player on every green. "unsure" is a real answer, not a cop-out: eight selectable points
+ * should never force eight-point precision out of someone who did not see it drop.
+ *
+ * Observation only. It cannot establish pace or confirm a read on its own, because entry point
+ * is a joint result of line, speed and break together, and a back-door entry can come from too
+ * much pace or from a putt that took the break late.
+ */
+export type CupEntry =
+  | 'front'
+  | 'inside-left'
+  | 'left'
+  | 'back-left'
+  | 'back'
+  | 'back-right'
+  | 'right'
+  | 'inside-right'
+  | 'unsure';
+
+/** Clockwise from the near side, so the order matches the ring the picker draws. */
+export const CUP_ENTRIES: Exclude<CupEntry, 'unsure'>[] = [
+  'front', 'inside-left', 'left', 'back-left',
+  'back', 'back-right', 'right', 'inside-right',
+];
+
+export const CUP_LABELS: Record<CupEntry, string> = {
+  front: 'Front door',
+  'inside-left': 'Inside left edge',
+  left: 'Left edge',
+  'back-left': 'Back door left',
+  back: 'Back door',
+  'back-right': 'Back door right',
+  right: 'Right edge',
+  'inside-right': 'Inside right edge',
+  unsure: "Didn't see it",
+};
+
+/** Degrees anticlockwise from three o'clock, for drawing. Six o'clock is where the ball started. */
+export const CUP_ANGLES: Record<Exclude<CupEntry, 'unsure'>, number> = {
+  right: 0, 'back-right': 45, back: 90, 'back-left': 135,
+  left: 180, 'inside-left': 225, front: 270, 'inside-right': 315,
+};
 export type BreakDir = 'L→R' | 'R→L' | 'straight' | 'uphill' | 'downhill';
 
 export const GREEN_SPEEDS = ['slow', 'medium', 'fast', 'glass'] as const;
@@ -62,6 +110,22 @@ export interface Putt {
    * bad speed blames the wrong thing.
    */
   strike?: 'toe' | 'centre' | 'heel';
+  /**
+   * Where it crossed the rim, on a holed putt only. The make-side twin of missSide: a miss has
+   * always been asked where it finished and a make was asked nothing, so holed putts ended the
+   * record instead of adding to it.
+   */
+  cupEntry?: CupEntry;
+  /**
+   * Whether the stroke was actually looked at. Without it a putt with no faults ticked is
+   * indistinguishable from a putt nobody reviewed, and both land in the clean pile: any model
+   * fit on that is learning from a clean group half full of putts nobody judged.
+   *
+   * Set by ticking a fault or by saying outright that nothing was wrong. Never inferred from an
+   * empty set, and never backfilled onto old putts, which are genuinely unknown and have to stay
+   * that way.
+   */
+  executionAssessed?: boolean;
 }
 
 export interface Hole {

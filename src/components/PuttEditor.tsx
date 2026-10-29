@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MissGrid } from './MissGrid';
+import { CupEntry } from './CupEntry';
 import { SegMulti } from './SegMulti';
 import { ReadBreak } from './ReadBreak';
 import {
@@ -74,6 +75,8 @@ export function PuttEditor({
 }) {
   const dirs = breakDirsOf(putt);
 
+  const cleanCalled = !!putt.executionAssessed && !FACTORS.some((f) => putt[f]);
+
   return (
     <div className="card" style={{ marginBottom: 12 }}>
       <h3 style={{ margin: '0 0 10px' }}>Putt {n}</h3>
@@ -117,6 +120,13 @@ export function PuttEditor({
         </>
       )}
 
+      {putt.made && (
+        <>
+          <div className="field-label">Where it went in</div>
+          <CupEntry value={putt.cupEntry} onPick={(cupEntry) => onPatch({ cupEntry })} />
+        </>
+      )}
+
       {/* A holed putt carries a break read too, so hiding this behind the miss made one
           uncorrectable once it was logged. */}
       <div className="field-label">
@@ -154,7 +164,9 @@ export function PuttEditor({
             type="button"
             className={putt.strike === k ? 'chip chip-sel' : 'chip'}
             aria-pressed={putt.strike === k}
-            onClick={() => onPatch({ strike: putt.strike === k ? undefined : k })}
+            onClick={() =>
+              onPatch({ strike: putt.strike === k ? undefined : k, executionAssessed: true })
+            }
           >
             {k === 'centre' ? 'Middle' : k === 'toe' ? 'Toe' : 'Heel'}
           </button>
@@ -163,13 +175,30 @@ export function PuttEditor({
 
       <div className="field-label">Factors</div>
       <div className="chips">
+        {/* An empty set of factors used to mean two different things at once: nothing was wrong,
+            and nobody looked. This chip separates them, so the clean pile only holds putts that
+            were actually judged. */}
+        <button
+          type="button"
+          className={cleanCalled ? 'chip chip-sel' : 'chip'}
+          aria-pressed={cleanCalled}
+          onClick={() =>
+            onPatch(
+              cleanCalled
+                ? { executionAssessed: undefined }
+                : { ...Object.fromEntries(FACTORS.map((f) => [f, false])), executionAssessed: true },
+            )
+          }
+        >
+          Nothing wrong
+        </button>
         {FACTORS.map((f) => (
           <button
             key={f}
             type="button"
             className={putt[f] ? 'chip chip-sel' : 'chip'}
             aria-pressed={!!putt[f]}
-            onClick={() => onPatch({ [f]: !putt[f] })}
+            onClick={() => onPatch({ [f]: !putt[f], executionAssessed: true })}
           >
             {FACTOR_LABELS[f]}
           </button>
