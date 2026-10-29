@@ -292,3 +292,22 @@ describe('slope: stated-ness and direction are different questions', () => {
     expect(downhill).toBeCloseTo(TRUTH.downhillVsUphill, 1);
   });
 });
+
+describe('slope amount', () => {
+  it('only counts where a slope was actually picked', async () => {
+    const { slopeAmountOf } = await import('./xp');
+    expect(slopeAmountOf({ d: 8, made: false, breakDirs: ['downhill'], slopeAs: 3 } as Putt)).toBe(3);
+    // No slope tagged, so an amount is meaningless and is not read.
+    expect(slopeAmountOf({ d: 8, made: false, breakDirs: ['L→R'], slopeAs: 3 } as Putt)).toBeUndefined();
+    expect(slopeAmountOf({ d: 8, made: false, breakDirs: ['uphill'] } as Putt)).toBeUndefined();
+  });
+
+  it('costs nothing on a putt that never carried one', async () => {
+    const { xpOf } = await import('./xp');
+    const flat = { d: 10, made: false } as Putt;
+    const before = xpOf(M, B, flat);
+    const after = xpOf(M, B, { ...flat, slopeAs: 3 } as Putt);
+    if (before === null || after === null) return;
+    expect(after).toBeCloseTo(before, 10);
+  });
+});

@@ -20,6 +20,9 @@ import {
   breakLabel,
   toggleBreak,
   FACTORS,
+  slopeOf,
+  SLOPE_LABELS,
+  SLOPE_STEPS,
   type Putt,
   FACTOR_LABELS,
   holeVsPar,
@@ -347,6 +350,27 @@ export function Track() {
             values={draft.breakDirs ?? []}
             onToggle={(v) => setDraft({ breakDirs: toggleBreak(draft.breakDirs ?? [], v) })}
           />
+
+          {slopeOf(draft.breakDirs ?? []) && (
+            <>
+              <div className="field-label">
+                {slopeOf(draft.breakDirs ?? []) === 'uphill' ? 'Uphill' : 'Downhill'}, how much
+              </div>
+              <div className="chips chips-sm">
+                {SLOPE_STEPS.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={draft.slopeAs === n ? 'chip chip-on' : 'chip'}
+                    aria-pressed={draft.slopeAs === n}
+                    onClick={() => setDraft({ slopeAs: draft.slopeAs === n ? undefined : n })}
+                  >
+                    {SLOPE_LABELS[n]}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Only on a putt that actually turned. There is no read to be wrong about on a
               straight one. */}

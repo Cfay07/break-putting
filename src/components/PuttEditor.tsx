@@ -11,6 +11,9 @@ import {
   toggleBreak,
   FACTORS,
   FACTOR_LABELS,
+  slopeOf,
+  SLOPE_LABELS,
+  SLOPE_STEPS,
   type Putt,
 } from '../lib/types';
 
@@ -140,6 +143,27 @@ export function PuttEditor({
         values={dirs}
         onToggle={(v) => onPatch({ breakDirs: toggleBreak(dirs, v), breakDir: undefined })}
       />
+
+      {slopeOf(dirs) && (
+        <>
+          <div className="field-label">
+            {slopeOf(dirs) === 'uphill' ? 'Uphill' : 'Downhill'}, how much
+          </div>
+          <div className="chips chips-sm">
+            {SLOPE_STEPS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={putt.slopeAs === n ? 'chip chip-sel' : 'chip'}
+                aria-pressed={putt.slopeAs === n}
+                onClick={() => onPatch({ slopeAs: putt.slopeAs === n ? undefined : n })}
+              >
+                {SLOPE_LABELS[n]}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {dirs.some((d) => d === 'L→R' || d === 'R→L' || d === 'straight') && (
         <>

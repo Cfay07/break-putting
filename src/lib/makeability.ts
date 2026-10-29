@@ -52,6 +52,10 @@ export interface MakeModel {
   severityShift: number;
   /** Putts carrying a severity, so a reader can see what that shift stands on. */
   taggedSeverity: number;
+  /** Log-odds per step of slope above "slight", on putts that carry one. */
+  slopeShift: number;
+  /** Putts carrying a slope amount. */
+  taggedSlope: number;
   /**
    * How much better the tagged putts do than the distance stage alone expects. Not a fact about
    * break: a fact about which putts get tagged. Held here so it stops contaminating the shapes.
@@ -145,7 +149,8 @@ function termsOf(dirs: BreakDir[]): Term[] {
 }
 
 export function fitMakeModel(rounds: Round[]): MakeModel {
-  const all: { d: number; made: boolean; dirs: BreakDir[]; sev?: number }[] = [];
+  const all: { d: number; made: boolean; dirs: BreakDir[]; sev?: number; slope?: number }[] =
+    [];
   for (const r of rounds) {
     for (const h of r.holes) {
       for (const p of h.putts) {
@@ -155,7 +160,15 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
         // brokeAs is what the putt did, readAs is only what the player thought it would do.
         // Reading severity off the latter would make a misread putt look easier.
         const sev = turns ? p.brokeAs ?? p.readAs : undefined;
-        all.push({ d: p.d, made: p.made, dirs, sev: sev && sev > 0 ? sev : undefined });
+        // Only counts where a slope was actually picked; otherwise there is nothing to grade.
+        const slopeAmt = slopeOf(dirs) ? p.slopeAs : undefined;
+        all.push({
+          d: p.d,
+          made: p.made,
+          dirs,
+          sev: sev && sev > 0 ? sev : undefined,
+          slope: slopeAmt && slopeAmt > 0 ? slopeAmt : undefined,
+        });
       }
     }
   }
@@ -166,6 +179,8 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
     breakShift: { ...zero },
     severityShift: 0,
     taggedSeverity: 0,
+    slopeShift: 0,
+    taggedSlope: 0,
     taggedLift: 0,
     longest: all.reduce((mx, p) => Math.max(mx, p.d), 0),
     n: all.length,
@@ -194,6 +209,7 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
   if (tagged.length < MIN_TAGGED_PUTTS_FOR_MODEL) return model;
 
   model.taggedSeverity = tagged.filter((p) => p.sev !== undefined).length;
+  model.taggedSlope = tagged.filter((p) => p.slope !== undefined).length;
 
   // An intercept, unpenalised, and it matters more than it looks. The putts carrying a break tag
   // are not a random sample of putts: they beat the distance-only stage by about five points,
@@ -205,10 +221,15 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
       const ts = termsOf(p.dirs);
       // Slight is the reference, so a severity of 1 adds nothing and an untagged one assumes
       // slight rather than inventing a middle.
-      return [1, ...TERMS.map((t) => (ts.includes(t) ? 1 : 0)), p.sev ? p.sev - 1 : 0];
+      return [
+        1,
+        ...TERMS.map((t) => (ts.includes(t) ? 1 : 0)),
+        p.sev ? p.sev - 1 : 0,
+        p.slope ? p.slope - 1 : 0,
+      ];
     }),
     tagged.map((p) => (p.made ? 1 : 0)),
-    [0, ...TERMS.map(() => RIDGE), RIDGE],
+    [0, ...TERMS.map(() => RIDGE), RIDGE, RIDGE],
     tagged.map((p) => distance[0] + distance[1] * ln(p.d)),
   );
   if (!shift) return model;
@@ -218,6 +239,7 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
     TERMS.map((t, i) => [t, shift[i + 1]]),
   ) as Record<Term, number>;
   model.severityShift = shift[TERMS.length + 1];
+  model.slopeShift = shift[TERMS.length + 2];
   model.ready = true;
   return model;
 }
@@ -228,6 +250,7 @@ export function makeability(
   d: number,
   dirs: BreakDir[] = [],
   severity?: number,
+  slope?: number,
 ): number | null {
   if (!model.n || (model.distance[0] === 0 && model.distance[1] === 0)) return null;
   let eta = model.distance[0] + model.distance[1] * ln(d);
@@ -241,6 +264,7 @@ export function makeability(
     const bucket = breakBucket(dirs);
     const turns = bucket === 'lr' || bucket === 'rl' || bucket === 'double';
     if (turns && severity && severity > 1) eta += model.severityShift * (severity - 1);
+    if (slopeOf(dirs) && slope && slope > 1) eta += model.slopeShift * (slope - 1);
   }
   return sigmoid(eta);
 }

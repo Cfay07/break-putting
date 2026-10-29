@@ -122,6 +122,16 @@ export interface Putt {
    */
   strike?: 'toe' | 'centre' | 'heel';
   /**
+   * How much it ran uphill or down, 1 slight to 3 steep. Only meaningful once a slope is tagged,
+   * and only ever asked for then.
+   *
+   * Break has had an amount since the start and slope has not, so a gentle downhiller and one you
+   * had to die at the hole were the same putt to every model. Three steps rather than the read's
+   * four: slope does not need the resolution, and a scale nobody can place is worse than a
+   * coarser one everybody can.
+   */
+  slopeAs?: number;
+  /**
    * Where it crossed the rim, on a holed putt only. The make-side twin of missSide: a miss has
    * always been asked where it finished and a make was asked nothing, so holed putts ended the
    * record instead of adding to it.
@@ -309,6 +319,10 @@ export const BREAK_DIRS: BreakDir[] = ['L→R', 'R→L', 'straight', 'uphill', '
  * arrow showing which way the ball curves. The stored value keeps its old spelling so putts
  * already logged still read.
  */
+/** 1 to 3, shown only once a slope is picked. */
+export const SLOPE_STEPS = [1, 2, 3] as const;
+export const SLOPE_LABELS: Record<number, string> = { 1: 'Slight', 2: 'Some', 3: 'Steep' };
+
 export const BREAK_LABELS: Record<BreakDir, string> = {
   'L→R': 'L→R',
   'R→L': 'L←R',

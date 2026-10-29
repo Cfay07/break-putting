@@ -6,6 +6,7 @@ import {
   CUP_ANGLES,
   CUP_ENTRIES,
   CUP_LABELS,
+  slopeOf,
   type CupEntry,
   type Putt,
 } from './types';
@@ -22,6 +23,12 @@ import {
  * nothing you can learn inside it, while handing the person being measured a dial that lowers
  * their own bar. Break is per putt and checkable against what the ball did.
  */
+
+/** How much it ran uphill or down, where one was picked. */
+export function slopeAmountOf(p: Putt): number | undefined {
+  if (!slopeOf(breakDirsOf(p))) return undefined;
+  return p.slopeAs && p.slopeAs > 0 ? p.slopeAs : undefined;
+}
 
 /** Severity of the break, from what it actually did. Never from the read, which may be wrong. */
 export function severityOf(p: Putt): number | undefined {
@@ -42,7 +49,7 @@ export function severityOf(p: Putt): number | undefined {
 export function makeChanceOf(model: MakeModel, p: Putt): number | null {
   // Beyond anything that has been hit, the curve still answers and the answer means nothing.
   if (model.longest && p.d > model.longest) return null;
-  return makeability(model, p.d, breakDirsOf(p), severityOf(p));
+  return makeability(model, p.d, breakDirsOf(p), severityOf(p), slopeAmountOf(p));
 }
 
 /**
@@ -64,7 +71,7 @@ export function makeChanceOf(model: MakeModel, p: Putt): number | null {
  * one and this does not know that.
  */
 export function xpOf(model: MakeModel, baseline: [number, number][], p: Putt): number | null {
-  const shaped = makeability(model, p.d, breakDirsOf(p), severityOf(p));
+  const shaped = makeability(model, p.d, breakDirsOf(p), severityOf(p), slopeAmountOf(p));
   const plain = makeability(model, p.d, []);
   if (shaped === null || plain === null) return null;
   // One putt is the floor: you cannot finish in fewer than the stroke you are about to play.
