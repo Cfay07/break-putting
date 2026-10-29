@@ -289,10 +289,12 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             <span className="v num neg">{round.recordedPutts}</span>
           </div>
         )}
-        <div className="stat-row">
-          <span className="k">Putts per hole</span>
-          <span className="v num">{s.puttsPerHole.toFixed(1)}</span>
-        </div>
+        {roundXp !== null && (
+          <div className="stat-row">
+            <span className="k">Expected putts (xP)</span>
+            <span className="v num">{roundXp.toFixed(2)}</span>
+          </div>
+        )}
         <div className="stat-row">
           <span className="k">Strokes gained putting</span>
           <span className={s.sg >= 0 ? 'v num pos' : 'v num neg'}>{signed(s.sg)}</span>
@@ -328,18 +330,16 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             )}
           </>
         )}
-        {roundXp !== null && (
-          <div className="stat-row">
-            <span className="k">Expected putts (xP)</span>
-            <span className="v num">{roundXp.toFixed(2)}</span>
-          </div>
-        )}
         {roundXpot !== null && (
           <div className="stat-row">
             <span className="k">After the stroke (xPOT)</span>
             <span className="v num">{roundXpot.toFixed(2)}</span>
           </div>
         )}
+        <div className="stat-row">
+          <span className="k">Putts per hole</span>
+          <span className="v num">{s.puttsPerHole.toFixed(1)}</span>
+        </div>
         <div className="stat-row">
           <span className="k">1 / 2 / 3+ putts</span>
           <span className="v num">
