@@ -5,8 +5,7 @@ import { expectedPutts, holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
 import {
   fitExecModel,
-  holeAdjustments,
-  xpotReason,
+  difficultyOf,
   xpotStatus,
   makeChanceOf,
   puttSGAdjusted,
@@ -325,14 +324,10 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             <span className="v num">{roundXp.toFixed(2)}</span>
           </div>
         )}
-        {roundXp !== null && (
+        {roundXpot !== null && (
           <div className="stat-row">
             <span className="k">After the stroke (xPOT)</span>
-            {roundXpot !== null ? (
-              <span className="v num">{roundXpot.toFixed(2)}</span>
-            ) : (
-              <span className="v small muted">{xpotReason(exec)}</span>
-            )}
+            <span className="v num">{roundXpot.toFixed(2)}</span>
           </div>
         )}
         <div className="stat-row">
@@ -522,8 +517,9 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                     const chance = makeChanceOf(makeModel, p);
                     const verdict = verdictOf(makeModel, state.baseline, hole.putts, i);
                     const xpot = xpotStatus(makeModel, exec, state.baseline, p);
-                    // Telescoped, so the leftover putt's difficulty is not charged twice.
-                    const adj = holeAdjustments(makeModel, state.baseline, hole.putts)[i];
+                    // This putt's own adjustment, so the grid reads as xP minus the straight
+                    // baseline. The telescoped version belongs to the hole, not to one cell.
+                    const adj = difficultyOf(makeModel, state.baseline, p);
                     const base = expectedPutts(state.baseline, p.d);
                     const leave = i + 1 < hole.putts.length ? hole.putts[i + 1].d : null;
                     const sgPlain = puttSG(state.baseline, p.d, p.made, leave);
@@ -582,9 +578,9 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                           <span className="pc-k">The stroke</span>
                           <span className={p.executionAssessed ? 'pc-t' : 'pc-t quiet'}>{execution}</span>
                         </span>
-                        <span className="pc-line">
-                          <span className="pc-k">After the stroke (xPOT)</span>
-                          {xpot.ok ? (
+                        {xpot.ok && (
+                          <span className="pc-line">
+                            <span className="pc-k">After the stroke (xPOT)</span>
                             <span className="pc-t">
                               {xpot.xpot.toFixed(2)}
                               <span className="pc-adj">
@@ -593,10 +589,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                                 {xpot.cost.toFixed(2)} from the stroke
                               </span>
                             </span>
-                          ) : (
-                            <span className="pc-t quiet">{xpot.why}</span>
-                          )}
-                        </span>
+                          </span>
+                        )}
                         {sgPlain !== null && (
                           <span className="pc-line">
                             <span className="pc-k">Strokes gained</span>
