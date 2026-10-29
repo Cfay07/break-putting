@@ -118,6 +118,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const [speedSheet, setSpeedSheet] = useState(false);
   const [courseOpen, setCourseOpen] = useState(false);
   const [whyBreak, setWhyBreak] = useState(false);
+  const [whyXp, setWhyXp] = useState(false);
 
   if (!round) {
     return (
@@ -534,6 +535,16 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                 </p>
               ) : (
                 <div className="putt-cards">
+                  {whyXp && (
+                    <p className="why-note">
+                      Two different sources in one number, which is worth knowing. The{' '}
+                      <b>level</b> comes from a scratch reference table, not from you: that is what
+                      makes strokes gained a comparison rather than a mirror. The{' '}
+                      <b>break and slope adjustment</b> is fitted to your own putts. So xP reads
+                      "what a scratch player would expect from here, nudged by how this particular
+                      putt behaves for you".
+                    </p>
+                  )}
                   {hole.putts.map((p, i) => {
                     const xp = xpOf(makeModel, state.baseline, p);
                     const chance = makeChanceOf(makeModel, p);
@@ -567,7 +578,20 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                         {xp !== null && (
                           <span className="pc-grid">
                             <span className="pc-cell">
-                              <span className="pc-k">Expected putts (xP)</span>
+                              <span className="pc-k">
+                                Expected putts (xP)
+                                <button
+                                  type="button"
+                                  className="why"
+                                  aria-expanded={whyXp}
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    setWhyXp(!whyXp);
+                                  }}
+                                >
+                                  ?
+                                </button>
+                              </span>
                               <span className="pc-v">{xp.toFixed(2)}</span>
                             </span>
                             <span className="pc-cell">
