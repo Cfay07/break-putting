@@ -425,9 +425,19 @@ export interface XpSpread {
   bins: { from: number; to: number; n: number }[];
   n: number;
   median: number | null;
-  hardest: number | null;
   /** Putts at or past the two-putt mark. */
   pastTwo: number;
+  /**
+   * The hardest putt the model can actually tell apart, and where it was.
+   *
+   * Only putts inside the baseline table count. Past sixty feet `expectedPutts` returns its last
+   * value for everything, so a 61 footer and a 77 footer score identically and "hardest" becomes
+   * a tie between whichever lag putts happened to be longest. That is the table running out, not
+   * a fact about the putt.
+   */
+  hardest: { xp: number; d: number; roundId: string; label: string; hole: number } | null;
+  /** Putts past the end of the table, which cannot be ranked against each other. */
+  beyondTable: number;
 }
 
 /**
@@ -452,7 +462,12 @@ export function xpSpread(
     n: 0,
   }));
   const all: number[] = [];
-  if (!model.ready) return { bins, n: 0, median: null, hardest: null, pastTwo: 0 };
+  let hardest: XpSpread['hardest'] = null;
+  let beyondTable = 0;
+  const TABLE_END = baseline[baseline.length - 1][0];
+  if (!model.ready) {
+    return { bins, n: 0, median: null, hardest: null, pastTwo: 0, beyondTable: 0 };
+  }
 
   for (const r of rounds) {
     if (r.deleted) continue;
@@ -464,6 +479,11 @@ export function xpSpread(
         all.push(x);
         const i = Math.min(bins.length - 1, Math.max(0, Math.floor((x - LO) / STEP)));
         bins[i].n += 1;
+        if (p.d >= TABLE_END) {
+          beyondTable += 1;
+        } else if (!hardest || x > hardest.xp) {
+          hardest = { xp: x, d: p.d, roundId: r.id, label: r.label, hole: h.hole };
+        }
       }
     }
   }
@@ -472,7 +492,8 @@ export function xpSpread(
     bins,
     n: all.length,
     median: all.length ? all[Math.floor(all.length / 2)] : null,
-    hardest: all.length ? all[all.length - 1] : null,
+    hardest,
+    beyondTable,
     pastTwo: all.filter((x) => x >= 2).length,
   };
 }

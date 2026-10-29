@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { go } from '../lib/router';
 import type { XpSpread } from '../lib/xp';
 
 const LO = 1.0;
@@ -66,13 +67,30 @@ export function XpSpreadBar({ spread }: { spread: XpSpread }) {
         <p className="xps-read muted">Tap a column.</p>
       )}
 
+      {spread.beyondTable > 0 && (
+        <p className="xps-note">
+          {spread.beyondTable} putt{spread.beyondTable === 1 ? '' : 's'} past 60 ft are left out of
+          "hardest". The baseline table ends there and returns the same number for everything
+          beyond it, so a 61 footer and a 77 footer score alike. That is the table running out,
+          not a fact about the putt.
+        </p>
+      )}
       <div className="xps-legend">
         <span>
           <b>{spread.median?.toFixed(2) ?? '--'}</b> typical
         </span>
-        <span>
-          <b>{spread.hardest?.toFixed(2) ?? '--'}</b> hardest faced
-        </span>
+        {spread.hardest && (
+          <button
+            type="button"
+            className="xps-jump"
+            onClick={() => go(`/round/${spread.hardest!.roundId}`)}
+          >
+            <b>{spread.hardest.xp.toFixed(2)}</b> hardest faced
+            <span className="xps-where">
+              {spread.hardest.d} ft · {spread.hardest.label} · hole {spread.hardest.hole} →
+            </span>
+          </button>
+        )}
         <span>
           <b>{spread.pastTwo}</b> past the two-putt mark
         </span>

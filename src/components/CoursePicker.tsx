@@ -12,6 +12,30 @@ export interface CourseChoice {
   pars?: number[];
 }
 
+/**
+ * Saved courses and built-in ones, with the useless duplicates dropped.
+ *
+ * Deduping by id alone is not enough. A course pulled from the API before a built-in existed for
+ * it keeps its own id and an empty tee list, so both show up under the same name and the one you
+ * tap first is the one with nothing to pick. Shiloh Park was exactly this: saved with no tees,
+ * built in with three.
+ *
+ * A saved course wins on name only if it actually carries tees. Otherwise the built-in does.
+ */
+function mergeCourses(saved: SavedCourse[]): SavedCourse[] {
+  const builtInNames = new Set(BUILT_IN_COURSES.map((b) => b.name.toLowerCase()));
+  const keep = saved.filter(
+    (c) => c.tees.length > 0 || !builtInNames.has(c.name.toLowerCase()),
+  );
+  const takenNames = new Set(keep.map((c) => c.name.toLowerCase()));
+  return [
+    ...keep,
+    ...BUILT_IN_COURSES.filter(
+      (b) => !keep.some((c) => c.id === b.id) && !takenNames.has(b.name.toLowerCase()),
+    ),
+  ];
+}
+
 export function CoursePicker({
   holeCount,
   value,
@@ -35,10 +59,7 @@ export function CoursePicker({
   // The courses already on the phone are nearly always the one you want, and they used to be
   // invisible until you thought to run a search.
   const known = useMemo(
-    () => [
-      ...state.courses,
-      ...BUILT_IN_COURSES.filter((b) => !state.courses.some((c) => c.id === b.id)),
-    ],
+    () => mergeCourses(state.courses),
     [state.courses],
   );
 
@@ -65,10 +86,7 @@ export function CoursePicker({
     setBusy(true);
     setError('');
 
-    const local = [
-      ...state.courses,
-      ...BUILT_IN_COURSES.filter((b) => !state.courses.some((c) => c.id === b.id)),
-    ];
+    const local = mergeCourses(state.courses);
     const mine = local
       .filter((c) => c.name.toLowerCase().includes(q.toLowerCase()))
       .map((c) => ({ id: c.id, name: c.name, place: c.place ?? '', saved: true }));
