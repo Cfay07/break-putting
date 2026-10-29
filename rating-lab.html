@@ -1,0 +1,135 @@
+<title>Spec</title><style>
+:root{--paper:#f2efe6;--card:#fbf9f3;--ink:#14392b;--ink-2:#4d6558;--ink-3:#8c9a92;
+--line:rgba(20,57,43,.13);--hair:rgba(20,57,43,.07);--g1:#15603b;--am:#96690a;--r1:#a52a1f;--cup:#b5603a}
+*{box-sizing:border-box}
+body{margin:0;background:#e8e4da;font:14px/1.5 -apple-system,system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+.phone{width:375px;margin:0 auto;background:var(--paper);min-height:100vh;padding:18px 16px 70px}
+.eyebrow{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin:26px 0 7px}
+.eyebrow:first-child{margin-top:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:15px;margin-bottom:10px}
+.say{font-size:12.5px;color:var(--ink-2);line-height:1.55;margin:0 0 9px}
+.say:last-child{margin-bottom:0} .say b{color:var(--ink);font-weight:650}
+.note{font-size:12px;color:var(--ink-3);line-height:1.5;margin:11px 0 0}
+code{font:11px ui-monospace,Menlo,monospace;background:rgba(20,57,43,.08);padding:1px 4px;border-radius:3px}
+.r{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid var(--hair);font-size:12.5px}
+.r:last-of-type{border-bottom:none}
+.r .l{flex:1;color:var(--ink-2)} .r .v{font-weight:700;font-variant-numeric:tabular-nums;width:62px;text-align:right}
+.r .v2{font-weight:600;font-variant-numeric:tabular-nums;width:44px;text-align:right;color:var(--ink-3);font-size:11.5px}
+.hdr{font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.bad{background:rgba(165,42,31,.09);border-radius:7px;padding:9px 11px;margin:9px 0}
+.good{background:rgba(21,96,59,.09);border-radius:7px;padding:9px 11px;margin:9px 0}
+.ticks{position:relative;height:13px;font-size:9.5px;color:var(--ink-3);margin:12px 0 3px}
+.ticks span{position:absolute;transform:translateX(-50%)}
+.tk{position:relative;height:22px;border-radius:4px;background:rgba(20,57,43,.08)}
+.two{position:absolute;left:76.9%;top:-3px;bottom:-3px;width:1px;background:rgba(20,57,43,.35)}
+.one{position:absolute;left:0;top:-3px;bottom:-3px;width:1px;background:rgba(20,57,43,.35)}
+.pin{position:absolute;top:2px;width:4px;height:18px;border-radius:2px;box-shadow:0 0 0 2px var(--card)}
+.anch{display:flex;justify-content:space-between;font-size:9.5px;color:var(--ink-3);margin-top:5px}
+.dec{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--hair);font-size:12px;align-items:flex-start}
+.dec:last-of-type{border-bottom:none}
+.dec .t{flex:1;color:var(--ink-2);line-height:1.45} .dec .t b{color:var(--ink);font-weight:650}
+.pill{font-size:9.5px;border-radius:3px;padding:2px 6px;white-space:nowrap;font-weight:650;flex:none}
+.go{background:rgba(21,96,59,.14);color:var(--g1)} .no{background:rgba(165,42,31,.12);color:var(--r1)}
+.wait{background:rgba(150,105,10,.14);color:var(--am)}
+</style><div class="phone">
+
+<div class="eyebrow">Fixed · per-putt credit was double counting</div>
+<div class="card">
+  <p class="say">A hole where the second putt also breaks. My card summed each putt's own
+    adjustment, which charges the leftover putt's difficulty twice.</p>
+  <div class="bad"><div class="r" style="border:none;padding:2px 0"><span class="l">What I summed</span>
+    <span class="v" style="color:var(--r1)">+0.325</span></div>
+    <div class="r" style="border:none;padding:2px 0"><span class="l">True hole credit</span>
+    <span class="v">+0.084</span></div>
+    <div class="r" style="border:none;padding:2px 0"><span class="l">Error on one hole</span>
+    <span class="v" style="color:var(--r1)">+0.240</span></div></div>
+  <p class="say">The fix is the telescoping form, <code>credit_i = c_i − c_(i+1)</code>, with zero
+    after hole-out.</p>
+  <div class="good">
+    <div class="r" style="border:none;padding:2px 0"><span class="l">Putt 1 · 22 ft breaking</span><span class="v">-0.156</span></div>
+    <div class="r" style="border:none;padding:2px 0"><span class="l">Putt 2 · 6 ft breaking</span><span class="v">+0.240</span></div>
+    <div class="r" style="border:none;padding:2px 0;border-top:1px solid rgba(20,57,43,.12)"><span class="l"><b>Hole</b></span><span class="v">+0.084</span></div></div>
+  <p class="note">My own example hid it. The second putt was straight and flat, so the double count
+    added zero. One breaking leftover and it is off by a quarter of a stroke.</p>
+</div>
+
+<div class="eyebrow">What the fix bought</div>
+<div class="card">
+  <p class="say">Putt 1's credit comes out <b>negative</b> even though it was a breaking 22 footer.
+    It gets charged for the breaking downhill six footer it left behind. That is new.</p>
+  <div class="r"><span class="l hdr">same 22 ft lag</span><span class="v2 hdr">dist</span><span class="v hdr">cond-adj</span></div>
+  <div class="r"><span class="l">left a 6 ft straight, flat</span><span class="v2">−0.442</span><span class="v">−0.358</span></div>
+  <div class="r"><span class="l">left a 6 ft breaking downhill</span><span class="v2">−0.442</span><span class="v" style="color:var(--r1)">−0.598</span></div>
+  <p class="note">Distance-only calls those <b>identical</b>. Lag quality now prices the putt you
+    leave yourself, which is a thing every good putter already feels and no stat has said.</p>
+</div>
+
+<div class="eyebrow">Bar · relabelled</div>
+<div class="card">
+  <div class="ticks"><span style="left:0;transform:none">1.00</span>
+    <span style="left:76.9%">2.00</span><span style="right:0;left:auto;transform:none">2.30</span></div>
+  <div class="tk"><span class="one"></span><span class="two"></span>
+    <span class="pin" style="left:10.0%;background:#15603b"></span>
+    <span class="pin" style="left:61.7%;background:#15603b"></span>
+    <span class="pin" style="left:75.6%;background:#96690a"></span>
+    <span class="pin" style="left:83.0%;background:#a52a1f"></span>
+  </div>
+  <div class="anch"><span>one putt</span><span>expected putts</span><span>two putts</span></div>
+  <div style="margin-top:12px">
+    <div class="r"><span class="l hdr">putt</span><span class="v hdr">xP</span>
+      <span class="v2 hdr">make</span><span class="v2 hdr">3-putt</span></div>
+    <div class="r"><span class="l">4 ft flat</span><span class="v" style="color:#15603b">1.13</span>
+      <span class="v2">78%</span><span class="v2">-9%</span></div>
+    <div class="r"><span class="l">12 ft L→R</span><span class="v" style="color:#15603b">1.80</span>
+      <span class="v2">21%</span><span class="v2">1%</span></div>
+    <div class="r"><span class="l">22 ft R→L down</span><span class="v" style="color:#96690a">1.98</span>
+      <span class="v2">4%</span><span class="v2">3%</span></div>
+    <div class="r"><span class="l">40 ft L→R</span><span class="v" style="color:#a52a1f">2.08</span>
+      <span class="v2">3%</span><span class="v2">11%</span></div>
+  </div>
+  <p class="note"><b>Zones removed.</b> 1.00 and 2.00 are reference anchors now, not probability
+    bands. Make and three-putt are printed as their own columns because the model estimates them
+    separately, so the claim is visible instead of asserted.<br><br>
+    And the ceiling of 2.23 does not mean four putts are impossible. It means
+    <b>the model has no four-putt term at all</b>, which is a limit of the model, not of golf.</p>
+</div>
+
+<div class="eyebrow">Cup entry · scope cut</div>
+<div class="card">
+  <p class="say">I claimed it measures pace and verifies the read. It does not. Entry point is a
+    joint result of line, speed and break together, so a back-door entry could be too much pace or
+    a putt that took the break late. <b>Different causes, same observation.</b></p>
+  <div class="r"><span class="l">Ships as</span><span class="v" style="width:auto">Observed cup entry · optional</span></div>
+  <div class="r"><span class="l">Not as</span><span class="v" style="width:auto;color:var(--r1);text-decoration:line-through">Pace measured · read verified</span></div>
+  <p class="say" style="margin-top:11px">Two details that make it honest: <b>6 o'clock faces where
+    the ball started</b>, fixed, or the eight points mean nothing across players. And a
+    <b>not sure / didn't see</b> option, because eight selectable points should never force
+    eight-point precision out of a guess.</p>
+</div>
+
+<div class="eyebrow">Naming</div>
+<div class="card">
+  <div class="r"><span class="l">Distance-only SG</span><span class="v">−0.05</span></div>
+  <div class="r"><span class="l">Condition-adjusted SG</span><span class="v">+0.95</span></div>
+  <p class="note">Not <b>corrected</b>. That word says the old verdict was wrong and the new one is
+    right. All the example shows is that the model <b>can change the verdict</b>, which is not the
+    same as earning it. Same for the 75-putt figure: a proposed eligibility threshold, not a point
+    where the prices become trustworthy.</p>
+</div>
+
+<div class="eyebrow">Shipping list</div>
+<div class="card">
+  <div class="dec"><span class="t"><b>Condition-aware baseline</b> inside expected putts</span><span class="pill wait">preliminary</span></div>
+  <div class="dec"><span class="t"><b>One round SG</b>, reconciled with per-putt by telescoping</span><span class="pill go">keep</span></div>
+  <div class="dec"><span class="t"><b>Form</b> as its own execution lane</span><span class="pill go">keep</span></div>
+  <div class="dec"><span class="t"><b>Putt card</b> with the break adjustment</span><span class="pill go">keep</span></div>
+  <div class="dec"><span class="t"><b>Two-putt reference line</b></span><span class="pill go">keep</span></div>
+  <div class="dec"><span class="t"><b>Probability zones</b> on the bar</span><span class="pill no">removed</span></div>
+  <div class="dec"><span class="t"><b>Cup entry</b>, optional, with a not-sure</span><span class="pill go">add</span></div>
+  <div class="dec"><span class="t"><b>Pace and read conclusions</b> from entry</span><span class="pill no">not claimed</span></div>
+  <div class="dec"><span class="t"><b>Slope magnitude</b></span><span class="pill wait">deferred, documented</span></div>
+  <div class="dec"><span class="t"><b>Blame triangle</b>, 1/faults allocation</span><span class="pill no">removed</span></div>
+  <div class="dec"><span class="t"><b>Fault pricing</b></span><span class="pill wait">blocked</span></div>
+</div>
+
+</div>
