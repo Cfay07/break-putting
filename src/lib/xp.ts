@@ -671,6 +671,12 @@ export const ROOM_MAX = CUP_R - BALL_R;
  * nothing to confound: it is as true on the first putt logged as on the thousandth, which is not
  * something anything else in the app can say.
  *
+ * The margin falls with the sine of the entry angle, not the cosine. It is the ball's lateral
+ * offset that eats the window, and that offset is `R·sin`, so an entry at forty five degrees sat
+ * 1.50 inches off the middle of a 2.13 inch half-window: seventy one percent of the way out, not
+ * seventy one percent of the way in. Using cosine paid that putt 0.91 inches of room when it had
+ * 0.38, and a round of edge entries read as though it had been struck through the middle.
+ *
  * The back half returns nothing rather than zero. A back-door ball was not holed by being on
  * line, it was holed by still moving when it got there, and that is a question about pace this
  * cannot answer.
@@ -681,7 +687,7 @@ export function roomOf(entry: CupEntry | undefined): number | null {
   // Six o'clock is where the ball came from, so the front is 270 degrees in the drawing's frame.
   const fromFront = Math.abs(((deg - 270 + 540) % 360) - 180);
   if (fromFront > 90) return null;
-  return ROOM_MAX * Math.cos((fromFront * Math.PI) / 180);
+  return ROOM_MAX * (1 - Math.sin((fromFront * Math.PI) / 180));
 }
 
 export interface RoomStat {

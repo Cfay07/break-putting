@@ -153,11 +153,12 @@ describe('room to spare', () => {
     expect(roomOf('right')).toBeCloseTo(0, 10);
   });
 
-  it('gives the inside edges something, but less', async () => {
+  it('gives the inside edges something, but much less than half', async () => {
     const { roomOf, ROOM_MAX } = await import('./xp');
     const inside = roomOf('inside-left')!;
     expect(inside).toBeGreaterThan(0);
-    expect(inside).toBeLessThan(ROOM_MAX);
+    // The ball sat 71% of the way out, so it keeps under a third of the window, not most of it.
+    expect(inside).toBeLessThan(ROOM_MAX * 0.35);
     expect(roomOf('inside-right')).toBeCloseTo(inside, 10);
   });
 
