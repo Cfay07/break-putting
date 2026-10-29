@@ -651,7 +651,7 @@ export function Stats() {
               been recorded on putts that missed ({exec.faultyMakes} holed putts carry one), so
               "has a fault" is standing in for "missed" and any gap would be the outcome wearing a
               different name. The factor chips were hidden on holed putts until now, which is why.
-              Tag a few putts you struck badly and holed anyway and this can start answering.
+              Only a putt struck badly and holed anyway can separate the two.
             </p>
           ) : exec.nClean < 5 || exec.nFaulty < 5 ? (
             <Why lead="Not enough strokes judged yet.">

@@ -19,6 +19,27 @@ and every panel explaining what they are missing tells them they are using it wr
 there reads as unfinished software, however carefully each paragraph is written. The version with
 four real sections and no apologies looks better and *is* better.
 
+## Never ask for data the player did not offer
+
+Stating a limit is honest. Issuing an instruction is pressure, and the two read very differently
+on a page somebody opened to look at their putting.
+
+    state it      Only 23 misses have a side on them, which is thin for a pattern.
+    do not        Tag a few more rounds before reading into it.
+
+    state it      Only a putt struck badly and holed anyway can separate the two.
+    do not        Tag a few putts you struck badly and holed anyway and this can start answering.
+
+Same fact, and the first does not tell anyone they are holding the app wrong. If a number needs
+something the record does not contain, say what the number cannot do. Do not assign homework.
+
+## Nothing is ever deleted
+
+Hiding is a display decision and only a display decision. Every field stays in the model, every
+tagged value stays on the putt, and the moment something is logged it appears everywhere it
+belongs with no migration and no prompt. A player who tags nothing for a year and then tags one
+round gets that round's sections, immediately, in every place they are supposed to be.
+
 ## What this is not
 
 It is not hiding a number behind a tap, and it is not softening a caveat. Where a figure is on

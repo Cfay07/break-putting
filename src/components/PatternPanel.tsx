@@ -1,4 +1,4 @@
-import { BUCKETS, MIN_TAGGED_ROUNDS, readBias, type ReadBias, type Stats } from '../lib/stats';
+import { BUCKETS, readBias, type ReadBias, type Stats } from '../lib/stats';
 import { BREAK_BUCKETS, BREAK_BUCKET_LABELS } from '../lib/types';
 import { Split } from './Bar';
 import { TendencyDial } from './TendencyDial';
@@ -14,12 +14,12 @@ function readVerdict(r: ReadBias): string {
   if (r.verdict === 'thin') {
     return sided === 0
       ? 'No break-side misses tagged yet.'
-      : `Only ${sided} misses have a side on them. Tag a few more rounds before reading into it.`;
+      : `Only ${sided} misses have a side on them, which is thin for a pattern.`;
   }
   if (r.verdict === 'leaning') {
     // The putts clear the noise line, but they come from too few rounds to call it a habit:
     // one day's greens can push every miss the same way.
-    return `${lead}, which leans toward ${cause}. That is only ${r.rounds} round${r.rounds === 1 ? '' : 's'} of tagging though, and one day's greens can push every miss the same way. Tag ${MIN_TAGGED_ROUNDS - r.rounds} more and this becomes a real read.`;
+    return `${lead}, which leans toward ${cause}. That is ${r.rounds} round${r.rounds === 1 ? '' : 's'} though, and one day's greens can push every miss the same way.`;
   }
   if (r.verdict === 'read') {
     return `${lead}, across ${r.rounds} rounds. That is a read and aim problem: you are ${cause}.`;
