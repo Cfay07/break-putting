@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { replayLadder } from '../components/LadderLogger';
 import { replayStreak } from '../components/StreakLogger';
 import { APP_DRILLS, drillsFor, fitToRoom, resolveDrill } from './drills';
+import { carryRows, carryText } from './carry';
 import { habitsOf } from './habits';
+import { roundPayoff, roundTags } from './roundPayoff';
 import { targetKind } from './target';
 import { missBands, pressureOf, spotVsMixed, testTrend } from './practiceReview';
 import { setupOf, TEST_ID, testBalls, testDrill, testStatus, weekOf } from './weeklyTest';
@@ -661,5 +663,76 @@ describe('back link', () => {
     expect(backLabel('/practice/sessions')).toBe('Sessions');
     expect(backLabel('/stats/practice')).toBe('Stats');
     expect(backLabel('/practice/session/a')).toBe('Session');
+  });
+});
+
+describe('did it carry over', () => {
+  const dated = (date: string, makeEvery: number, extra: Partial<Round> = {}) => ({ ...round('a', 7, makeEvery, extra), date });
+  const rolled = (id: string, drill: string, date: string, d: number) =>
+    set(id, drill, 5, 10, date, { stations: [{ d, mode: 'make', made: 5, attempts: 10 }] });
+
+  it('splits a distance on the day you first practiced it, with no save step', () => {
+    const rounds = [dated('2026-10-01', 4), dated('2026-12-01', 2)];
+    const [row] = carryRows(rounds, [rolled('a', 'ten-6', '2026-11-01', 6), rolled('b', 'ten-6', '2026-11-20', 6)]);
+    expect(row).toMatchObject({ zone: 'mid', cond: null, started: '2026-11-01', label: '6 to 8 ft' });
+    expect(row.before).toEqual({ made: 5, attempts: 18 });
+    expect(row.since).toEqual({ made: 9, attempts: 18 });
+  });
+
+  it('does not count the weekly test or one-handed work as starting on something', () => {
+    const test = set('t', TEST_ID, 5, 18, '2026-11-01', { stations: [{ d: 6, mode: 'make', made: 5, attempts: 18 }] });
+    const hand = set('h', 'left-hand', 5, 10, '2026-11-01', { stations: [{ d: 6, mode: 'make', hand: 'left', made: 5, attempts: 10 }] });
+    expect(carryRows([], [test, hand])).toEqual([]);
+  });
+
+  it('keeps one start through a surface switch and tracks the kind of putt', () => {
+    const sets = [rolled('a', 'fix:aim-lr:8', '2026-11-01', 8), { ...rolled('b', 'fix:apex-lr:7', '2026-11-05', 7), surface: 'green' as const }];
+    const row = carryRows([], sets).find((c) => c.cond === 'lr')!;
+    expect(row.started).toBe('2026-11-01');
+    expect(row.label).toBe('Breaking left to right, 6 to 8 ft');
+  });
+
+  it('says more to compare, then only calls a change past chance', () => {
+    const base = { started: '2026-11-01', before: { made: 8, attempts: 23 } };
+    expect(carryText({ ...base, since: { made: 1, attempts: 3 } })).toContain('3 of these on the course, 7 more to compare');
+    expect(carryText({ ...base, since: { made: 5, attempts: 12 } })).toContain('Within what chance can do');
+    expect(carryText({ ...base, since: { made: 28, attempts: 30 } })).toContain('Up by more than chance');
+    expect(carryText({ ...base, since: { made: 1, attempts: 30 } })).toContain('Down by more than chance');
+  });
+});
+
+describe('what a round showed', () => {
+  const tagged = (date: string, putts: Putt[]): Round => ({
+    id: `p${date}`, label: 'p', date, putterId: 'a', holeCount: putts.length, finished: true,
+    holes: putts.map((p, i) => ({ hole: i + 1, putts: p.made ? [p] : [p, { d: 1, made: true }] })),
+  });
+  const many = (n: number, p: Putt) => Array.from({ length: n }, () => ({ ...p }));
+
+  it('counts this round alone, biggest first', () => {
+    const t = roundTags(tagged('2026-11-01', [...many(3, { d: 6, made: false, push: true }), { d: 5, made: false, lip: true }, { d: 3, made: true }]));
+    expect(t).toMatchObject({ tagged: 4, putts: 9 });
+    expect(t.lines).toEqual(['Start line: 3 pushed, 0 pulled.', '1 lipped out.']);
+  });
+
+  it('calls a finding new only on the round that took it past its minimum', () => {
+    const push: Putt = { d: 6, made: false, push: true };
+    const first = tagged('2026-11-01', many(6, push));
+    const second = tagged('2026-11-08', many(2, push));
+    const third = tagged('2026-11-15', many(2, push));
+    const rounds = [first, second, third];
+    expect(roundPayoff(first, rounds, [], 'indoor').found).toEqual([]);
+    expect(roundPayoff(second, rounds, [], 'indoor').found.map((h) => h.title)).toEqual(['You push it']);
+    expect(roundPayoff(third, rounds, [], 'indoor').found).toEqual([]);
+    expect(roundPayoff(third, rounds, [], 'indoor').still?.title).toBe('You push it');
+    expect(roundPayoff(tagged('2026-11-20', [{ d: 6, made: false, lip: true }]), [...rounds], [], 'indoor').still).toBeNull();
+  });
+
+  it('shows practice work only on rounds after it started, and leaves another putter out', () => {
+    const r = tagged('2026-11-08', [{ d: 7, made: true }, { d: 7, made: false }]);
+    const old = tagged('2026-10-01', [{ d: 7, made: true }]);
+    const carry = carryRows([old, r], [set('a', 'ten-6', 5, 10, '2026-11-01', { stations: [{ d: 6, mode: 'make', made: 5, attempts: 10 }] })]);
+    expect(roundPayoff(r, [old, r], carry, 'indoor').work[0]).toMatchObject({ label: '6 to 8 ft', made: 1, attempts: 2 });
+    expect(roundPayoff(old, [old, r], carry, 'indoor').work).toEqual([]);
+    expect(roundPayoff(r, [old], carry, 'indoor').work).toEqual([]);
   });
 });

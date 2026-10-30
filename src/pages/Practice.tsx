@@ -119,7 +119,7 @@ const unique = (ds: (Fitted | null | undefined)[]): Fitted[] => {
 
 export function Practice() {
   const plan = usePlan();
-  const { state, dispatch, surface, room, drills, fitted, family, focus, worst, whyOf, habits, pattern, patternFix, scope, lastRound } =
+  const { state, dispatch, surface, room, drills, fitted, family, focus, worst, whyOf, zoneTrack, habits, pattern, patternFix, scope, lastRound } =
     plan;
   const [rolling, setRolling] = useState<{ drill: Fitted; once?: boolean } | null>(null);
   // A tap shows what the drill is; only Start opens the counter.
@@ -164,6 +164,7 @@ export function Practice() {
       `${s.made} of ${s.attempts} ${lag ? 'finished within 3 ft' : 'holed'} in ${scope}, against ${pct(s.restMade, s.restAttempts)}% on your other tagged putts from there.`,
     );
     if (s.lean) lines.push(`${s.lean.n} of ${s.lean.of} tagged misses ${LEAN_TEXT[s.lean.lean]}.`);
+    if (slice.track) lines.push(slice.track);
     picks = unique([slice.fix, fromPractice ? patternFix : null, ...zoneDrills]);
   } else if (kind === 'zone' && worst) {
     title = worst.label;
@@ -181,6 +182,8 @@ export function Practice() {
           (read && surface === 'indoor' ? ' A flat spot cannot train the read. On a putt with real slope, switch to Green.' : ''),
       );
     }
+    const track = zoneTrack(worst);
+    if (track) lines.push(track);
     picks = unique([zoneDrills[0], fromPractice ? patternFix : null, ...zoneDrills.slice(1)]);
   } else if (kind === 'habit') {
     const h = habits[0];

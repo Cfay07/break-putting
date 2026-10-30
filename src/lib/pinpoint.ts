@@ -7,6 +7,12 @@ import { breakBucket, breakDirsOf, isLagZone, slopeOf } from './types';
 
 const FIX = /^fix:([a-z]+(?:-[a-z]+)?):(\d+)$/;
 
+/** The kind and distance out of a fix drill's id, or nothing for any other drill. */
+export function fixParts(id: string): { kind: string; d: number } | null {
+  const m = id.match(FIX);
+  return m ? { kind: m[1], d: Number(m[2]) } : null;
+}
+
 type Kind =
   | 'gate' | 'past' | 'die' | 'apex-lr' | 'apex-rl' | 'aim-lr' | 'aim-rl' | 'firm-lr' | 'firm-rl'
   | 'downhill' | 'uphill' | 'double'
@@ -231,7 +237,8 @@ export function pinpoint(rounds: Round[], baseline: [number, number][], zone: Zo
 export function sliceSince(
   rounds: Round[],
   zone: Zone,
-  cond: Cond,
+  /** Nothing means every putt from the zone, tagged or not. */
+  cond: Cond | null,
   since: string,
 ): { before: { made: number; attempts: number }; after: { made: number; attempts: number } } {
   const [lo, hi] = ZONE_RANGE[zone];
@@ -240,7 +247,7 @@ export function sliceSince(
     const side = r.date >= since ? t.after : t.before;
     for (const h of r.holes) {
       h.putts.forEach((p, i) => {
-        if (p.d < lo || p.d > hi || !condsOf(p).includes(cond)) return;
+        if (p.d < lo || p.d > hi || (cond && !condsOf(p).includes(cond))) return;
         const next = h.putts[i + 1];
         side.attempts++;
         if (isLagZone(zone) ? p.made || (!!next && next.d <= 3) : p.made) side.made++;

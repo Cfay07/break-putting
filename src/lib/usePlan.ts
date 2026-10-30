@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { fitToRoom, type Fitted } from './drills';
-import { fmtDate } from './format';
+import { carryKey, carryRows, carryText } from './carry';
 import { habitsOf } from './habits';
-import { fixDrill, fixFor, pinpoint, practiceFix, practicePattern, SLICE_NEED, sliceSince, type Slice } from './pinpoint';
+import { fixDrill, fixFor, pinpoint, practiceFix, practicePattern, sliceSince, type Slice } from './pinpoint';
 import { focusOf, type ZoneRead } from './practice';
 import { putterName } from './store';
 import { usePractice } from './usePractice';
@@ -21,6 +21,7 @@ export function usePlan() {
 
   const focus = useMemo(() => focusOf(state.rounds, state.baseline, putterId), [state.rounds, state.baseline, putterId]);
   const worst = focus.zones.find((z) => z.zone === focus.worst) ?? null;
+  const carry = carryRows(scoped.rounds, sets, p.family);
 
   // The slow loop: inside a zone, which kind of putt is behind it, and how that kind has gone on
   // the course since you started on its fix.
@@ -28,16 +29,16 @@ export function usePlan() {
     pinpoint(scoped.rounds, state.baseline, zone.zone).map((slice) => {
       const fixId = fixFor(slice.cond, slice.lean?.lean ?? null, slice.d, surface);
       const fix = fitToRoom(fixDrill(fixId)!, room);
-      const started = sets.filter((x) => x.drill === fixId).map((x) => x.date).sort()[0];
-      let track: string | null = null;
-      if (started) {
-        const t = sliceSince(scoped.rounds, zone.zone, slice.cond, started);
-        const pct = (x: { made: number; attempts: number }) => Math.round((x.made / x.attempts) * 100);
-        track =
-          t.after.attempts >= SLICE_NEED && t.before.attempts
-            ? `On the course since you started it on ${fmtDate(started)}: ${pct(t.after)}% of ${t.after.attempts}, against ${pct(t.before)}% before.`
-            : `Started on ${fmtDate(started)}. ${t.after.attempts} of these putts on the course since, short of the ${SLICE_NEED} it takes to compare.`;
-      }
+      // A fix whose kind says nothing about the putt, like going past the hole, starts the clock too.
+      const row = carry.find((c) => c.key === carryKey(zone.zone, slice.cond));
+      const own = sets.filter((x) => x.drill === fixId).map((x) => x.date).sort()[0];
+      const started = [row?.started, own].filter((x): x is string => !!x).sort()[0];
+      const track = started
+        ? (() => {
+            const t = sliceSince(scoped.rounds, zone.zone, slice.cond, started);
+            return carryText({ started, before: t.before, since: t.after });
+          })()
+        : null;
       return { slice, fix, track };
     });
 
@@ -52,5 +53,10 @@ export function usePlan() {
     focus.putterOnly && putterId ? `your ${recentWord} rounds with the ${putterName(state, putterId)}` : `your ${recentWord} rounds`;
   const lastRound = state.rounds.filter((r) => r.finished).reduce<string | null>((m, r) => (!m || r.date > m ? r.date : m), null);
 
-  return { ...p, focus, worst, whyOf, habits, pattern, patternFix, scope, lastRound };
+  const zoneTrack = (zone: ZoneRead) => {
+    const row = carry.find((c) => c.key === carryKey(zone.zone, null));
+    return row ? carryText(row) : null;
+  };
+
+  return { ...p, focus, worst, whyOf, zoneTrack, carry, habits, pattern, patternFix, scope, lastRound };
 }

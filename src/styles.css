@@ -1567,3 +1567,5 @@ div.nav-row[aria-disabled='true'] { opacity: 0.6; }
 .miss-track i { display: block; height: 100%; background: var(--ink-3); }
 .miss-track i.top { background: var(--ink); }
 .inline-link { color: var(--ink); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.payoff { display: grid; gap: 8px; }
+.payoff p { margin: 0; font-size: 14px; line-height: 1.4; }

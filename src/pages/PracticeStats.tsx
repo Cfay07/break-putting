@@ -1,7 +1,7 @@
 import { Chevron } from '../components/Chevron';
 import { PracticeDays } from '../components/PracticeDays';
 import { PracticeLog } from '../components/PracticeLog';
-import { MissBandsCard, PressureCard, SpotVsMixed, TargetCarry, TestTrendCard } from '../components/PracticeReview';
+import { CarryList, MissBandsCard, PressureCard, SpotVsMixed, TargetCarry, TestTrendCard } from '../components/PracticeReview';
 import { SetColumns } from '../components/SetColumns';
 import { VsPlay } from '../components/VsPlay';
 import { resolveDrill } from '../lib/drills';
@@ -107,6 +107,7 @@ export function PracticeStats() {
     <div>
       <TargetCarry />
       <TestTrendCard />
+      <CarryList />
 
       {prac && (
         <>

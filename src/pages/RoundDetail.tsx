@@ -30,6 +30,7 @@ import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { ReadPanel } from '../components/ReadPanel';
+import { RoundPayoff } from '../components/RoundPayoff';
 import { readError } from '../lib/readError';
 import { formOf } from '../lib/form';
 import { FormPanel } from '../components/FormPanel';
@@ -286,6 +287,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           {shareNote}
         </p>
       )}
+
+      <RoundPayoff round={round} />
 
       <h2>The numbers</h2>
       <div className="card">

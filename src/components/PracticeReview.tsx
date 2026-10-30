@@ -1,3 +1,4 @@
+import { carryText } from '../lib/carry';
 import { fmtDate, today as todayIso } from '../lib/format';
 import { COND_LABEL, ZONE_RANGE } from '../lib/pinpoint';
 import { pressureOf, spotVsMixed, SPOT_NEED, missBands, testTrend, TREND_TESTS, type SpotTally } from '../lib/practiceReview';
@@ -14,7 +15,7 @@ const pct = (made: number, of: number) => Math.round((made / of) * 100);
 
 /** The round target, with how its fix is going in practice beside how the putt goes on the course. */
 export function TargetCarry() {
-  const { state, worst, whyOf, family } = usePlan();
+  const { state, worst, whyOf, zoneTrack, family } = usePlan();
   if (!worst || worst.sgPerRound >= 0 || confidenceOf(worst.sample) === 'waiting') return null;
   const w = whyOf(worst)[0];
   const lag = isLagZone(worst.zone);
@@ -63,12 +64,34 @@ export function TargetCarry() {
               : ahead
               ? 'Practice is ahead of the course here. Only rounds can say whether it carries over.'
               : 'Practice is no better than the course here yet.'}
-          {w?.track ? ` ${w.track}` : ''}{' '}
+          {w ? (w.track ? ` ${w.track}` : '') : zoneTrack(worst) ? ` ${zoneTrack(worst)}` : ''}{' '}
           <a className="inline-link" href="#/practice/why">
             See why ›
           </a>
         </p>
       </div>
+    </>
+  );
+}
+
+/** Every target you have put work into, including the ones you moved past. */
+export function CarryList() {
+  const { carry } = usePlan();
+  if (!carry.length) return null;
+  return (
+    <>
+      <h2>On the course since you started</h2>
+      <div className="row-list">
+        {carry.map((c) => (
+          <div key={c.key} className="card habit">
+            <strong>{c.label}</strong>
+            <span className="small muted">{carryText(c)}</span>
+          </div>
+        ))}
+      </div>
+      <p className="small muted" style={{ margin: '8px 0 0' }}>
+        This shows what happened after you started, not why. Easier courses and better days move these too.
+      </p>
     </>
   );
 }

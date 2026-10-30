@@ -149,4 +149,11 @@ First real readings: left-to-right putts from 3 to 5 ft (5 of 13 against 85%) an
   after six tests and past a good or bad week), same spot against mixed (fair on distance through
   scratch), tagged practice misses by band, and in-a-row drills. Each hides until it has enough.
 
+- **The last step of the loop** (`lib/carry.ts`, `lib/roundPayoff.ts`): every distance and kind of
+  putt you have practiced gets a before and since on the course, split on the date of the first
+  practice. There is nothing to save, so a surface switch changes nothing and a target you moved
+  past stays on the list. The weekly test does not start the clock. It never says why a number
+  moved. The round page opens on what that round showed: findings it unlocked, patterns it added
+  to, and how your practice targets played.
+
 **Next:** nothing new until spring. Use the loop and fix what using it turns up.
