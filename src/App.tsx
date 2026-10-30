@@ -19,6 +19,7 @@ import { Track } from './pages/Track';
 import { useEffect, useRef } from 'react';
 import { bleedSummary } from './lib/bleed';
 import { fitMakeModel, makeability } from './lib/makeability';
+import { runLapsed } from './lib/practice';
 import { useRoute } from './lib/router';
 import { courseLabel, overall, roundStats } from './lib/stats';
 import { publishRounds, publishStats, unpublishRounds } from './lib/teams';
@@ -135,6 +136,23 @@ export default function App() {
     // and this must not overrule that move. Replaced, not pushed, so back cannot land here again.
     if (staleTrack && window.location.hash === '#/track') window.location.replace(`#${afterTrack(latest.current)}`);
   }, [staleTrack]);
+
+  const hasRun = !!state.run;
+  useEffect(() => {
+    if (!hasRun) return;
+    // A walked-away session stops here. Its drills are already saved, so ending it loses nothing.
+    const check = () => {
+      const run = latest.current.run;
+      if (run && runLapsed(run, Date.now())) dispatch({ t: 'endRun' });
+    };
+    check();
+    const id = setInterval(check, 60_000);
+    document.addEventListener('visibilitychange', check);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, [hasRun, dispatch]);
 
   useEffect(() => {
     if (!state.rounds.some((r) => r.finished)) return;

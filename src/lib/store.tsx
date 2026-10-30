@@ -434,18 +434,18 @@ export function reducer(state: AppState, a: Action): AppState {
       if (!state.run) return state;
       const done = { ...state.run.done, [a.block]: a.setId };
       // Rolling a finished block again replaces its set and leaves you where you are.
-      if (state.run.done[a.block] !== undefined) return { ...state, run: { ...state.run, done } };
+      if (state.run.done[a.block] !== undefined) return { ...state, run: { ...state.run, done, lastLogged: now() } };
       const blocks = state.sessions.find((x) => x.id === state.run!.session)?.blocks.length ?? 0;
       let next = a.block + 1;
       while (next < blocks && done[next]) next++;
       return {
         ...state,
-        run: { ...state.run, done, block: Math.min(next, blocks), blockStartedAt: now() },
+        run: { ...state.run, done, block: Math.min(next, blocks), blockStartedAt: now(), lastLogged: now() },
       };
     }
 
     case 'goToBlock':
-      return state.run ? { ...state, run: { ...state.run, block: a.block, blockStartedAt: now() } } : state;
+      return state.run ? { ...state, run: { ...state.run, block: a.block, blockStartedAt: now(), lastLogged: now() } } : state;
 
     case 'endRun':
       return { ...state, run: undefined };

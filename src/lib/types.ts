@@ -422,6 +422,8 @@ export interface SessionRun {
   startedAt: string;
   block: number;
   blockStartedAt: string;
+  /** The last thing logged or skipped. Rolling a finished block again counts, and moves no block. */
+  lastLogged?: string;
   /** Block index to the set rolled for it. */
   done: Record<number, string>;
 }

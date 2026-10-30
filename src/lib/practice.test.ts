@@ -9,7 +9,7 @@ import { setupOf, TEST_ID, testBalls, testDrill, testStatus, weekOf } from './we
 import { handGap, handLink, handsOf } from './hands';
 import { fixDrill, fixFor, pinpoint, practiceFix, practicePattern } from './pinpoint';
 import { textLines } from './pdfText';
-import { focusOf, leanOf, MIN_PUTTER_ROUNDS, playAt, practiceVsPlay, RECENT_ROUNDS, trendOf } from './practice';
+import { focusOf, leanOf, MIN_PUTTER_ROUNDS, playAt, practiceVsPlay, RECENT_ROUNDS, runLapsed, trendOf } from './practice';
 import { applyFilter, filterLabel } from './roundFilter';
 import { readBlock, readSheet } from './sheetImport';
 import { signedFor, sample } from './sample';
@@ -612,5 +612,28 @@ describe('lag is judged by the circle it was rolled to', () => {
     // Every miss finishes 2.5 ft away: outside a 1 ft circle, inside a 3 ft one. Only the holed ones count at 1 ft.
     expect(reads[0].play).toEqual({ made: 2, attempts: 36 });
     expect(reads[1].play).toEqual({ made: 36, attempts: 36 });
+  });
+});
+
+describe('a session left running', () => {
+  const at = Date.parse('2026-11-01T12:00:00Z');
+  const run = { session: 's', surface: 'indoor' as const, startedAt: '2026-11-01T12:00:00Z', block: 0, blockStartedAt: '2026-11-01T12:00:00Z', done: {} };
+  const mins = (n: number) => at + n * 60_000;
+
+  it('ends after ninety minutes with nothing logged, counted from the last thing logged', () => {
+    expect(runLapsed(run, mins(89))).toBe(false);
+    expect(runLapsed(run, mins(90))).toBe(true);
+    expect(runLapsed({ ...run, lastLogged: '2026-11-01T13:00:00Z' }, mins(120))).toBe(false);
+    expect(runLapsed({ ...run, lastLogged: '2026-11-01T13:00:00Z' }, mins(150))).toBe(true);
+  });
+
+  it('counts rolling a finished block again as logging, and ending keeps the drills', () => {
+    let s = { ...emptyState(), run, practice: [set('a', 'ten-4', 8, 10, '2026-11-01')] };
+    s = { ...s, run: { ...run, done: { 0: 'a' } } };
+    const again = reducer(s, { t: 'finishBlock', block: 0, setId: 'a' });
+    expect(again.run?.lastLogged).toBeDefined();
+    const ended = reducer(again, { t: 'endRun' });
+    expect(ended.run).toBeUndefined();
+    expect(ended.practice).toHaveLength(1);
   });
 });

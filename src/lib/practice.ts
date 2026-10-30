@@ -1,7 +1,7 @@
 import { sample, confidenceOf, type Sample } from './sample';
 import { expectedPutts } from './sg';
 import { bucketOf, overall, type BucketKey } from './stats';
-import type { BallMode, Lean, PracticeSet, Putt, Round, Zone } from './types';
+import type { BallMode, Lean, PracticeSet, Putt, Round, SessionRun, Zone } from './types';
 
 export const ZONES: { key: Zone; label: string; buckets: BucketKey[] }[] = [
   { key: 'tapin', label: '2 ft and in', buckets: ['tapin'] },
@@ -416,4 +416,11 @@ export function trendOf(sets: PracticeSet[]): Trend {
   const margin = 196 * Math.sqrt((p1 * (1 - p1)) / earlier.attempts + (p2 * (1 - p2)) / later.attempts);
   const verdict = diff > margin ? 'up' : diff < -margin ? 'down' : 'flat';
   return { verdict, diff, margin, earlier, later };
+}
+
+/** Ninety minutes with nothing logged and the session is over, whatever the clock would say. */
+export const RUN_IDLE_MINUTES = 90;
+
+export function runLapsed(run: SessionRun, nowMs: number): boolean {
+  return nowMs - Date.parse(run.lastLogged ?? run.blockStartedAt) >= RUN_IDLE_MINUTES * 60_000;
 }
