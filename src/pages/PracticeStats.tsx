@@ -26,10 +26,13 @@ interface Side {
   xp: number | null;
   sg: number | null;
   scoring: number | null;
+  /** How far the first putts were, in feet. */
+  first: number | null;
 }
 
 function sideOf(rounds: Round[], baseline: [number, number][], model: MakeModel): Side {
   const o = overall(rounds, baseline);
+  const firsts = rounds.flatMap((r) => r.holes.filter((h) => h.putts.length).map((h) => h.putts[0].d));
   // A putt the model cannot read gets the distance-only baseline, which is what xP is with no shape.
   const xpRound = (r: Round) =>
     r.holes.filter((h) => h.putts.length).reduce((s, h) => s + (xpOf(model, baseline, h.putts[0]) ?? expectedPutts(baseline, h.putts[0].d)), 0) *
@@ -39,6 +42,7 @@ function sideOf(rounds: Round[], baseline: [number, number][], model: MakeModel)
     xp: rounds.length ? rounds.reduce((s, r) => s + xpRound(r), 0) / rounds.length : null,
     sg: o.sgPerRound,
     scoring: o.scoringPct,
+    first: firsts.length ? firsts.reduce((a, b) => a + b, 0) / firsts.length : null,
   };
 }
 const pct = (t: { made: number; attempts: number }) => Math.round((t.made / t.attempts) * 100);
@@ -112,6 +116,7 @@ export function PracticeStats() {
                 {(
                   [
                     ['Putts per 18', (o: Side) => o.putts?.toFixed(1) ?? ''],
+                    ['Average first putt', (o: Side) => (o.first !== null ? `${o.first.toFixed(1)} ft` : '')],
                     ['Expected putts (xP)', (o: Side) => o.xp?.toFixed(1) ?? ''],
                     ['Strokes gained per 18', (o: Side) => (o.sg !== null ? signed(o.sg) : '')],
                     ['Holed from 3 to 10 ft', (o: Side) => (o.scoring !== null ? `${Math.round(o.scoring)}%` : '')],
