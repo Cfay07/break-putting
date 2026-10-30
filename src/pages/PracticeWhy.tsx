@@ -3,11 +3,10 @@ import { DrillLogger } from '../components/DrillLogger';
 import { DrillPreview } from '../components/DrillPreview';
 import { ZoneBars } from '../components/ZoneBars';
 import { distanceText, drillsNear, type Fitted } from '../lib/drills';
-import { signed } from '../lib/format';
 import { COND_LABEL } from '../lib/pinpoint';
 import { histories, LEAN_TEXT, type ZoneRead } from '../lib/practice';
 import { setScoreShort } from '../lib/practiceView';
-import { confidenceOf } from '../lib/sample';
+import { confidenceOf, signedFor } from '../lib/sample';
 import { resolveDrill } from '../lib/drills';
 import { usePlan, type WhyItem } from '../lib/usePlan';
 import { DEFAULT_BASELINE, isLagZone, SURFACE_LABELS, type MissDir, type Surface, type Zone } from '../lib/types';
@@ -47,7 +46,7 @@ function ZoneCard({
   worst: boolean;
   close: ZoneRead | null;
   /** The season's biggest leak, when it is no longer the recent one. */
-  was: { label: string; sgPerRound: number; rounds: number } | null;
+  was: (Pick<ZoneRead, 'label' | 'sgPerRound' | 'sample'> & { rounds: number }) | null;
   drills: Fitted[];
   surface: Surface;
   lastOf: (id: string) => string | null;
@@ -72,19 +71,19 @@ function ZoneCard({
         </p>
       ) : (
         <>
-          <div className="focus-num num">{signed(z.sgPerRound)}</div>
+          <div className="focus-num num">{signedFor(z.sgPerRound, z.sample)}</div>
           <p className="small muted focus-sub">
             strokes a round against scratch{confidenceOf(z.sample) === 'thin' && ' · thin sample'}
           </p>
           <ZoneStats z={z} />
           {close && (
             <p className="small muted focus-sub">
-              {close.label} is close behind at {signed(close.sgPerRound)}, near enough to be a tie.
+              {close.label} is close behind at {signedFor(close.sgPerRound, close.sample)}, near enough to be a tie.
             </p>
           )}
           {was && (
             <p className="small muted focus-sub">
-              Over all {was.rounds} rounds the biggest leak was {was.label.toLowerCase()} ({signed(was.sgPerRound)}).
+              Over all {was.rounds} rounds the biggest leak was {was.label.toLowerCase()} ({signedFor(was.sgPerRound, was.sample)}).
               Lately it is this one instead.
             </p>
           )}
@@ -156,12 +155,12 @@ export function ZoneStats({ z }: { z: ZoneRead }) {
     ? [
         { v: z.leave !== null ? `${z.leave.toFixed(1)} ft` : '', k: 'Average leave' },
         { v: `${z.threePutts} of ${z.firstPutts}`, k: 'Three-putts' },
-        { v: signed(z.sgPerPutt), k: 'Per putt' },
+        { v: signedFor(z.sgPerPutt, z.sample), k: 'Per putt' },
       ]
     : [
         { v: `${pct(z.makes, z.attempts)}%`, k: `Holed, ${z.makes} of ${z.attempts}` },
         { v: `${pct(z.scratchMakes, z.attempts)}%`, k: 'A scratch golfer makes' },
-        { v: signed(z.sgPerPutt), k: 'Per putt' },
+        { v: signedFor(z.sgPerPutt, z.sample), k: 'Per putt' },
       ];
   return (
     <div className="zone-stats">
@@ -222,7 +221,7 @@ export function PracticeWhy() {
             close={zone.zone === focus.worst ? (focus.zones.find((z) => z.zone === focus.close) ?? null) : null}
             was={
               zone.zone === focus.worst && focus.wasWorst
-                ? { label: focus.wasWorst.label, sgPerRound: focus.wasWorst.sgPerRound, rounds: focus.allRounds }
+                ? { ...focus.wasWorst, rounds: focus.allRounds }
                 : null
             }
             drills={drillsNear(drills, zone.zone, zone.lean?.lean ?? null, surface, room)}

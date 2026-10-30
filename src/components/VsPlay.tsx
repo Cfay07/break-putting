@@ -24,10 +24,12 @@ export function VsPlay({ reads }: { reads: DistanceRead[] }) {
         const pOk = r.practice.attempts >= PRACTICE_NEED;
         const cOk = r.play.attempts >= PLAY_NEED;
         return (
-          <div key={`${r.mode}${r.d}`} className="vs-row">
+          <div key={`${r.mode}${r.d}${r.zoneFt ?? ''}`} className="vs-row">
             <span className="vs-k">
               <strong>{r.d} ft</strong>
-              {r.mode !== 'make' && <span className="small muted">{MODE_WORDS[r.mode].noun}</span>}
+              {r.mode !== 'make' && (
+                <span className="small muted">{r.zoneFt ? `inside ${r.zoneFt} ft` : MODE_WORDS[r.mode].noun}</span>
+              )}
             </span>
             <span className="vs-bars" aria-hidden="true">
               <i className="here" style={{ width: pOk ? `${share(r.practice)}%` : 0 }} />
@@ -40,7 +42,7 @@ export function VsPlay({ reads }: { reads: DistanceRead[] }) {
                     <b>{share(r.practice)}%</b> of {r.practice.attempts}
                   </>
                 ) : (
-                  `${r.practice.attempts} balls, not yet`
+                  `${r.practice.attempts} ${r.practice.attempts === 1 ? 'ball' : 'balls'}, not yet`
                 )}
               </span>
               <span>
@@ -49,7 +51,7 @@ export function VsPlay({ reads }: { reads: DistanceRead[] }) {
                     <b>{share(r.play)}%</b> of {r.play.attempts}
                   </>
                 ) : (
-                  `${r.play.attempts} putts, not yet`
+                  `${r.play.attempts} ${r.play.attempts === 1 ? 'putt' : 'putts'}, not yet`
                 )}
               </span>
             </span>

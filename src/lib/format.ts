@@ -23,6 +23,8 @@ export function today(): string {
  */
 export function signed(n: number, digits = 2): string {
   const v = n.toFixed(digits);
+  // Rounded to nothing, it has no side: -0.04 at one decimal is 0.0, not -0.0.
+  if (Number(v) === 0) return v.replace('-', '');
   return n > 0 ? `+${v}` : v;
 }
 

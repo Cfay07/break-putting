@@ -75,13 +75,13 @@ export function LadderLogger({ drill, onSave }: LoggerProps) {
 
   const finish = (all: boolean[], timedOut = false) => {
     const end = replayLadder(drill, all);
-    const queue: { d: number; mode: 'make' | 'twoputt' | 'zone'; made: boolean; dir?: MissDir }[] = [];
+    const queue: { d: number; mode: 'make' | 'twoputt' | 'zone'; zoneFt?: number; made: boolean; dir?: MissDir }[] = [];
     // Walk the taps again to know which station each ball was hit from.
     let probe: boolean[] = [];
     all.forEach((hit, i) => {
       const at = replayLadder(drill, probe).at;
       const s = drill.stations[Math.min(at, drill.stations.length - 1)];
-      queue.push({ d: s.d, mode: s.mode ?? 'make', made: hit, dir: dirs[i] });
+      queue.push({ d: s.d, mode: s.mode ?? 'make', zoneFt: s.zoneFt, made: hit, dir: dirs[i] });
       probe = [...probe, hit];
     });
     onSave({

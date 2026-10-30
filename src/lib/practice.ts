@@ -294,6 +294,8 @@ export interface Tally2 {
 export interface DistanceRead {
   d: number;
   mode: BallMode;
+  /** Zone reads: the circle both sides are judged by. */
+  zoneFt?: number;
   practice: Tally2;
   play: Tally2;
   /** Practice share minus course share, in points, when both sides have enough. */
@@ -338,29 +340,33 @@ export function playAt(rounds: Round[], d: number, mode: BallMode, zoneFt = 1.5)
 
 const pctOf = (t: Tally2) => (t.attempts ? (t.made / t.attempts) * 100 : 0);
 
+/** Sets saved before results carried their circle. It was the one number every comparison assumed. */
+const LEGACY_ZONE_FT = 1.5;
+
 /** Every distance this set of sets was rolled from, practice beside play. */
 export function practiceVsPlay(
   sets: PracticeSet[],
   rounds: Round[],
-  zoneFtOf: (d: number) => number = () => 1.5,
 ): DistanceRead[] {
-  const byKey = new Map<string, { d: number; mode: BallMode; t: Tally2 }>();
+  const byKey = new Map<string, { d: number; mode: BallMode; zoneFt?: number; t: Tally2 }>();
   for (const s of sets) {
     for (const st of s.stations ?? []) {
       if (st.d <= 0) continue;
-      const key = `${st.mode}|${st.d}`;
-      const cur = byKey.get(key) ?? { d: st.d, mode: st.mode, t: { made: 0, attempts: 0 } };
+      // Inside 1 ft and inside 3 ft are different tests, so they never share a row.
+      const zoneFt = st.mode === 'zone' ? (st.zoneFt ?? LEGACY_ZONE_FT) : undefined;
+      const key = `${st.mode}|${st.d}|${zoneFt ?? ''}`;
+      const cur = byKey.get(key) ?? { d: st.d, mode: st.mode, zoneFt, t: { made: 0, attempts: 0 } };
       cur.t.made += st.made;
       cur.t.attempts += st.attempts;
       byKey.set(key, cur);
     }
   }
   return [...byKey.values()]
-    .sort((a, b) => a.mode.localeCompare(b.mode) || a.d - b.d)
-    .map(({ d, mode, t }) => {
-      const play = playAt(rounds, d, mode, zoneFtOf(d));
+    .sort((a, b) => a.mode.localeCompare(b.mode) || a.d - b.d || (a.zoneFt ?? 0) - (b.zoneFt ?? 0))
+    .map(({ d, mode, zoneFt, t }) => {
+      const play = playAt(rounds, d, mode, zoneFt);
       const both = t.attempts >= PRACTICE_NEED && play.attempts >= PLAY_NEED;
-      return { d, mode, practice: t, play, gap: both ? pctOf(t) - pctOf(play) : null };
+      return { d, mode, zoneFt, practice: t, play, gap: both ? pctOf(t) - pctOf(play) : null };
     });
 }
 

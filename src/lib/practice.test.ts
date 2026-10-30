@@ -9,9 +9,11 @@ import { setupOf, TEST_ID, testBalls, testDrill, testStatus, weekOf } from './we
 import { handGap, handLink, handsOf } from './hands';
 import { fixDrill, fixFor, pinpoint, practiceFix, practicePattern } from './pinpoint';
 import { textLines } from './pdfText';
-import { focusOf, leanOf, MIN_PUTTER_ROUNDS, playAt, RECENT_ROUNDS, trendOf } from './practice';
+import { focusOf, leanOf, MIN_PUTTER_ROUNDS, playAt, practiceVsPlay, RECENT_ROUNDS, trendOf } from './practice';
 import { applyFilter, filterLabel } from './roundFilter';
 import { readBlock, readSheet } from './sheetImport';
+import { signedFor, sample } from './sample';
+import { tallyStations } from './practiceView';
 import { overall } from './stats';
 import { reducer } from './store';
 import { emptyState } from './storage';
@@ -567,5 +569,48 @@ describe('practice review', () => {
     const p = pressureOf([streak('a', 12, true), streak('b', 31, false), set('c', 'ten-4', 8, 10, '2026-11-01')], (id) => resolveDrill(emptyState(), id));
     expect(p.streaks).toBe(2);
     expect(p.best?.run).toBe(31);
+  });
+});
+
+describe('numbers say how much they know', () => {
+  it('earns two decimals with a full sample, and a rounded zero has no sign', () => {
+    expect(signedFor(-0.634, sample(40, 30, 'putts'))).toBe('-0.63');
+    expect(signedFor(-0.634, sample(23, 30, 'putts'))).toBe('-0.6');
+    expect(signedFor(0.634, sample(23, 30, 'putts'))).toBe('+0.6');
+    expect(signedFor(-0.04, sample(23, 30, 'putts'))).toBe('0.0');
+    expect(signedFor(0.04, sample(23, 30, 'putts'))).toBe('0.0');
+  });
+});
+
+describe('lag is judged by the circle it was rolled to', () => {
+  const lagRound = () => {
+    const r = round('a', 25, 99);
+    r.holes.forEach((h) => {
+      if (h.putts[1]) h.putts[1].d = 2.5;
+    });
+    return r;
+  };
+
+  it('keeps the circle on the result', () => {
+    const st = tallyStations([
+      { d: 25, mode: 'zone', zoneFt: 3, made: true },
+      { d: 25, mode: 'zone', zoneFt: 3, made: false },
+      { d: 25, mode: 'zone', zoneFt: 1, made: true },
+      { d: 6, mode: 'make', zoneFt: 3, made: true },
+    ]);
+    expect(st.map((s) => [s.d, s.zoneFt, s.attempts])).toEqual([[25, 3, 2], [25, 1, 1], [6, undefined, 1]]);
+  });
+
+  it('compares each circle with the same circle on the course, and never merges two', () => {
+    const rounds = [lagRound(), lagRound()];
+    const sets = [
+      set('a', 'x', 7, 10, '2026-11-01', { stations: [{ d: 25, mode: 'zone', zoneFt: 3, made: 7, attempts: 10 }] }),
+      set('b', 'y', 2, 10, '2026-11-01', { stations: [{ d: 25, mode: 'zone', zoneFt: 1, made: 2, attempts: 10 }] }),
+    ];
+    const reads = practiceVsPlay(sets, rounds);
+    expect(reads.map((r) => r.zoneFt)).toEqual([1, 3]);
+    // Every miss finishes 2.5 ft away: outside a 1 ft circle, inside a 3 ft one. Only the holed ones count at 1 ft.
+    expect(reads[0].play).toEqual({ made: 2, attempts: 36 });
+    expect(reads[1].play).toEqual({ made: 36, attempts: 36 });
   });
 });

@@ -1,5 +1,5 @@
 import { expectedPutts } from './sg';
-import type { DrillDef, PracticeSet, Station, StationResult, Surface } from './types';
+import type { DrillDef, MissDir, PracticeSet, Station, StationResult, Surface } from './types';
 
 /**
  * The same eighteen putts every week, in a new order. It is the one practice number that means
@@ -145,4 +145,37 @@ export function testParts(set: PracticeSet, baseline: [number, number][]) {
     inside: sum(lags, (s) => s.made),
     lags: sum(lags, (s) => s.attempts),
   };
+}
+
+const RUN_KEY = 'break.testRun';
+const orderOf = (stations: Pick<Station, 'd' | 'mode'>[]) => stations.map((s) => `${s.d}${s.mode === 'zone' ? 'z' : ''}`).join();
+
+/**
+ * A test you walked away from. Six minutes on a mat gets interrupted, and starting over would
+ * hand you a do-over the test does not allow. Next week's order will not match, so it lapses.
+ */
+export function loadTestRun(stations: Pick<Station, 'd' | 'mode'>[]): { balls: boolean[]; dirs: (MissDir | undefined)[] } | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(RUN_KEY) ?? 'null');
+    if (!saved || saved.order !== orderOf(stations) || !saved.balls?.length) return null;
+    return { balls: saved.balls, dirs: saved.dirs.map((d: MissDir | null) => d ?? undefined) };
+  } catch {
+    return null;
+  }
+}
+
+export function saveTestRun(stations: Pick<Station, 'd' | 'mode'>[], balls: boolean[], dirs: (MissDir | undefined)[]): void {
+  try {
+    localStorage.setItem(RUN_KEY, JSON.stringify({ order: orderOf(stations), balls, dirs }));
+  } catch {
+    // Losing a half-finished test is a nuisance, never a reason to stop the counter.
+  }
+}
+
+export function clearTestRun(): void {
+  try {
+    localStorage.removeItem(RUN_KEY);
+  } catch {
+    // Same.
+  }
 }

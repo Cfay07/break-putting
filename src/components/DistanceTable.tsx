@@ -1,4 +1,5 @@
 import { signed } from '../lib/format';
+import { sample, signedFor } from '../lib/sample';
 import { BUCKETS, pct, type Stats } from '../lib/stats';
 
 export function DistanceTable({
@@ -44,7 +45,7 @@ export function DistanceTable({
                   <td className={(perRound[b.key] ?? 0) >= 0 ? 'pos' : 'neg'}>
                     {perRound[b.key] === null || perRound[b.key] === undefined
                       ? '--'
-                      : signed(perRound[b.key]!)}
+                      : signedFor(perRound[b.key]!, sample(t.attempts, 30, 'putts'))}
                   </td>
                 )}
               </tr>
@@ -65,8 +66,9 @@ export function DistanceTable({
             <td className={stats.sg >= 0 ? 'pos' : 'neg'}>{signed(stats.sg)}</td>
             {perRound && (
               <td>
-                {signed(
+                {signedFor(
                   BUCKETS.reduce((n, b) => n + (perRound[b.key] ?? 0), 0),
+                  sample(rounds ?? 0, 5, 'rounds'),
                 )}
               </td>
             )}

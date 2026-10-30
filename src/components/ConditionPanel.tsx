@@ -1,4 +1,4 @@
-import { signed } from '../lib/format';
+import { sample, signedFor } from '../lib/sample';
 import type { ConditionSplit, ConditionSplits } from '../lib/conditions';
 
 function Table({ title, rows }: { title: string; rows: ConditionSplit[] }) {
@@ -26,7 +26,7 @@ function Table({ title, rows }: { title: string; rows: ConditionSplit[] }) {
                 <td className="num">{r.puttsPerRound.toFixed(1)}</td>
                 <td className="num">{r.scoringPct === null ? '--' : `${r.scoringPct.toFixed(0)}%`}</td>
                 <td className={r.sgPerRound === best ? 'num pos' : 'num neg'}>
-                  {signed(r.sgPerRound)}
+                  {signedFor(r.sgPerRound, sample(r.rounds, 5, 'rounds'))}
                 </td>
               </tr>
             ))}

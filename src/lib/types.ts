@@ -379,6 +379,8 @@ export type MissDir = 'left' | 'right' | 'short' | 'long';
 export interface StationResult {
   d: number;
   mode: BallMode;
+  /** Zone balls: how close counted, so the course is judged by the same circle. */
+  zoneFt?: number;
   hand?: Hand;
   made: number;
   attempts: number;

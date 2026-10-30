@@ -468,7 +468,7 @@ export function Track() {
                 {draftChance === null ? (
                   <span className="dx-note">Past your longest putt, {makeModel.longest} ft</span>
                 ) : (
-                  `${(draftChance * 100).toFixed(2)}%`
+                  `${Math.round(draftChance * 100)}%`
                 )}
               </span>
             </div>

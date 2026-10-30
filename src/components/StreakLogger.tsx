@@ -47,7 +47,7 @@ export function StreakLogger({ drill, history, onSave }: LoggerProps) {
       run: r.best,
       finished,
       seconds: started !== null ? Math.round((Date.now() - started) / 1000) : undefined,
-      stations: tallyStations(all.map((made, i) => ({ d, mode: drill.stations[0]?.mode ?? 'make', made, dir: dirs[i] }))),
+      stations: tallyStations(all.map((made, i) => ({ d, mode: drill.stations[0]?.mode ?? 'make', zoneFt: drill.stations[0]?.zoneFt, made, dir: dirs[i] }))),
     });
   };
 

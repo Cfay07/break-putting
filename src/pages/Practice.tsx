@@ -10,12 +10,13 @@ import { COND_LABEL } from '../lib/pinpoint';
 import { histories, LEAN_TEXT } from '../lib/practice';
 import { clock, setScoreShort } from '../lib/practiceView';
 import { go } from '../lib/router';
+import { digitsFor } from '../lib/sample';
 import { liveRound, makeRound } from '../lib/store';
 import { daysBetween, STALE_DAYS, targetKind } from '../lib/target';
 import { usePlan } from '../lib/usePlan';
 import { usePractice } from '../lib/usePractice';
 import { isLagZone, SURFACE_LABELS, type Surface } from '../lib/types';
-import { nextTestDay, testDrill, testParts, testStatus } from '../lib/weeklyTest';
+import { loadTestRun, nextTestDay, testDrill, testParts, testStatus } from '../lib/weeklyTest';
 import { DIR_MEANS } from './PracticeWhy';
 
 const SURFACES: Surface[] = ['indoor', 'green'];
@@ -139,6 +140,7 @@ export function Practice() {
   const test = testStatus(sets, surface, room, date);
   const testRun = fitToRoom(testDrill(room, surface, date), room);
   const lastTest = test.weeks.filter((s) => s !== test.thisWeek).at(-1) ?? null;
+  const testGoing = loadTestRun(testRun.stations);
 
   const why = worst ? whyOf(worst) : [];
   const slice = why[0] ?? null;
@@ -148,7 +150,7 @@ export function Practice() {
   const pct = (n: number, of: number) => Math.round((n / of) * 100);
   const fromPractice =
     pattern && kind !== 'practice'
-      ? `In practice, ${pattern.n} of your last ${pattern.of} tagged misses from ${pattern.band.replace(' and out', ' and longer')} went ${pattern.dir}.`
+      ? `In practice, ${pattern.n} of your last ${pattern.of} tagged misses from ${pattern.band} went ${pattern.dir}.`
       : null;
 
   let title: string;
@@ -165,7 +167,8 @@ export function Practice() {
     picks = unique([slice.fix, fromPractice ? patternFix : null, ...zoneDrills]);
   } else if (kind === 'zone' && worst) {
     title = worst.label;
-    const cost = `It costs ${Math.abs(worst.sgPerRound).toFixed(2)} strokes a round.`;
+    const costs = Math.abs(worst.sgPerRound).toFixed(digitsFor(worst.sample));
+    const cost = Number(costs) ? `It costs ${costs} strokes a round.` : '';
     lines.push(
       isLagZone(worst.zone)
         ? `${worst.leave !== null ? `You leave it ${worst.leave.toFixed(1)} ft away on average, with` : 'You have'} ${worst.threePutts} three-putts in ${worst.firstPutts}, in ${scope}. ${cost}`
@@ -272,7 +275,7 @@ export function Practice() {
         ))}
         {testIsTarget && !test.thisWeek && (
           <button className="btn btn-primary btn-wide" onClick={() => setPreview({ drill: testRun, once: true })}>
-            Start the test
+            {testGoing ? `Pick up at ball ${testGoing.balls.length + 1}` : 'Start the test'}
           </button>
         )}
         {hasWhy && (
@@ -301,7 +304,9 @@ export function Practice() {
                 <>
                   <strong>Due · 18 putts, about 6 min</strong>
                   <span className="small muted">
-                    {lastTest && test.best
+                    {testGoing
+                      ? `Stopped at ball ${testGoing.balls.length + 1}. It picks up from there.`
+                      : lastTest && test.best
                       ? `${lastTest.made} of ${lastTest.attempts} last time, best ${test.best.made}`
                       : 'The first one sets the number to beat.'}
                   </span>

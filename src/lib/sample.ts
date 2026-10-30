@@ -10,6 +10,8 @@
  * genuinely different amounts. What is shared is the vocabulary and the way it is shown.
  */
 
+import { signed } from './format';
+
 export type Confidence = 'solid' | 'thin' | 'waiting';
 
 export interface Sample {
@@ -33,6 +35,15 @@ export function confidenceOf(s: Sample): Confidence {
   if (s.n >= s.need) return 'solid';
   if (s.n >= Math.ceil(s.need / 2)) return 'thin';
   return 'waiting';
+}
+
+/** Two decimals have to be earned: -0.63 off 23 putts claims a precision 23 putts cannot give. */
+export function digitsFor(s: Sample): number {
+  return confidenceOf(s) === 'solid' ? 2 : 1;
+}
+
+export function signedFor(n: number, s: Sample): string {
+  return signed(n, digitsFor(s));
 }
 
 /** The short form that sits beside a number. */

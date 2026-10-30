@@ -1,13 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FittedStation } from '../lib/drills';
 import { MODE_WORDS, tallyStations } from '../lib/practiceView';
 import type { BallMode, Hand, MissDir } from '../lib/types';
+import { clearTestRun, loadTestRun, saveTestRun, TEST_ID } from '../lib/weeklyTest';
 import { MissWhich } from './MissWhich';
 import type { LoggerProps } from './DrillLogger';
 
 interface Row {
   d: number;
   mode: BallMode;
+  zoneFt?: number;
   hand?: Hand;
   label?: string;
   balls: number;
@@ -19,9 +21,9 @@ function rowsOf(stations: FittedStation[]): Row[] {
   const rows: Row[] = [];
   for (const s of stations) {
     const mode = s.mode ?? 'make';
-    const same = rows.find((r) => r.d === s.d && r.mode === mode && r.label === s.label && r.hand === s.hand);
+    const same = rows.find((r) => r.d === s.d && r.mode === mode && r.zoneFt === s.zoneFt && r.label === s.label && r.hand === s.hand);
     if (same) same.balls += s.balls;
-    else rows.push({ d: s.d, mode, hand: s.hand, label: s.label, balls: s.balls, movedFrom: s.movedFrom });
+    else rows.push({ d: s.d, mode, zoneFt: s.zoneFt, hand: s.hand, label: s.label, balls: s.balls, movedFrom: s.movedFrom });
   }
   return rows;
 }
@@ -45,21 +47,38 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
   const [steppers, setSteppers] = useState(
     () => rows.length > 1 && drill.stations.every((st) => st.balls >= 5 && (st.mode ?? 'make') === 'make'),
   );
-  const [balls, setBalls] = useState<boolean[]>([]);
-  const [dirs, setDirs] = useState<(MissDir | undefined)[]>([]);
+  const isTest = drill.id === TEST_ID;
+  const [resumed] = useState(() => (isTest ? loadTestRun(queue) : null));
+  const [balls, setBalls] = useState<boolean[]>(resumed?.balls ?? []);
+  const [dirs, setDirs] = useState<(MissDir | undefined)[]>(resumed?.dirs ?? []);
   const [counts, setCounts] = useState<number[]>(() => rows.map(() => 0));
+
+  useEffect(() => {
+    if (!isTest) return;
+    if (balls.length && balls.length < queue.length) saveTestRun(queue, balls, dirs);
+    else clearTestRun();
+  }, [isTest, queue, balls, dirs]);
 
   if (steppers) {
     const made = counts.reduce((a, b) => a + b, 0);
     const of = rows.reduce((a, r) => a + r.balls, 0);
-    const save = () =>
+    const save = () => {
+      if (isTest) clearTestRun();
       onSave({
         made,
         attempts: of,
         stations: rows
-          .map((r, i) => ({ d: r.d, mode: r.mode, ...(r.hand ? { hand: r.hand } : {}), made: counts[i], attempts: r.balls }))
+          .map((r, i) => ({
+            d: r.d,
+            mode: r.mode,
+            ...(r.zoneFt ? { zoneFt: r.zoneFt } : {}),
+            ...(r.hand ? { hand: r.hand } : {}),
+            made: counts[i],
+            attempts: r.balls,
+          }))
           .filter((s) => s.d > 0),
       });
+    };
     return (
       <div className="runner-body">
         <p className="small muted">{drill.how}</p>
@@ -125,12 +144,14 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
     setBalls(next);
     setDirs([...dirs.slice(0, balls.length), undefined]);
     if (next.length === queue.length) {
+      // Saving closes this counter before its effect could run, so it has to happen here.
+      if (isTest) clearTestRun();
       onSave(
         {
           made: next.filter(Boolean).length,
           attempts: next.length,
           stations: tallyStations(
-            queue.map((s, i) => ({ d: s.d, mode: s.mode ?? 'make', hand: s.hand, made: next[i], dir: dirs[i] })),
+            queue.map((s, i) => ({ d: s.d, mode: s.mode ?? 'make', zoneFt: s.zoneFt, hand: s.hand, made: next[i], dir: dirs[i] })),
           ),
         },
         next,

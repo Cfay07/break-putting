@@ -4,7 +4,8 @@ import { pressureOf, spotVsMixed, SPOT_NEED, missBands, testTrend, TREND_TESTS, 
 import { confidenceOf } from '../lib/sample';
 import { resolveDrill } from '../lib/drills';
 import { usePlan } from '../lib/usePlan';
-import { isLagZone, SURFACE_LABELS, type MissDir, type Surface } from '../lib/types';
+import { usePractice } from '../lib/usePractice';
+import { DEFAULT_ROOM, isLagZone, SURFACE_LABELS, type MissDir, type Surface } from '../lib/types';
 import { testStatus } from '../lib/weeklyTest';
 import { DIR_MEANS } from '../pages/PracticeWhy';
 
@@ -31,6 +32,8 @@ export function TargetCarry() {
   const course = w ? { made: w.slice.made, attempts: w.slice.attempts } : { made: worst.makes, attempts: worst.attempts };
   const practice = w ? tally(() => true, w.fix.id) : tally((st) => st.mode === 'make' && st.d >= lo && st.d <= hi);
   const practiceLabel = w ? `In practice, ${w.fix.name}` : 'In practice, same distances';
+  // A lag or pace drill counts its own circle, so its number is a different test from the course's.
+  const sameTest = !lag && (!w || w.fix.stations.every((st) => (st.mode ?? 'make') === 'make'));
   const ahead = practice.attempts > 0 && practice.made / practice.attempts > course.made / course.attempts;
 
   return (
@@ -52,8 +55,12 @@ export function TargetCarry() {
         </div>
         <p className="small muted" style={{ margin: '10px 0 0' }}>
           {!practice.attempts
-            ? 'Roll its drill and the course starts counting from that day.'
-            : ahead
+            ? w
+              ? 'Roll its drill and the course starts counting from that day.'
+              : 'Roll a drill from here and your practice shows up beside this.'
+            : !sameTest
+              ? 'The drill counts its own circle, so these are not the same test. Only rounds can say whether it carries over.'
+              : ahead
               ? 'Practice is ahead of the course here. Only rounds can say whether it carries over.'
               : 'Practice is no better than the course here yet.'}
           {w?.track ? ` ${w.track}` : ''}{' '}
@@ -68,9 +75,10 @@ export function TargetCarry() {
 
 /** One bar a week, the first test of each week, on the same eighteen putts. */
 export function TestTrendCard() {
-  const { state, room } = usePlan();
+  const { state } = usePractice();
   const date = todayIso();
-  const blocks = SURFACES.map((s) => ({ s, t: testStatus(state.practice, s, room, date) })).filter((x) => x.t.weeks.length);
+  const rooms = { ...DEFAULT_ROOM, ...state.room };
+  const blocks = SURFACES.map((s) => ({ s, t: testStatus(state.practice, s, rooms[s], date) })).filter((x) => x.t.weeks.length);
   if (!blocks.length) return null;
   return (
     <>
@@ -123,7 +131,7 @@ function SpotRow({ k, t }: { k: string; t: SpotTally }) {
 
 /** The same putt over and over flatters you. The mixed number is the one the course sees. */
 export function SpotVsMixed() {
-  const { state } = usePlan();
+  const { state } = usePractice();
   const blocks = SURFACES.map((s) => ({ s, ...spotVsMixed(state.practice, state.practiceRounds ?? [], s, state.baseline) })).filter(
     (b) => b.same.attempts >= SPOT_NEED && b.mixed.attempts >= SPOT_NEED,
   );
@@ -151,7 +159,7 @@ const DIR_LABEL: Record<MissDir, string> = { left: 'Left', right: 'Right', short
 
 /** Every tagged practice miss, by distance, so you can see the habit instead of being told it. */
 export function MissBandsCard() {
-  const { state } = usePlan();
+  const { state } = usePractice();
   const blocks = SURFACES.flatMap((s) => missBands(state.practice, s).map((b) => ({ s, b })));
   if (!blocks.length) return null;
   return (
@@ -186,7 +194,7 @@ export function MissBandsCard() {
 
 /** In-a-row drills: the practice where a miss costs you something. */
 export function PressureCard() {
-  const { state } = usePlan();
+  const { state } = usePractice();
   const p = pressureOf(state.practice, (id) => resolveDrill(state, id));
   if (p.streaks < 3 || !p.best) return null;
   return (

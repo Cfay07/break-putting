@@ -53,13 +53,21 @@ export function verdict(drill: DrillDef | undefined, set: PracticeSet, before: D
 
 /** Ball outcomes folded into per-distance tallies, the shape practice-against-play reads. */
 export function tallyStations(
-  balls: { d: number; mode: BallMode; hand?: Hand; made: boolean; dir?: MissDir }[],
+  balls: { d: number; mode: BallMode; zoneFt?: number; hand?: Hand; made: boolean; dir?: MissDir }[],
 ): StationResult[] {
   const m = new Map<string, StationResult>();
   for (const b of balls) {
     if (b.d <= 0) continue;
-    const key = `${b.mode}|${b.d}|${b.hand ?? ''}`;
-    const cur = m.get(key) ?? { d: b.d, mode: b.mode, ...(b.hand ? { hand: b.hand } : {}), made: 0, attempts: 0 };
+    const zoneFt = b.mode === 'zone' ? b.zoneFt : undefined;
+    const key = `${b.mode}|${b.d}|${b.hand ?? ''}|${zoneFt ?? ''}`;
+    const cur = m.get(key) ?? {
+      d: b.d,
+      mode: b.mode,
+      ...(zoneFt ? { zoneFt } : {}),
+      ...(b.hand ? { hand: b.hand } : {}),
+      made: 0,
+      attempts: 0,
+    };
     cur.attempts++;
     if (b.made) cur.made++;
     else if (b.dir) cur.misses = { ...cur.misses, [b.dir]: (cur.misses?.[b.dir] ?? 0) + 1 };

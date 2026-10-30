@@ -33,7 +33,7 @@ import { SectionNav } from '../components/SectionNav';
 import { CupMap } from '../components/CupMap';
 import { Why } from '../components/Why';
 import { BeatBar } from '../components/BeatBar';
-import { sample } from '../lib/sample';
+import { sample, signedFor } from '../lib/sample';
 import { byStrike } from '../lib/stats';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
@@ -350,7 +350,7 @@ function RoundStats() {
                 Strokes gained per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
               </span>
               <span className={(o.sgPerRound ?? 0) >= 0 ? 'v num pos' : 'v num neg'}>
-                {signed(o.sgPerRound ?? 0)}
+                {signedFor(o.sgPerRound ?? 0, sample(o.rounds, 5, 'rounds'))}
               </span>
             </div>
             {o.girPerRound !== null && (
@@ -1036,7 +1036,7 @@ function RoundStats() {
                     <td>{sub.threePuttsPerRound?.toFixed(1)}</td>
                     <td>{pctText(sub.scoringPct)}</td>
                     <td className={(sub.sgPerRound ?? 0) >= 0 ? 'pos' : 'neg'}>
-                      {signed(sub.sgPerRound ?? 0)}
+                      {signedFor(sub.sgPerRound ?? 0, sample(sub.rounds, 5, 'rounds'))}
                     </td>
                   </tr>
                 );
@@ -1066,7 +1066,7 @@ function RoundStats() {
                         <td>{c.rounds}</td>
                         <td>{c.putts.toFixed(1)}</td>
                         <td>{c.threePlus.toFixed(1)}</td>
-                        <td className={c.sg >= 0 ? 'pos' : 'neg'}>{signed(c.sg)}</td>
+                        <td className={c.sg >= 0 ? 'pos' : 'neg'}>{signedFor(c.sg, sample(c.rounds, 5, 'rounds'))}</td>
                       </tr>
                     ))}
                   </tbody>

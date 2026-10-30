@@ -6,6 +6,7 @@ import { SetColumns } from '../components/SetColumns';
 import { VsPlay } from '../components/VsPlay';
 import { resolveDrill } from '../lib/drills';
 import { fmtDate, signed } from '../lib/format';
+import { sample, signedFor } from '../lib/sample';
 import { biggestGap, byTime, histories, practiceVsPlay, RECENT_ROUNDS, totalsOf } from '../lib/practice';
 import { setScoreShort } from '../lib/practiceView';
 import { fitMakeModel, type MakeModel } from '../lib/makeability';
@@ -19,6 +20,7 @@ import { SURFACE_LABELS, type Round, type Surface } from '../lib/types';
 const SURFACES: Surface[] = ['indoor', 'green'];
 
 interface Side {
+  rounds: number;
   putts: number | null;
   /**
    * Expected putts per 18 from the first putts: how hard the putts were, distance and break
@@ -27,6 +29,7 @@ interface Side {
   xp: number | null;
   sg: number | null;
   scoring: number | null;
+  scoringOf: number;
   /** How far the first putts were, in feet. */
   first: number | null;
 }
@@ -39,10 +42,12 @@ function sideOf(rounds: Round[], baseline: [number, number][], model: MakeModel)
     r.holes.filter((h) => h.putts.length).reduce((s, h) => s + (xpOf(model, baseline, h.putts[0]) ?? expectedPutts(baseline, h.putts[0].d)), 0) *
     roundScale(r);
   return {
+    rounds: rounds.length,
     putts: o.puttsPerRound,
     xp: rounds.length ? rounds.reduce((s, r) => s + xpRound(r), 0) / rounds.length : null,
     sg: o.sgPerRound,
     scoring: o.scoringPct,
+    scoringOf: o.pooled.scoring.attempts,
     first: firsts.length ? firsts.reduce((a, b) => a + b, 0) / firsts.length : null,
   };
 }
@@ -89,9 +94,12 @@ export function PracticeStats() {
 
   if (!sets.length && !played.length) {
     return (
-      <p className="small muted" style={{ marginTop: 14 }}>
-        Nothing practiced yet. Drills, sessions and practice rounds from the Practice tab land here.
-      </p>
+      <div>
+        <TargetCarry />
+        <p className="small muted" style={{ marginTop: 14 }}>
+          Your weekly test, drills and practice rounds land here once you have rolled some.
+        </p>
+      </div>
     );
   }
 
@@ -122,8 +130,8 @@ export function PracticeStats() {
                     ['Putts per 18', (o: Side) => o.putts?.toFixed(1) ?? ''],
                     ['Average first putt', (o: Side) => (o.first !== null ? `${o.first.toFixed(1)} ft` : '')],
                     ['Expected putts (xP)', (o: Side) => o.xp?.toFixed(1) ?? ''],
-                    ['Strokes gained per 18', (o: Side) => (o.sg !== null ? signed(o.sg) : '')],
-                    ['Holed from 3 to 10 ft', (o: Side) => (o.scoring !== null ? `${Math.round(o.scoring)}%` : '')],
+                    ['Strokes gained per 18', (o: Side) => (o.sg !== null ? signedFor(o.sg, sample(o.rounds, 5, 'rounds')) : '')],
+                    ['Holed from 3 to 10 ft', (o: Side) => (o.scoring !== null ? `${Math.round(o.scoring)}% of ${o.scoringOf}` : '')],
                   ] as const
                 ).map(([k, f]) => (
                   <tr key={k}>

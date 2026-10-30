@@ -1,6 +1,5 @@
-import { signed } from '../lib/format';
 import { isLagZone, type Zone } from '../lib/types';
-import { confidenceOf } from '../lib/sample';
+import { confidenceOf, signedFor } from '../lib/sample';
 import type { ZoneRead } from '../lib/practice';
 
 /**
@@ -43,7 +42,7 @@ export function ZoneBars({
                 style={{ left: `${left}%`, width: `${w}%` }}
               />
             </span>
-            <span className="zone-v num">{waiting ? '' : signed(z.sgPerRound)}</span>
+            <span className="zone-v num">{waiting ? '' : signedFor(z.sgPerRound, z.sample)}</span>
             <span className="zone-n">
               {z.attempts} putts
               {!waiting && z.attempts

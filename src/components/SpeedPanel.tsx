@@ -1,12 +1,11 @@
 import { pct, type SpeedSplit } from '../lib/stats';
 import { SpeedBars } from './SpeedBars';
+import { sample, signedFor } from '../lib/sample';
 
 /** A band needs this many tagged misses before its tendency is worth printing. */
 const MIN_SIDED_IN_SPEED_GROUP = 8;
 /** And this many lag putts before an average leave means anything. */
 const MIN_LAG = 5;
-
-const signed = (v: number) => (v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1));
 
 /**
  * One block per band rather than one wide table. Eight columns do not fit a phone, and the
@@ -33,7 +32,7 @@ export function SpeedPanel({ splits }: { splits: SpeedSplit[] }) {
             <div className="band-grid num">
               <span className="band-cell">
                 <span className="tiny">SG</span>
-                <span className={g.sg >= 0 ? 'val pos' : 'val neg'}>{signed(g.sg)}</span>
+                <span className={g.sg >= 0 ? 'val pos' : 'val neg'}>{signedFor(g.sg, sample(g.rounds, 5, 'rounds'))}</span>
               </span>
               <span className="band-cell">
                 <span className="tiny">Putts</span>

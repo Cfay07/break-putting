@@ -635,7 +635,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                                 {chance === null ? (
                                   <span className="pc-beyond">past anything you have hit</span>
                                 ) : (
-                                  `${(chance * 100).toFixed(2)}%`
+                                  `${Math.round(chance * 100)}%`
                                 )}
                               </span>
                             </span>
