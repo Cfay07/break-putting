@@ -168,7 +168,7 @@ export function Practice() {
     const cost = `It costs ${Math.abs(worst.sgPerRound).toFixed(2)} strokes a round.`;
     lines.push(
       isLagZone(worst.zone)
-        ? `You leave it ${worst.leave?.toFixed(1) ?? '?'} ft away on average with ${worst.threePutts} three-putts in ${worst.firstPutts}, in ${scope}. ${cost}`
+        ? `${worst.leave !== null ? `You leave it ${worst.leave.toFixed(1)} ft away on average, with` : 'You have'} ${worst.threePutts} three-putts in ${worst.firstPutts}, in ${scope}. ${cost}`
         : `${worst.makes} of ${worst.attempts} holed in ${scope}, where a scratch golfer makes ${pct(worst.scratchMakes, worst.attempts)}%. ${cost}`,
     );
     if (worst.lean) {
