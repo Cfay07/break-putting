@@ -10,7 +10,8 @@ const FIX = /^fix:([a-z]+(?:-[a-z]+)?):(\d+)$/;
 type Kind =
   | 'gate' | 'past' | 'die' | 'apex-lr' | 'apex-rl' | 'aim-lr' | 'aim-rl' | 'firm-lr' | 'firm-rl'
   | 'downhill' | 'uphill' | 'double'
-  | 'lag' | 'lag-lr' | 'lag-rl' | 'lag-up' | 'lag-down' | 'lag-past' | 'lag-dead';
+  | 'lag' | 'lag-lr' | 'lag-rl' | 'lag-up' | 'lag-down' | 'lag-past' | 'lag-dead'
+  | 'strike' | 'accel';
 
 /** From here out a putt is judged on where it finishes, so every fix becomes a lag drill. */
 export const LAG_FROM = 16;
@@ -41,6 +42,10 @@ export function fixDrill(id: string): DrillDef | undefined {
     how: `${how} A ball counts if it drops or finishes within ${zone} feet, a tenth of the putt.`,
   });
   switch (kind) {
+    case 'strike':
+      return { ...base, name: `Strike gate, ${d} ft`, stations: ten(d), surfaces: BOTH, how: `Two tees either side of the ball, just wider than your putter head. Ten from ${d} feet; a ball only counts if it drops and the putter touched neither tee.` };
+    case 'accel':
+      return { ...base, name: `Accelerate through, ${d} ft`, stations: ten(d), surfaces: BOTH, how: `A tee six inches past where the ball sits. Ten from ${d} feet; the putter has to pass the tee on every stroke, and only those that drop count.` };
     case 'lag':
       return lag(`Lag from ${d}`, `Ten balls from ${d} feet, a new line each time if you have room.`);
     case 'lag-lr':
@@ -143,9 +148,11 @@ const ZONE_RANGE: Record<Zone, [number, number]> = {
   short: [3, 5],
   mid: [6, 8],
   long: [9, 15],
-  far: [16, 30],
-  lag: [31, 40],
-  deep: [41, Infinity],
+  // Lag zones read their causes from every putt of 16 ft and out together. Lag goes wrong on
+  // pace and break whatever the length, and split three ways no kind of putt ever reached ten.
+  far: [16, Infinity],
+  lag: [16, Infinity],
+  deep: [16, Infinity],
 };
 
 function condsOf(p: Putt): Cond[] {

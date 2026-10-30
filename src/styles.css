@@ -1531,3 +1531,6 @@ a.btn { text-decoration: none; }
 .preview-history strong { font-size: 17px; }
 .preview-history span { font-size: 12px; color: var(--ink-2); }
 .dx-note { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.habit { display: grid; gap: 6px; }
+.habit strong { font-size: 15px; }
+.habit .focus-drill { margin-top: 4px; }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { replayLadder } from '../components/LadderLogger';
 import { replayStreak } from '../components/StreakLogger';
 import { APP_DRILLS, drillsFor, fitToRoom, resolveDrill } from './drills';
+import { habitsOf } from './habits';
 import { handGap, handLink, handsOf } from './hands';
 import { fixDrill, fixFor, pinpoint, practiceFix, practicePattern } from './pinpoint';
 import { textLines } from './pdfText';
@@ -375,5 +376,91 @@ describe('no suggestion a golfer would squint at', () => {
       }
     }
     expect(fixDrill(fixFor(null, 'long', 4, 'indoor'))!.name).toBe('Dead weight from 4');
+  });
+});
+
+describe('stroke and reads', () => {
+  /** One round, a hole per putt, each missed putt followed by a tap-in. */
+  const tagged = (putts: Putt[]): Round => {
+    day++;
+    return {
+      id: `t${day}`, label: 't', date: '2026-10-01', putterId: 'a', holeCount: putts.length, finished: true,
+      holes: putts.map((p, i) => ({ hole: i + 1, putts: p.made ? [p] : [p, { d: 1, made: true }] })),
+    };
+  };
+  const many = (n: number, p: Putt) => Array.from({ length: n }, () => ({ ...p }));
+
+  it('says nothing on a round with no tags', () => {
+    expect(habitsOf([round('a', 6, 3)], 'indoor')).toEqual([]);
+  });
+
+  it('names an under-read on one side and hands back the read drill for it', () => {
+    const lr: Putt = { d: 8, made: false, breakDirs: ['L→R'], readAs: 1, brokeAs: 2 };
+    const right: Putt = { d: 8, made: true, breakDirs: ['L→R'], readAs: 2, brokeAs: 2 };
+    const h = habitsOf([tagged([...many(9, lr), ...many(4, right)])], 'green');
+    const read = h.find((x) => x.key === 'read')!;
+    expect(read.title).toBe('You under-read left-to-right putts');
+    expect(read.fix).toBe(fixFor('lr', 'low', 8, 'green'));
+  });
+
+  it('waits on a side with too few reads logged', () => {
+    const lr: Putt = { d: 8, made: false, breakDirs: ['L→R'], readAs: 1, brokeAs: 2 };
+    expect(habitsOf([tagged(many(11, lr))], 'green').find((x) => x.key === 'read')).toBeUndefined();
+  });
+
+  it('calls a push when the start-line misses lean one way', () => {
+    const push: Putt = { d: 6, made: false, push: true };
+    const pull: Putt = { d: 6, made: false, pull: true };
+    const h = habitsOf([tagged([...many(7, push), pull])], 'indoor');
+    expect(h.find((x) => x.key === 'start')?.title).toBe('You push it');
+    expect(habitsOf([tagged([...many(5, push), ...many(3, pull)])], 'indoor').find((x) => x.key === 'start')).toBeUndefined();
+  });
+
+  it('calls lips only when they are a real share of short misses', () => {
+    const lip: Putt = { d: 5, made: false, lip: true };
+    const miss: Putt = { d: 5, made: false };
+    expect(habitsOf([tagged([...many(8, lip), ...many(12, miss)])], 'indoor').find((x) => x.key === 'lip')).toBeDefined();
+    expect(habitsOf([tagged([...many(8, lip), ...many(40, miss)])], 'indoor').find((x) => x.key === 'lip')).toBeUndefined();
+  });
+
+  it('counts toe and heel as off the middle, centre never', () => {
+    const toe: Putt = { d: 6, made: false, strike: 'toe' };
+    const heel: Putt = { d: 6, made: false, strike: 'heel' };
+    const centre: Putt = { d: 6, made: true, strike: 'centre' };
+    const off = habitsOf([tagged([...many(4, toe), ...many(3, heel), ...many(8, centre)])], 'indoor');
+    expect(off.find((x) => x.key === 'strike')?.fix).toBe('fix:strike:6');
+    const fine = habitsOf([tagged([...many(3, toe), ...many(2, heel), ...many(31, centre)])], 'indoor');
+    expect(fine.find((x) => x.key === 'strike')).toBeUndefined();
+  });
+
+  it('stays quiet on a few decels and a handful of holes after three-putts', () => {
+    const decel: Putt = { d: 6, made: false, decel: true };
+    const h = habitsOf([tagged(many(5, decel))], 'indoor');
+    expect(h.find((x) => x.key === 'decel')).toBeUndefined();
+    expect(h.find((x) => x.key === 'bleed')).toBeUndefined();
+  });
+
+  it('every habit drill resolves to something you can start', () => {
+    const lr: Putt = { d: 8, made: false, breakDirs: ['L→R'], readAs: 1, brokeAs: 2, push: true, strike: 'toe', decel: true, lip: true };
+    const h = habitsOf([tagged(many(20, lr))], 'indoor');
+    expect(h.length).toBeGreaterThan(0);
+    for (const x of h) expect(resolveDrill(emptyState(), x.fix), x.fix).toBeDefined();
+  });
+});
+
+describe('pinpoint past 16 ft', () => {
+  it('reads lag causes from every long putt together', () => {
+    const long = (d: number, dir: 'downhill' | 'uphill') => {
+      const r = round('a', d, 4);
+      r.holes.forEach((h) => {
+        h.putts[0].breakDirs = [dir];
+        if (dir === 'downhill' && h.putts[1]) h.putts[1].d = 7;
+      });
+      return r;
+    };
+    const rounds = [...Array.from({ length: 4 }, () => long(22, 'downhill')), ...Array.from({ length: 4 }, () => long(45, 'uphill'))];
+    expect(pinpoint(rounds, B, 'lag')).toEqual(pinpoint(rounds, B, 'far'));
+    expect(pinpoint(rounds, B, 'deep')).toEqual(pinpoint(rounds, B, 'far'));
+    expect(pinpoint(rounds, B, 'lag').length).toBeGreaterThan(0);
   });
 });

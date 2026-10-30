@@ -20,6 +20,7 @@ import { go } from '../lib/router';
 import { usePractice } from '../lib/usePractice';
 import { DEFAULT_BASELINE, SURFACE_LABELS, type Surface, type Zone } from '../lib/types';
 import { useNow } from '../components/useNow';
+import { habitsOf } from '../lib/habits';
 import { COND_LABEL, fixDrill, fixFor, pinpoint, practiceFix, practicePattern, SLICE_NEED, sliceSince, type Slice } from '../lib/pinpoint';
 import { isLagZone, type MissDir } from '../lib/types';
 
@@ -155,6 +156,9 @@ function ZoneCard({
       {why.length > 0 && (
         <div className="why-list">
           <span className="why-h">What's behind it</span>
+          {isLagZone(z.zone) && (
+            <span className="small muted">From all your putts of 16 ft and out together, since lag goes wrong the same way at any length.</span>
+          )}
           {why.map((w) => (
             <div key={w.slice.cond} className="why-item">
               <strong>
@@ -267,7 +271,7 @@ function RoomSheet({ onClose }: { onClose: () => void }) {
 }
 
 export function Practice() {
-  const { state, dispatch, surface, room, putterId, scoped, family, drills } = usePractice();
+  const { state, dispatch, surface, room, putterId, scoped, family, drills, fitted } = usePractice();
   const [rolling, setRolling] = useState<Fitted | null>(null);
   // A tap shows what the drill is; only Start opens the counter.
   const [preview, setPreview] = useState<Fitted | null>(null);
@@ -321,6 +325,8 @@ export function Practice() {
         return { slice, fix, track };
       })
     : [];
+  // Habits that are not about a distance: reads, start line, lips, strike, decel, bleed.
+  const habits = useMemo(() => habitsOf(scoped.rounds, surface).slice(0, 3), [scoped.rounds, surface]);
   // The fast loop: your own practice misses, no round needed.
   const pattern = practicePattern(sets);
   const patternFix = pattern ? fitToRoom(fixDrill(practiceFix(pattern))!, room) : null;
@@ -408,6 +414,31 @@ export function Practice() {
             distance. A wide zone holds more putts a round, so each row also says what one putt costs. Tap a distance
             for its drills.
           </p>
+        </>
+      )}
+
+      {habits.length > 0 && (
+        <>
+          <h2>Your stroke and reads</h2>
+          <div className="row-list">
+            {habits.map((h) => {
+              const drill = fitted(h.fix);
+              return (
+                <div key={h.key + h.title} className="card habit">
+                  <strong>{h.title}</strong>
+                  <span className="small muted">{h.detail}</span>
+                  {drill && (
+                    <button className="focus-drill" onClick={() => setPreview(drill)}>
+                      <span>
+                        <strong>{drill.name}</strong>
+                      </span>
+                      <span className="small muted num">{lastOf(drill.id) ?? '›'}</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </>
       )}
 
