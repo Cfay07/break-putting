@@ -49,6 +49,7 @@ export type Action =
   | { t: 'setQuietTrack'; on: boolean }
   | { t: 'addPracticeSet'; set: PracticeSet }
   | { t: 'deletePracticeSet'; id: string }
+  | { t: 'deletePracticeSets'; ids: string[] }
   | { t: 'saveDrill'; drill: DrillDef }
   | { t: 'deleteDrill'; id: string }
   | { t: 'saveSession'; session: SessionDef }
@@ -351,6 +352,19 @@ export function reducer(state: AppState, a: Action): AppState {
 
     case 'deletePracticeSet':
       return { ...state, practice: state.practice.filter((s) => s.id !== a.id), tombstones: bury(state, a.id) };
+
+    case 'deletePracticeSets': {
+      const gone = new Set(a.ids);
+      const at = now();
+      return {
+        ...state,
+        practice: state.practice.filter((s) => !gone.has(s.id)),
+        tombstones: [
+          ...state.tombstones.filter((t) => !gone.has(t.id)),
+          ...a.ids.map((id) => ({ id, kind: 'practice' as const, at })),
+        ],
+      };
+    }
 
     case 'saveDrill':
       return { ...state, drills: upsert(state.drills, { ...a.drill, updated: now() }) };

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { distanceText, familyOf, SCORING_LABELS, type Fitted } from '../lib/drills';
+import { distanceText, familyOf, scoringLabel, type Fitted } from '../lib/drills';
 import { today } from '../lib/format';
 import { historyOf, type DrillHistory } from '../lib/practice';
 import { setScore, verdict } from '../lib/practiceView';
@@ -100,7 +100,7 @@ export function DrillLogger({
         <div>
           <h3 style={{ margin: 0 }}>{drill.name}</h3>
           <span className="tiny">
-            {[distanceText(drill), SCORING_LABELS[drill.scoring]].filter(Boolean).join(' · ')}
+            {[distanceText(drill), scoringLabel(drill)].filter(Boolean).join(' · ')}
           </span>
         </div>
         <button className="linkish tiny" onClick={onClose}>

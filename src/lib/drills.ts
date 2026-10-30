@@ -1,3 +1,4 @@
+import { fixDrill } from './pinpoint';
 import type { AppState, DrillDef, Lean, Station, Surface, Zone } from './types';
 
 const BOTH: Surface[] = ['indoor', 'green'];
@@ -194,7 +195,7 @@ export function resolveDrill(state: Pick<AppState, 'drills'>, id: string): Drill
   const copy = state.drills
     .filter((d) => d.from === id)
     .sort((a, b) => (b.updated ?? '').localeCompare(a.updated ?? ''))[0];
-  return copy ?? state.drills.find((d) => d.id === id) ?? APP_DRILLS.find((d) => d.id === id);
+  return copy ?? state.drills.find((d) => d.id === id) ?? APP_DRILLS.find((d) => d.id === id) ?? fixDrill(id);
 }
 
 /** The id a drill's history lives under, so an edited copy keeps the original's record. */
@@ -287,6 +288,15 @@ export function distanceText(drill: Pick<DrillDef, 'stations'>): string {
   if (ds.length === 1) return `${ds[0]} ft`;
   if (ds.length <= 4) return `${ds.join('/')} ft`;
   return `${Math.min(...ds)} to ${Math.max(...ds)} ft`;
+}
+
+/** The scoring in words, by what the balls are actually judged on. */
+export function scoringLabel(d: Pick<DrillDef, 'scoring' | 'stations'>): string {
+  if (d.scoring !== 'count' || !d.stations.length) return SCORING_LABELS[d.scoring];
+  const modes = new Set(d.stations.map((s) => s.mode ?? 'make'));
+  if (modes.size === 1 && modes.has('zone')) return 'Inside the zone';
+  if (modes.size === 1 && modes.has('twoputt')) return 'Two-putt or not';
+  return SCORING_LABELS.count;
 }
 
 export const SCORING_LABELS: Record<DrillDef['scoring'], string> = {

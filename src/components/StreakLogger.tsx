@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { clock } from '../lib/practiceView';
 import type { LoggerProps } from './DrillLogger';
 import { useNow } from './useNow';
+import { MissWhich } from './MissWhich';
+import { tallyStations } from '../lib/practiceView';
+import type { MissDir } from '../lib/types';
 
 /** The run going now, the best one, and how many times a miss reset it. */
 export function replayStreak(hits: boolean[]): { current: number; best: number; restarts: number } {
@@ -28,6 +31,7 @@ const RING = 2 * Math.PI * R;
  */
 export function StreakLogger({ drill, history, onSave }: LoggerProps) {
   const [hits, setHits] = useState<boolean[]>([]);
+  const [dirs, setDirs] = useState<(MissDir | undefined)[]>([]);
   const [started, setStarted] = useState<number | null>(null);
   const now = useNow(started !== null);
   const { current, best, restarts } = replayStreak(hits);
@@ -43,7 +47,7 @@ export function StreakLogger({ drill, history, onSave }: LoggerProps) {
       run: r.best,
       finished,
       seconds: started !== null ? Math.round((Date.now() - started) / 1000) : undefined,
-      stations: d > 0 ? [{ d, mode: drill.stations[0].mode ?? 'make', made: all.filter(Boolean).length, attempts: all.length }] : [],
+      stations: tallyStations(all.map((made, i) => ({ d, mode: drill.stations[0]?.mode ?? 'make', made, dir: dirs[i] }))),
     });
   };
 
@@ -58,6 +62,7 @@ export function StreakLogger({ drill, history, onSave }: LoggerProps) {
     if (started === null) setStarted(Date.now());
     const next = [...hits, hit];
     setHits(next);
+    setDirs([...dirs.slice(0, hits.length), undefined]);
     if (drill.target && replayStreak(next).current >= drill.target) save(next, true);
   };
 
@@ -118,6 +123,12 @@ export function StreakLogger({ drill, history, onSave }: LoggerProps) {
           </div>
         )}
       </div>
+      {hits.length > 0 && !hits[hits.length - 1] && (
+        <MissWhich
+          value={dirs[hits.length - 1]}
+          onPick={(x) => setDirs(dirs.map((v, i) => (i === hits.length - 1 ? x : v)))}
+        />
+      )}
       <div className="runner-btns">
         <button className="runner-no" onClick={() => tap(false)}>
           Missed
@@ -127,7 +138,14 @@ export function StreakLogger({ drill, history, onSave }: LoggerProps) {
         </button>
       </div>
       <div className="runner-foot">
-        <button className="linkish small muted" disabled={!hits.length} onClick={() => setHits(hits.slice(0, -1))}>
+        <button
+          className="linkish small muted"
+          disabled={!hits.length}
+          onClick={() => {
+            setHits(hits.slice(0, -1));
+            setDirs(dirs.slice(0, -1));
+          }}
+        >
           Undo
         </button>
         <button className="btn" disabled={!hits.length} onClick={() => save(hits, drill.target ? false : undefined)}>

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import type { FittedStation } from '../lib/drills';
 import { MODE_WORDS, tallyStations } from '../lib/practiceView';
-import type { BallMode, Hand } from '../lib/types';
+import type { BallMode, Hand, MissDir } from '../lib/types';
+import { MissWhich } from './MissWhich';
 import type { LoggerProps } from './DrillLogger';
 
 interface Row {
@@ -45,6 +46,7 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
     () => rows.length > 1 && drill.stations.every((st) => st.balls >= 5 && (st.mode ?? 'make') === 'make'),
   );
   const [balls, setBalls] = useState<boolean[]>([]);
+  const [dirs, setDirs] = useState<(MissDir | undefined)[]>([]);
   const [counts, setCounts] = useState<number[]>(() => rows.map(() => 0));
 
   if (steppers) {
@@ -119,17 +121,21 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
   const tap = (hit: boolean) => {
     const next = [...balls, hit];
     setBalls(next);
+    setDirs([...dirs.slice(0, balls.length), undefined]);
     if (next.length === queue.length) {
       onSave(
         {
           made: next.filter(Boolean).length,
           attempts: next.length,
-          stations: tallyStations(queue.map((s, i) => ({ d: s.d, mode: s.mode ?? 'make', hand: s.hand, made: next[i] }))),
+          stations: tallyStations(
+            queue.map((s, i) => ({ d: s.d, mode: s.mode ?? 'make', hand: s.hand, made: next[i], dir: dirs[i] })),
+          ),
         },
         next,
       );
     }
   };
+  const lastMissed = balls.length > 0 && !balls[balls.length - 1];
 
   return (
     <div className="runner-body">
@@ -147,6 +153,12 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
       <p className="tiny runner-ball">
         Ball {Math.min(balls.length + 1, queue.length)} of {queue.length}
       </p>
+      {lastMissed && (
+        <MissWhich
+          value={dirs[balls.length - 1]}
+          onPick={(d) => setDirs(dirs.map((x, i) => (i === balls.length - 1 ? d : x)))}
+        />
+      )}
       <div className="runner-btns">
         <button className="runner-no" onClick={() => tap(false)}>
           {MODE_WORDS[mode].no}
@@ -156,7 +168,14 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
         </button>
       </div>
       <div className="runner-foot">
-        <button className="linkish small muted" disabled={!balls.length} onClick={() => setBalls(balls.slice(0, -1))}>
+        <button
+          className="linkish small muted"
+          disabled={!balls.length}
+          onClick={() => {
+            setBalls(balls.slice(0, -1));
+            setDirs(dirs.slice(0, -1));
+          }}
+        >
           Undo
         </button>
         <button className="linkish small muted" onClick={() => setSteppers(true)}>

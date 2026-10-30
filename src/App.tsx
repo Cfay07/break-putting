@@ -7,6 +7,7 @@ import { DrillBrowse } from './pages/DrillBrowse';
 import { Distances } from './pages/Distances';
 import { SessionList } from './pages/SessionList';
 import { Hands } from './pages/Hands';
+import { PracticeLogPage } from './components/PracticeLog';
 import { Rounds } from './pages/Rounds';
 import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
@@ -182,6 +183,8 @@ export default function App() {
     <SessionList />
   ) : route === '/practice/hands' ? (
     <Hands />
+  ) : route === '/practice/log' ? (
+    <PracticeLogPage />
   ) : roundMatch ? (
     <RoundDetail id={roundMatch[1]} openHole={roundMatch[2] ? Number(roundMatch[2]) : undefined} />
   ) : route === '/track' ? (

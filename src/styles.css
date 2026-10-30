@@ -1383,7 +1383,7 @@ a.btn { text-decoration: none; }
 .vs-k { display: grid; line-height: 1.2; }
 .vs-k strong { font-size: 15px; }
 .vs-bars { display: grid; gap: 3px; }
-.vs-bars i { display: block; height: 9px; border-radius: 3px; min-width: 2px; }
+.vs-bars i { display: block; height: 9px; border-radius: 3px; }
 .vs-v { display: grid; text-align: right; font-size: 12px; color: var(--ink-2); }
 .vs-v b { color: var(--ink); }
 .vs-note { margin: 0; }
@@ -1494,3 +1494,20 @@ a.btn { text-decoration: none; }
 .hands-table td:first-child { text-align: left; font-weight: 700; }
 .hands-n { display: block; font-size: 11px; font-weight: 400; color: var(--ink-2); }
 .putter-delete { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.log-row { width: 100%; font: inherit; text-align: left; cursor: pointer; }
+.miss-which { display: flex; align-items: center; gap: 6px; margin: auto 0 10px; }
+.miss-which .tiny { margin-right: 2px; white-space: nowrap; }
+.miss-which button {
+  flex: 1; min-height: 40px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card);
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-2); cursor: pointer;
+}
+.miss-which button[aria-pressed='true'] { background: var(--red); border-color: var(--red); color: #fff; }
+.miss-which + .runner-btns { margin-top: 0; }
+.focus-card.hold { border-left: 4px solid var(--good); }
+.focus-tag.good { color: var(--good); }
+.why-list { display: grid; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.why-h { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); font-weight: 700; }
+.why-item { display: grid; gap: 4px; }
+.why-item strong { font-size: 14px; }
+.focus-drill.fix { margin-top: 6px; background: var(--card); color: var(--ink); border-color: var(--accent); }
+.why-track { color: var(--ink-2); }

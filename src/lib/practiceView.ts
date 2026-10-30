@@ -1,5 +1,5 @@
 import { scoreOf, type DrillHistory } from './practice';
-import type { BallMode, DrillDef, Hand, PracticeSet, StationResult } from './types';
+import type { BallMode, DrillDef, Hand, MissDir, PracticeSet, StationResult } from './types';
 
 export const MODE_WORDS: Record<BallMode, { yes: string; no: string; noun: string }> = {
   make: { yes: 'Made', no: 'Missed', noun: 'holed' },
@@ -52,7 +52,9 @@ export function verdict(drill: DrillDef | undefined, set: PracticeSet, before: D
 }
 
 /** Ball outcomes folded into per-distance tallies, the shape practice-against-play reads. */
-export function tallyStations(balls: { d: number; mode: BallMode; hand?: Hand; made: boolean }[]): StationResult[] {
+export function tallyStations(
+  balls: { d: number; mode: BallMode; hand?: Hand; made: boolean; dir?: MissDir }[],
+): StationResult[] {
   const m = new Map<string, StationResult>();
   for (const b of balls) {
     if (b.d <= 0) continue;
@@ -60,6 +62,7 @@ export function tallyStations(balls: { d: number; mode: BallMode; hand?: Hand; m
     const cur = m.get(key) ?? { d: b.d, mode: b.mode, ...(b.hand ? { hand: b.hand } : {}), made: 0, attempts: 0 };
     cur.attempts++;
     if (b.made) cur.made++;
+    else if (b.dir) cur.misses = { ...cur.misses, [b.dir]: (cur.misses?.[b.dir] ?? 0) + 1 };
     m.set(key, cur);
   }
   return [...m.values()];

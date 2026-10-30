@@ -1,5 +1,5 @@
 import { Chevron } from '../components/Chevron';
-import { allDrills, distanceText, fits, SCORING_LABELS } from '../lib/drills';
+import { allDrills, distanceText, fits, scoringLabel } from '../lib/drills';
 import { usePractice } from '../lib/usePractice';
 import { SURFACE_LABELS, type DrillDef } from '../lib/types';
 
@@ -45,7 +45,7 @@ export function DrillBrowse() {
                       {d.from && <span className="small muted"> · edited</span>}
                     </strong>
                     <span className="small muted">
-                      {[distanceText(d), SCORING_LABELS[d.scoring], ok ? '' : 'needs a green'].filter(Boolean).join(' · ')}
+                      {[distanceText(d), scoringLabel(d), ok ? '' : 'needs a green'].filter(Boolean).join(' · ')}
                     </span>
                   </span>
                   <Chevron />

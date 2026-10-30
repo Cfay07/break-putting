@@ -93,3 +93,23 @@ what moved and never claims practice caused it.
   count, "not yet" under 10 practice balls or 15 course putts.
 - **Getting better** compares the earlier half of a drill's balls with the later half on one
   surface, and only says up or down when the change beats its own 95% noise.
+
+## The loop, as of 2026-10-30
+
+Two speeds, so neither claims more than its data holds.
+
+- **Fast, every session.** A drill, a score, your best to beat, and one optional tap on a miss
+  for which way it went. Practice finds its own pattern from those taps ("at 3 to 5 ft indoors,
+  7 of your last 10 tagged misses went left") and hands you the drill for it. No round needed,
+  which is the whole winter.
+- **Slow, every few rounds.** Rounds set the target. Inside the zone on the Work on card, the app
+  compares each kind of putt (break direction, uphill, downhill) against your other tagged putts
+  from the same distance, never against untagged ones, because tagged putts are the harder
+  ones. It names a kind only past 10 putts on both sides, says whether the gap beats chance or is
+  still a lead, and builds a drill for that exact putt at its distance. Once you have rolled that
+  drill, the card tracks that kind of putt on the course since the day you started, and says when
+  there are too few to compare.
+- **Never** a composite score, XP, or a claim that practice caused a change on the course.
+
+First real readings: left-to-right putts from 3 to 5 ft (5 of 13 against 85%) and from 9 to 15 ft
+(1 of 22 against 33%), both past chance; downhill lag finishing close 55% against 75%, still a lead.

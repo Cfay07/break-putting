@@ -3,6 +3,7 @@ import { replayLadder } from '../components/LadderLogger';
 import { replayStreak } from '../components/StreakLogger';
 import { APP_DRILLS, drillsFor, fitToRoom, resolveDrill } from './drills';
 import { handGap, handLink, handsOf } from './hands';
+import { fixDrill, fixFor, pinpoint, practiceFix, practicePattern } from './pinpoint';
 import { textLines } from './pdfText';
 import { focusOf, leanOf, MIN_PUTTER_ROUNDS, playAt, RECENT_ROUNDS, trendOf } from './practice';
 import { applyFilter, filterLabel } from './roundFilter';
@@ -277,5 +278,43 @@ describe('one hand at a time', () => {
   });
   it('waits for enough weeks before tying a hand to the course', () => {
     expect(handLink(sets, [], 'left')).toEqual({ weeks: 0, r: null });
+  });
+});
+
+describe('pinpoint', () => {
+  const tagged = (d: number, made: boolean, dirs: Putt['breakDirs'], extra: Partial<Putt> = {}): Putt => ({ d, made, breakDirs: dirs, ...extra });
+  it('names the kind of putt behind a zone, against other tagged putts from there', () => {
+    const r = round('a', 7, 1);
+    r.holes = Array.from({ length: 36 }, (_, i) => {
+      const lr = i % 2 === 0;
+      const made = lr ? i % 6 === 0 : i % 4 !== 1;
+      const p = tagged(7, made, [lr ? 'L→R' : 'R→L'], made ? {} : { missSide: lr ? 'low' : 'high' });
+      return { hole: (i % 18) + 1, putts: made ? [p] : [p, { d: 1, made: true }] };
+    });
+    const [top] = pinpoint([r], B, 'mid');
+    expect(top.cond).toBe('lr');
+    expect(top.made).toBe(6);
+    expect(top.lean?.lean).toBe('low');
+    expect(fixFor(top.cond, top.lean!.lean, top.d, 'green')).toBe('fix:apex-lr:7');
+    expect(fixFor(top.cond, top.lean!.lean, top.d, 'indoor')).toBe('fix:aim-lr:7');
+  });
+  it('builds a drill for every fix it can hand out', () => {
+    for (const id of ['fix:gate:4', 'fix:past:6', 'fix:die:9', 'fix:apex-rl:8', 'fix:aim-lr:7', 'fix:firm-lr:7', 'fix:downhill:10', 'fix:uphill:8', 'fix:double:12']) {
+      const d = fixDrill(id)!;
+      expect(d.id).toBe(id);
+      expect(d.stations[0].d).toBe(Number(id.split(':')[2]));
+    }
+    expect(fixDrill('fix:nonsense:4')).toBeUndefined();
+  });
+  it('finds a practice habit from the optional miss taps alone', () => {
+    const misses = { left: 7, right: 2, short: 1 };
+    const s1 = set('p1', 'ten-4', 10, 20, '2026-11-05', { stations: [{ d: 4, mode: 'make', made: 10, attempts: 20, misses }] });
+    const p = practicePattern([s1])!;
+    expect([p.dir, p.n, p.of, p.band]).toEqual(['left', 7, 10, '3 to 5 ft']);
+    expect(practiceFix(p)).toBe('fix:gate:4');
+  });
+  it('stays quiet until the misses agree', () => {
+    const s1 = set('p1', 'ten-4', 10, 20, '2026-11-05', { stations: [{ d: 4, mode: 'make', made: 10, attempts: 20, misses: { left: 3, right: 3, short: 3 } }] });
+    expect(practicePattern([s1])).toBeNull();
   });
 });

@@ -3,7 +3,7 @@ import { ConfirmButton } from '../components/ConfirmButton';
 import { DrillLogger } from '../components/DrillLogger';
 import { SetColumns } from '../components/SetColumns';
 import { VsPlay } from '../components/VsPlay';
-import { distanceText, fitToRoom, resolveDrill, SCORING_LABELS } from '../lib/drills';
+import { distanceText, fitToRoom, resolveDrill, scoringLabel } from '../lib/drills';
 import { fmtDate } from '../lib/format';
 import { biggestGap, historyOf, practiceVsPlay, TREND_NEED, trendOf } from '../lib/practice';
 import { ON_MISS_TEXT, setScore } from '../lib/practiceView';
@@ -47,7 +47,7 @@ export function DrillPage({ id }: { id: string }) {
       </div>
       <h1 className="page-title">{drill.name}</h1>
       <p className="small muted" style={{ margin: '2px 0 0' }}>
-        {[distanceText(drill), SCORING_LABELS[drill.scoring], SOURCE[drill.source] + (drill.from ? ', edited' : '')]
+        {[distanceText(drill), scoringLabel(drill), SOURCE[drill.source] + (drill.from ? ', edited' : '')]
           .filter(Boolean)
           .join(' · ')}
       </p>

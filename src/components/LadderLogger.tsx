@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import type { Fitted } from '../lib/drills';
 import { clock, MODE_WORDS, ON_MISS_TEXT, tallyStations } from '../lib/practiceView';
 import { stationName } from './CountLogger';
+import { MissWhich } from './MissWhich';
+import type { MissDir } from '../lib/types';
 import type { LoggerProps } from './DrillLogger';
 import { useNow } from './useNow';
 
@@ -64,6 +66,7 @@ export function replayLadder(drill: Pick<Fitted, 'stations' | 'onMiss' | 'checkp
 
 export function LadderLogger({ drill, onSave }: LoggerProps) {
   const [hits, setHits] = useState<boolean[]>([]);
+  const [dirs, setDirs] = useState<(MissDir | undefined)[]>([]);
   const [started, setStarted] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
   const now = useNow(started !== null && !!drill.limit);
@@ -72,15 +75,15 @@ export function LadderLogger({ drill, onSave }: LoggerProps) {
 
   const finish = (all: boolean[], timedOut = false) => {
     const end = replayLadder(drill, all);
-    const queue: { d: number; mode: 'make' | 'twoputt' | 'zone'; made: boolean }[] = [];
+    const queue: { d: number; mode: 'make' | 'twoputt' | 'zone'; made: boolean; dir?: MissDir }[] = [];
     // Walk the taps again to know which station each ball was hit from.
     let probe: boolean[] = [];
-    for (const hit of all) {
+    all.forEach((hit, i) => {
       const at = replayLadder(drill, probe).at;
       const s = drill.stations[Math.min(at, drill.stations.length - 1)];
-      queue.push({ d: s.d, mode: s.mode ?? 'make', made: hit });
+      queue.push({ d: s.d, mode: s.mode ?? 'make', made: hit, dir: dirs[i] });
       probe = [...probe, hit];
-    }
+    });
     onSave({
       made: all.filter(Boolean).length,
       attempts: all.length,
@@ -102,6 +105,7 @@ export function LadderLogger({ drill, onSave }: LoggerProps) {
     if (started === null) setStarted(Date.now());
     const next = [...hits, hit];
     setHits(next);
+    setDirs([...dirs.slice(0, hits.length), undefined]);
     const after = replayLadder(drill, next);
     if (after.finished || after.over) finish(next);
   };
@@ -172,6 +176,12 @@ export function LadderLogger({ drill, onSave }: LoggerProps) {
         {st.fails > 0 && <span>{st.fails} reset{st.fails === 1 ? '' : 's'}</span>}
         {left !== null && <span className="num">{clock(left)} left</span>}
       </div>
+      {hits.length > 0 && !hits[hits.length - 1] && (
+        <MissWhich
+          value={dirs[hits.length - 1]}
+          onPick={(d) => setDirs(dirs.map((x, i) => (i === hits.length - 1 ? d : x)))}
+        />
+      )}
       <div className="runner-btns">
         <button className="runner-no" onClick={() => tap(false)}>
           {MODE_WORDS[mode].no}
@@ -181,7 +191,14 @@ export function LadderLogger({ drill, onSave }: LoggerProps) {
         </button>
       </div>
       <div className="runner-foot">
-        <button className="linkish small muted" disabled={!hits.length} onClick={() => setHits(hits.slice(0, -1))}>
+        <button
+          className="linkish small muted"
+          disabled={!hits.length}
+          onClick={() => {
+            setHits(hits.slice(0, -1));
+            setDirs(dirs.slice(0, -1));
+          }}
+        >
           Undo
         </button>
         {hits.length > 0 ? (

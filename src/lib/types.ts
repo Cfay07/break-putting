@@ -361,12 +361,16 @@ export interface SessionDef {
   kind?: 'session';
 }
 
+/** Which way a practice miss went, when you said. Optional on every miss. */
+export type MissDir = 'left' | 'right' | 'short' | 'long';
+
 export interface StationResult {
   d: number;
   mode: BallMode;
   hand?: Hand;
   made: number;
   attempts: number;
+  misses?: Partial<Record<MissDir, number>>;
 }
 
 /**

@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import { Chevron } from '../components/Chevron';
 import { DrillLogger } from '../components/DrillLogger';
 import { PracticeDays } from '../components/PracticeDays';
+import { PracticeLog } from '../components/PracticeLog';
 import { SetColumns } from '../components/SetColumns';
 import { Sheet } from '../components/Sheet';
 import { ZoneBars } from '../components/ZoneBars';
-import { distanceText, drillsFor, fits, resolveDrill, type Fitted } from '../lib/drills';
-import { signed } from '../lib/format';
+import { distanceText, drillsFor, fits, fitToRoom, resolveDrill, type Fitted } from '../lib/drills';
+import { fmtDate, signed } from '../lib/format';
 import {
   biggestGap,
   byTime,
@@ -23,8 +24,30 @@ import { putterName } from '../lib/store';
 import { usePractice } from '../lib/usePractice';
 import { DEFAULT_BASELINE, SURFACE_LABELS, type Surface, type Zone } from '../lib/types';
 import { useNow } from '../components/useNow';
+import { COND_LABEL, fixDrill, fixFor, pinpoint, practiceFix, practicePattern, SLICE_NEED, sliceSince, type Slice } from '../lib/pinpoint';
+import type { MissDir } from '../lib/types';
 
 const SURFACES: Surface[] = ['indoor', 'green'];
+
+const NEXT_DOOR: Record<Zone, Zone[]> = {
+  tapin: ['short'],
+  short: ['tapin', 'mid'],
+  mid: ['short', 'long'],
+  long: ['mid', 'lag'],
+  lag: ['long'],
+};
+
+/** Drills for a zone, or the nearest real ones when none land squarely in it. Never an empty card. */
+function drillsNear(...args: Parameters<typeof drillsFor>): Fitted[] {
+  const [all, zone, lean, surface, room] = args;
+  const here = drillsFor(all, zone, lean, surface, room);
+  if (here.length) return here;
+  for (const z of NEXT_DOOR[zone]) {
+    const near = drillsFor(all, z, lean, surface, room);
+    if (near.length) return near;
+  }
+  return [];
+}
 
 /** Enough to start one without scrolling; the rest are a tap away. */
 const SESSIONS_SHOWN = 4;
@@ -62,6 +85,8 @@ function ZoneCard({
   surface,
   lastOf,
   onRoll,
+  toWorst,
+  why,
 }: {
   z: ZoneRead;
   worst: boolean;
@@ -72,14 +97,19 @@ function ZoneCard({
   surface: Surface;
   lastOf: (id: string) => string | null;
   onRoll: (d: Fitted) => void;
+  /** Back to the zone worth working on, from one that is holding up. */
+  toWorst?: () => void;
+  why: WhyItem[];
 }) {
   const thin = confidenceOf(z.sample) === 'waiting';
+  const holding = !thin && z.sgPerRound >= 0;
   const readMiss = z.lean && (z.lean.lean === 'high' || z.lean.lean === 'low');
   return (
-    <div className={`card focus-card${z.sgPerRound < 0 && !thin ? ' lose' : ''}`}>
+    <div className={`card focus-card${z.sgPerRound < 0 && !thin ? ' lose' : holding ? ' hold' : ''}`}>
       <div className="focus-head">
         <h3>{z.label}</h3>
         {worst && <span className="focus-tag">Biggest leak</span>}
+        {holding && <span className="focus-tag good">Holding up</span>}
       </div>
       {thin ? (
         <p className="small muted" style={{ margin: '4px 0 0' }}>
@@ -111,6 +141,44 @@ function ZoneCard({
           {readMiss && surface === 'indoor' && ' A flat surface has no break, so the read side of that waits for a green.'}
         </p>
       )}
+      {holding ? (
+        <>
+          <p className="small focus-lean">
+            You beat scratch from here, so there is nothing to fix. The strokes are going somewhere else.
+          </p>
+          {toWorst && (
+            <button className="btn btn-wide" style={{ marginTop: 12 }} onClick={toWorst}>
+              Show the biggest leak
+            </button>
+          )}
+        </>
+      ) : (
+      <>
+      {why.length > 0 && (
+        <div className="why-list">
+          <span className="why-h">What's behind it</span>
+          {why.map((w) => (
+            <div key={w.slice.cond} className="why-item">
+              <strong>
+                {COND_LABEL[w.slice.cond]}: {w.slice.made} of {w.slice.attempts} {z.zone === 'lag' ? 'finished close' : 'holed'}
+              </strong>
+              <span className="small muted">
+                {Math.round((w.slice.made / w.slice.attempts) * 100)}% against{' '}
+                {Math.round((w.slice.restMade / w.slice.restAttempts) * 100)}% on your other tagged putts from here
+                {w.slice.lean ? `. ${w.slice.lean.n} of ${w.slice.lean.of} tagged misses ${LEAN_TEXT[w.slice.lean.lean]}` : ''}.{' '}
+                {-w.slice.gap > w.slice.margin ? 'Bigger than chance.' : `A lead so far, on ${w.slice.attempts} putts.`}
+              </span>
+              <button className="focus-drill fix" onClick={() => onRoll(w.fix)}>
+                <span>
+                  <strong>{w.fix.name}</strong>
+                </span>
+                <span className="small muted num">{lastOf(w.fix.id) ?? 'Fix it'}</span>
+              </button>
+              {w.track && <span className="small why-track">{w.track}</span>}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="focus-drills">
         {drills.map((d) => (
           <button key={d.id} className="focus-drill" onClick={() => onRoll(d)}>
@@ -121,15 +189,25 @@ function ZoneCard({
             <span className="small muted num">{lastOf(d.id) ?? 'Start'}</span>
           </button>
         ))}
-        {!drills.length && (
-          <p className="small muted" style={{ margin: 0 }}>
-            Nothing you have for this distance fits {surface === 'indoor' ? 'indoors' : 'on a green'} yet.
-          </p>
-        )}
       </div>
+      </>
+      )}
     </div>
   );
 }
+
+interface WhyItem {
+  slice: Slice;
+  fix: Fitted;
+  track: string | null;
+}
+
+const DIR_MEANS: Record<MissDir, string> = {
+  left: 'That is start line, not the read.',
+  right: 'That is start line, not the read.',
+  short: 'Short never goes in.',
+  long: 'Long is where the comebackers come from.',
+};
 
 function RoomSheet({ onClose }: { onClose: () => void }) {
   const { dispatch, surface, room } = usePractice();
@@ -185,6 +263,29 @@ export function Practice() {
       ? `your ${recentWord} rounds with the ${putterName(state, putterId)}`
       : `your ${recentWord} rounds`;
 
+  // The slow loop: inside the zone on the card, which kind of putt is behind it, and how that
+  // kind has gone on the course since you started on its fix.
+  const why: WhyItem[] = zone
+    ? pinpoint(scoped.rounds, state.baseline, zone.zone).map((slice) => {
+        const fixId = fixFor(slice.cond, slice.lean?.lean ?? null, slice.d, surface);
+        const fix = fitToRoom(fixDrill(fixId)!, room);
+        const started = sets.filter((x) => x.drill === fixId).map((x) => x.date).sort()[0];
+        let track: string | null = null;
+        if (started) {
+          const t = sliceSince(scoped.rounds, zone.zone, slice.cond, started);
+          const pct = (x: { made: number; attempts: number }) => Math.round((x.made / x.attempts) * 100);
+          track =
+            t.after.attempts >= SLICE_NEED && t.before.attempts
+              ? `On the course since you started it on ${fmtDate(started)}: ${pct(t.after)}% of ${t.after.attempts}, against ${pct(t.before)}% before.`
+              : `Started on ${fmtDate(started)}. ${t.after.attempts} of these putts on the course since, short of the ${SLICE_NEED} it takes to compare.`;
+        }
+        return { slice, fix, track };
+      })
+    : [];
+  // The fast loop: your own practice misses, no round needed.
+  const pattern = practicePattern(sets);
+  const patternFix = pattern ? fitToRoom(fixDrill(practiceFix(pattern))!, room) : null;
+
   const runSession = state.run ? state.sessions.find((x) => x.id === state.run!.session) : undefined;
   // Sessions you have rolled lately first, then the rest in the order they came in.
   const lastRolled = new Map<string, string>();
@@ -229,6 +330,30 @@ export function Practice() {
         </a>
       )}
 
+      {pattern && patternFix && (
+        <>
+          <h2>From your practice</h2>
+          <div className="card focus-card lose">
+            <div className="focus-head">
+              <h3>
+                {pattern.band}, {SURFACE_LABELS[pattern.surface].toLowerCase()}
+              </h3>
+            </div>
+            <p className="small focus-lean">
+              {pattern.n} of your last {pattern.of} tagged misses went {pattern.dir}. {DIR_MEANS[pattern.dir]}
+            </p>
+            <div className="focus-drills">
+              <button className="focus-drill" onClick={() => setRolling(patternFix)}>
+                <span>
+                  <strong>{patternFix.name}</strong>
+                </span>
+                <span className="small muted num">{lastOf(patternFix.id) ?? 'Fix it'}</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {focus.rounds > 0 && zone && (
         <>
           <h2>Work on</h2>
@@ -241,7 +366,9 @@ export function Practice() {
                 ? { label: focus.wasWorst.label, sgPerRound: focus.wasWorst.sgPerRound, rounds: focus.allRounds }
                 : null
             }
-            drills={drillsFor(drills, zone.zone, zone.lean?.lean ?? null, surface, room)}
+            drills={drillsNear(drills, zone.zone, zone.lean?.lean ?? null, surface, room)}
+            toWorst={focus.worst && focus.worst !== zone.zone ? () => setPicked(focus.worst) : undefined}
+            why={why}
             surface={surface}
             lastOf={lastOf}
             onRoll={setRolling}
@@ -362,6 +489,8 @@ export function Practice() {
             {totals.days === 1 ? 'day' : 'days'}. None of it counts toward your round stats.
           </p>
           <PracticeDays sets={[...sets].sort(byTime)} />
+          <h2>Recent practice</h2>
+          <PracticeLog limit={4} />
         </>
       )}
 
