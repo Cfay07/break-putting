@@ -51,7 +51,7 @@ export function ZoneBars({
                   ? z.leave !== null
                     ? ` · leaves ${z.leave.toFixed(1)} ft · ${z.threePutts} three-putts`
                     : ''
-                  : ` · ${Math.round((z.makes / z.attempts) * 100)}% holed, scratch ${Math.round((z.scratchMakes / z.attempts) * 100)}%`
+                  : ` · ${Math.round((z.makes / z.attempts) * 100)}% holed, scratch golfer ${Math.round((z.scratchMakes / z.attempts) * 100)}%`
                 : ''}
             </span>
           </button>

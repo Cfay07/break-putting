@@ -1221,8 +1221,7 @@ a.btn { text-decoration: none; }
   min-height: var(--tap); padding: 0 14px; border: 1.5px solid var(--ink); border-radius: var(--radius);
   background: var(--card); color: var(--ink); font: inherit; font-size: 15px; text-align: left; cursor: pointer;
 }
-.focus-drill:first-child { background: var(--ink); color: #f7f5ee; }
-.focus-drill:first-child .muted { color: rgba(247, 245, 238, 0.7); }
+/* Every drill row looks the same: the order says which comes first, a dark fill only looked selected. */
 .focus-drill:active { transform: scale(0.99); }
 
 .zone-bars { display: grid; gap: 2px; }
@@ -1509,7 +1508,7 @@ a.btn { text-decoration: none; }
 .why-h { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); font-weight: 700; }
 .why-item { display: grid; gap: 4px; }
 .why-item strong { font-size: 14px; }
-.focus-drill.fix { margin-top: 6px; background: var(--card); color: var(--ink); border-color: var(--accent); }
+.focus-drill.fix { margin-top: 6px; }
 .why-track { color: var(--ink-2); }
 .zone-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
 .zone-stats > div { display: grid; gap: 2px; padding: 8px 10px; border-radius: 8px; background: var(--paper); }

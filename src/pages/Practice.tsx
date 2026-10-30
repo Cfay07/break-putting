@@ -170,7 +170,7 @@ function ZoneCard({
                 <span>
                   <strong>{w.fix.name}</strong>
                 </span>
-                <span className="small muted num">{lastOf(w.fix.id) ?? 'Fix it'}</span>
+                <span className="small muted num">{lastOf(w.fix.id) ?? '›'}</span>
               </button>
               {w.track && <span className="small why-track">{w.track}</span>}
             </div>
@@ -184,7 +184,7 @@ function ZoneCard({
               <strong>{d.name}</strong>
               <span className="small muted"> · {distanceText(d)}</span>
             </span>
-            <span className="small muted num">{lastOf(d.id) ?? 'Start'}</span>
+            <span className="small muted num">{lastOf(d.id) ?? '›'}</span>
           </button>
         ))}
       </div>
@@ -208,7 +208,7 @@ export function ZoneStats({ z }: { z: ZoneRead }) {
       ]
     : [
         { v: `${pct(z.makes, z.attempts)}%`, k: `Holed, ${z.makes} of ${z.attempts}` },
-        { v: `${pct(z.scratchMakes, z.attempts)}%`, k: 'Scratch holes' },
+        { v: `${pct(z.scratchMakes, z.attempts)}%`, k: 'A scratch golfer makes' },
         { v: signed(z.sgPerPutt), k: 'Per putt' },
       ];
   return (
@@ -375,7 +375,7 @@ export function Practice() {
                 <span>
                   <strong>{patternFix.name}</strong>
                 </span>
-                <span className="small muted num">{lastOf(patternFix.id) ?? 'Fix it'}</span>
+                <span className="small muted num">{lastOf(patternFix.id) ?? '›'}</span>
               </button>
             </div>
           </div>

@@ -69,8 +69,18 @@ const TABS = [
 const PARENT: Record<string, string> = { '/team': '/settings' };
 
 /** Track earns a tab only while a round is going. Otherwise it is a dead end. */
-function tabsFor(live: boolean, route: string) {
-  return TABS.filter((t) => t.path !== '/track' || live || route === '/track');
+function tabsFor(live: boolean) {
+  return TABS.filter((t) => t.path !== '/track' || live);
+}
+
+/**
+ * Where Track sends you when there is nothing to track: back to whatever you last finished. Swiping
+ * back after finishing a round, or the app reopening on Track after a round ended on another
+ * phone, used to show an empty Track tab.
+ */
+function afterTrack(state: AppState): string {
+  const newest = (rs: { updated?: string }[]) => rs.reduce((a, r) => ((r.updated ?? '') > a ? (r.updated ?? '') : a), '');
+  return newest(state.practiceRounds ?? []) > newest(state.rounds) ? '/practice' : '/';
 }
 
 export default function App() {
@@ -100,6 +110,12 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const staleTrack = route === '/track' && !live;
+  useEffect(() => {
+    // Replaced, not pushed, so swiping back cannot land on the empty Track page again.
+    if (staleTrack) window.location.replace(`#${afterTrack(latest.current)}`);
+  }, [staleTrack]);
 
   useEffect(() => {
     if (!state.rounds.some((r) => r.finished)) return;
@@ -187,6 +203,8 @@ export default function App() {
     <PracticeLogPage />
   ) : roundMatch ? (
     <RoundDetail id={roundMatch[1]} openHole={roundMatch[2] ? Number(roundMatch[2]) : undefined} />
+  ) : staleTrack ? (
+    afterTrack(state) === '/practice' ? <Practice /> : <Rounds />
   ) : route === '/track' ? (
     <Track />
   ) : route === '/stats' || route === '/stats/practice' ? (
@@ -227,7 +245,7 @@ export default function App() {
       </div>
       <main className="main">{page}</main>
       <nav className="nav">
-        {tabsFor(!!live, route).map((t) => {
+        {tabsFor(!!live).map((t) => {
           const here = route.startsWith('/practice')
             ? '/practice'
             : route.startsWith('/stats')
