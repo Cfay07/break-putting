@@ -34,6 +34,11 @@ export interface ZoneRead {
   label: string;
   /** Strokes gained per eighteen holes against the baseline, from putts starting in this zone. */
   sgPerRound: number;
+  /**
+   * The same against scratch, per putt. A wide zone collects more putts a round, so its per-round
+   * number is bigger without the putting being worse; this is the skill gap on its own.
+   */
+  sgPerPutt: number;
   makes: number;
   attempts: number;
   sample: Sample;
@@ -134,10 +139,13 @@ function zonesOf(rounds: Round[], baseline: [number, number][]) {
     const attempts = z.buckets.reduce((s, b) => s + o.pooled.buckets[b].attempts, 0);
     const makes = z.buckets.reduce((s, b) => s + o.pooled.buckets[b].makes, 0);
     const sgPerRound = z.buckets.reduce((s, b) => s + (o.bucketSgPerRound[b] ?? 0), 0);
+    const sg = z.buckets.reduce((s, b) => s + o.pooled.buckets[b].sg, 0);
+    const counted = z.buckets.reduce((s, b) => s + o.pooled.buckets[b].sgPutts, 0);
     return {
       zone: z.key,
       label: z.label,
       sgPerRound,
+      sgPerPutt: counted ? sg / counted : 0,
       makes,
       attempts,
       sample: sample(attempts, FOCUS_NEED, 'putts'),

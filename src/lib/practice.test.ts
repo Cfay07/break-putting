@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { replayLadder } from '../components/LadderLogger';
 import { replayStreak } from '../components/StreakLogger';
 import { APP_DRILLS, drillsFor, fitToRoom, resolveDrill } from './drills';
+import { handGap, handLink, handsOf } from './hands';
 import { textLines } from './pdfText';
 import { focusOf, leanOf, MIN_PUTTER_ROUNDS, playAt, RECENT_ROUNDS, trendOf } from './practice';
 import { applyFilter, filterLabel } from './roundFilter';
@@ -77,17 +78,18 @@ describe('lean', () => {
 describe('drills and room', () => {
   it('moves stations in to the room and says where they were', () => {
     const lucky: DrillDef = { ...APP_DRILLS[0], id: 'l', scoring: 'ladder', stations: [3, 6, 15, 21].map((d) => ({ d, balls: 3 })) };
-    const f = fitToRoom(lucky, 12)!;
+    const f = fitToRoom(lucky, 12);
     expect(f.stations.map((s) => s.d)).toEqual([3, 6, 12, 12]);
     expect(f.stations.map((s) => s.movedFrom)).toEqual([undefined, undefined, 15, 21]);
   });
 
-  it('hides a drill that starts past the room rather than shrinking it into another drill', () => {
-    expect(fitToRoom(APP_DRILLS.find((d) => d.id === 'two-putt-ladder')!, 12)).toBeNull();
+  it('reshapes a drill that starts past the room instead of hiding it', () => {
+    const f = fitToRoom(APP_DRILLS.find((d) => d.id === 'two-putt-ladder')!, 12);
+    expect(f.stations.map((s) => [s.d, s.movedFrom])).toEqual([[12, 20], [12, 30], [12, 40]]);
   });
 
   it('sends the back-edge drill to the far end of the room', () => {
-    expect(fitToRoom(APP_DRILLS.find((d) => d.id === 'back-edge')!, 14)!.stations[0].d).toBe(14);
+    expect(fitToRoom(APP_DRILLS.find((d) => d.id === 'back-edge')!, 14).stations[0].d).toBe(14);
   });
 
   it('only offers drills that fit the surface and the room', () => {
@@ -239,19 +241,41 @@ describe('stats filter', () => {
   });
 });
 
-describe('fitting lag to a short room', () => {
-  it('leaves lag stations out instead of shrinking them, and keeps the short ones', () => {
-    const semi: DrillDef = {
-      ...APP_DRILLS[1],
-      id: 'semi',
-      stations: [
-        { d: 4, balls: 3 },
-        { d: 15, balls: 3, mode: 'twoputt' },
-        { d: 30, balls: 3, mode: 'twoputt' },
-      ],
-    };
-    const f = fitToRoom(semi, 12)!;
-    expect(f.stations.map((s) => s.d)).toEqual([4]);
-    expect(f.dropped).toBe(2);
+describe('deleting a putter', () => {
+  it('moves its rounds to the putter you pick and buries the putter', () => {
+    let s = { ...emptyState(), rounds: [round('old', 5, 2), round('new', 5, 2)] };
+    s = reducer(s, { t: 'addPutter', id: 'old', name: 'Old' });
+    s = reducer(s, { t: 'addPutter', id: 'new', name: 'New' });
+    s = reducer(s, { t: 'deletePutter', id: 'old', moveTo: 'new' });
+    expect(s.putters.map((p) => p.id)).toEqual(['new']);
+    expect(s.rounds.every((r) => r.putterId === 'new')).toBe(true);
+    expect(s.tombstones.some((t) => t.id === 'old' && t.kind === 'putter')).toBe(true);
+    const back = reducer(s, {
+      t: 'applyIncoming',
+      incoming: { rounds: [], putters: [{ id: 'old', name: 'Old', active: false, retired: false, updated: '2000-01-01' }], removed: [] },
+    });
+    expect(back.putters.map((p) => p.id)).toEqual(['new']);
+  });
+});
+
+describe('one hand at a time', () => {
+  const st = (d: number, made: number, attempts: number, hand?: 'left' | 'right') => ({ d, mode: 'make' as const, made, attempts, ...(hand ? { hand } : {}) });
+  const sets = [
+    set('l', 'left-hand', 0, 0, '2026-11-02', { stations: [st(4, 18, 20, 'left'), st(6, 12, 20, 'left')] }),
+    set('r', 'right-hand', 0, 0, '2026-11-03', { stations: [st(4, 10, 20, 'right'), st(6, 6, 20, 'right')] }),
+    set('b', 'ten-4', 0, 0, '2026-11-03', { stations: [st(4, 19, 20), st(12, 5, 10)] }),
+  ];
+  it('lines the hands up at the distances a one-handed putt came from', () => {
+    const { rows, total } = handsOf(sets, []);
+    expect(rows.map((r) => r.d)).toEqual([4, 6]);
+    expect([total.left.made, total.right.made, total.both.made]).toEqual([30, 16, 19]);
+  });
+  it('calls a better hand only past the noise', () => {
+    expect(handGap({ made: 30, attempts: 40 }, { made: 16, attempts: 40 }).verdict).toBe('left');
+    expect(handGap({ made: 21, attempts: 40 }, { made: 19, attempts: 40 }).verdict).toBe('even');
+    expect(handGap({ made: 5, attempts: 10 }, { made: 1, attempts: 10 }).verdict).toBe('waiting');
+  });
+  it('waits for enough weeks before tying a hand to the course', () => {
+    expect(handLink(sets, [], 'left')).toEqual({ weeks: 0, r: null });
   });
 });

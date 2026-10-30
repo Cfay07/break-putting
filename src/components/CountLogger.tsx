@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { FittedStation } from '../lib/drills';
 import { MODE_WORDS, tallyStations } from '../lib/practiceView';
-import type { BallMode } from '../lib/types';
+import type { BallMode, Hand } from '../lib/types';
 import type { LoggerProps } from './DrillLogger';
 
 interface Row {
   d: number;
   mode: BallMode;
+  hand?: Hand;
   label?: string;
   balls: number;
   movedFrom?: number;
@@ -17,17 +18,18 @@ function rowsOf(stations: FittedStation[]): Row[] {
   const rows: Row[] = [];
   for (const s of stations) {
     const mode = s.mode ?? 'make';
-    const same = rows.find((r) => r.d === s.d && r.mode === mode && r.label === s.label);
+    const same = rows.find((r) => r.d === s.d && r.mode === mode && r.label === s.label && r.hand === s.hand);
     if (same) same.balls += s.balls;
-    else rows.push({ d: s.d, mode, label: s.label, balls: s.balls, movedFrom: s.movedFrom });
+    else rows.push({ d: s.d, mode, hand: s.hand, label: s.label, balls: s.balls, movedFrom: s.movedFrom });
   }
   return rows;
 }
 
-export function stationName(s: { d: number; label?: string; movedFrom?: number }): string {
+export function stationName(s: { d: number; label?: string; hand?: Hand; movedFrom?: number }): string {
   const where = s.d > 0 ? `${s.d} ft` : '';
   const moved = s.movedFrom ? ` (was ${s.movedFrom})` : '';
-  return [where + moved, s.label].filter(Boolean).join(' · ');
+  const hand = s.hand && !s.label ? `${s.hand === 'left' ? 'left' : 'right'} hand` : '';
+  return [where + moved, s.label ?? hand].filter(Boolean).join(' · ');
 }
 
 /**
@@ -37,7 +39,11 @@ export function stationName(s: { d: number; label?: string; movedFrom?: number }
 export function CountLogger({ drill, onSave }: LoggerProps) {
   const rows = useMemo(() => rowsOf(drill.stations), [drill]);
   const queue = useMemo(() => drill.stations.flatMap((s) => Array.from({ length: s.balls }, () => s)), [drill]);
-  const [steppers, setSteppers] = useState(rows.length > 1);
+  // Lag and speed balls are counted one at a time: which balls finished inside is the point.
+  // Steppers only lead for several distances of plain makes, five or more each.
+  const [steppers, setSteppers] = useState(
+    () => rows.length > 1 && drill.stations.every((st) => st.balls >= 5 && (st.mode ?? 'make') === 'make'),
+  );
   const [balls, setBalls] = useState<boolean[]>([]);
   const [counts, setCounts] = useState<number[]>(() => rows.map(() => 0));
 
@@ -49,7 +55,7 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
         made,
         attempts: of,
         stations: rows
-          .map((r, i) => ({ d: r.d, mode: r.mode, made: counts[i], attempts: r.balls }))
+          .map((r, i) => ({ d: r.d, mode: r.mode, ...(r.hand ? { hand: r.hand } : {}), made: counts[i], attempts: r.balls }))
           .filter((s) => s.d > 0),
       });
     return (
@@ -118,7 +124,7 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
         {
           made: next.filter(Boolean).length,
           attempts: next.length,
-          stations: tallyStations(queue.map((s, i) => ({ d: s.d, mode: s.mode ?? 'make', made: next[i] }))),
+          stations: tallyStations(queue.map((s, i) => ({ d: s.d, mode: s.mode ?? 'make', hand: s.hand, made: next[i] }))),
         },
         next,
       );

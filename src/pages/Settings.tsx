@@ -11,9 +11,73 @@ import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { blankHoles, makeRound, useApp } from '../lib/store';
 import { DEFAULT_BASELINE, type AppState, type GreenSpeed } from '../lib/types';
 
+/**
+ * Deleting a putter never deletes putting. Its rounds and practice sets move to the putter you
+ * pick first, so the per-putter splits stay true; one with nothing logged just goes.
+ */
+function PutterDelete({
+  id,
+  moveTo,
+  setMoveTo,
+  onDone,
+}: {
+  id: string;
+  moveTo: string;
+  setMoveTo: (id: string) => void;
+  onDone: () => void;
+}) {
+  const { state, dispatch } = useApp();
+  const rounds = state.rounds.filter((r) => r.putterId === id).length;
+  const others = state.putters.filter((p) => p.id !== id);
+  return (
+    <div className="putter-delete">
+      {rounds > 0 && others.length === 0 ? (
+        <p className="small" style={{ margin: 0 }}>
+          {rounds} {rounds === 1 ? 'round was' : 'rounds were'} putted with this one. Add the putter they belong to
+          first, then delete this one.
+        </p>
+      ) : (
+        <>
+          {rounds > 0 && (
+            <>
+              <p className="small" style={{ margin: '0 0 8px' }}>
+                Its {rounds} {rounds === 1 ? 'round moves' : 'rounds move'} to:
+              </p>
+              <div className="chips chips-sm">
+                {others.map((o) => (
+                  <button key={o.id} className={moveTo === o.id ? 'chip chip-sel' : 'chip'} onClick={() => setMoveTo(o.id)}>
+                    {o.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          <div className="btn-row" style={{ marginTop: 10 }}>
+            <button className="btn btn-ghost" onClick={onDone}>
+              Cancel
+            </button>
+            <ConfirmButton
+              label="Delete putter"
+              confirmLabel="Delete it?"
+              className="btn btn-danger"
+              style={rounds > 0 && !moveTo ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
+              onConfirm={() => {
+                dispatch({ t: 'deletePutter', id, moveTo: rounds > 0 ? moveTo : undefined });
+                onDone();
+              }}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function Settings() {
   const { state, dispatch } = useApp();
   const [name, setName] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [moveTo, setMoveTo] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [pDate, setPDate] = useState(today);
@@ -150,7 +214,19 @@ export function Settings() {
               >
                 {p.retired ? 'Unretire' : 'Retire'}
               </button>
+              {deleting !== p.id && (
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setDeleting(p.id);
+                    setMoveTo('');
+                  }}
+                >
+                  Delete
+                </button>
+              )}
             </div>
+            {deleting === p.id && <PutterDelete id={p.id} moveTo={moveTo} setMoveTo={setMoveTo} onDone={() => setDeleting(null)} />}
           </div>
         ))}
       <div style={{ display: 'flex', gap: 10 }}>

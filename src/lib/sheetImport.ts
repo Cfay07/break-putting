@@ -331,7 +331,7 @@ const RECOGNIZERS: { test: RegExp; read: (text: string, answers: string) => Read
         label: m[2][0].toUpperCase() + m[2].slice(1).toLowerCase(),
       }));
       const ds = [...new Set(stations.map((s) => s.d))].join('/');
-      return { name: `Speed drill ${ds}`, scoring: 'count', stations, surfaces: ['green'] };
+      return { name: `Speed drill ${ds}`, scoring: 'count', stations };
     },
   },
   {
@@ -353,14 +353,14 @@ const RECOGNIZERS: { test: RegExp; read: (text: string, answers: string) => Read
     test: /two putt from (\d+)\/(\d+)\/(\d+)/i,
     read: (t) => {
       const ds = t.match(/two putt from ([\d/]+)/i)![1].split('/').map(num);
-      return { name: `Two-putt ${ds.join('/')}`, scoring: 'count', stations: ds.map((d) => ({ d, balls: 1, mode: 'twoputt' as const })), surfaces: ['green'] };
+      return { name: `Two-putt ${ds.join('/')}`, scoring: 'count', stations: ds.map((d) => ({ d, balls: 1, mode: 'twoputt' as const })) };
     },
   },
   {
     test: /two putt (\d+) times from (\d+) feet/i,
     read: (t) => {
       const m = t.match(/two putt (\d+) times from (\d+) feet/i)!;
-      return { name: `Two-putt from ${m[2]}`, scoring: 'count', stations: [{ d: num(m[2]), balls: num(m[1]), mode: 'twoputt' }], surfaces: ['green'] };
+      return { name: `Two-putt from ${m[2]}`, scoring: 'count', stations: [{ d: num(m[2]), balls: num(m[1]), mode: 'twoputt' }] };
     },
   },
   {
@@ -373,7 +373,6 @@ const RECOGNIZERS: { test: RegExp; read: (text: string, answers: string) => Read
         { d: 15, balls: 8, mode: 'zone', zoneFt: 0.75 },
         { d: 20, balls: 8, mode: 'zone', zoneFt: 1 },
       ],
-      surfaces: ['green'],
     }),
   },
   {
@@ -382,7 +381,6 @@ const RECOGNIZERS: { test: RegExp; read: (text: string, answers: string) => Read
       name: 'Earn the C',
       scoring: 'count',
       stations: [...t.matchAll(/(\d+)\s*feet\s*-\s*(\d+)\s*putts/gi)].map((m) => ({ d: num(m[1]), balls: num(m[2]), mode: 'zone' as const, zoneFt: 1.25 })),
-      surfaces: ['green'],
     }),
   },
   {
@@ -391,7 +389,6 @@ const RECOGNIZERS: { test: RegExp; read: (text: string, answers: string) => Read
       name: 'DECADE speed drill 3',
       scoring: 'count',
       stations: [...new Set([...t.matchAll(/(?:tee|more) at (\d+)/gi)].map((m) => num(m[1])))].map((d) => ({ d, balls: 3, mode: 'zone' as const, zoneFt: 1.5 })),
-      surfaces: ['green'],
     }),
   },
   {
@@ -412,10 +409,14 @@ const RECOGNIZERS: { test: RegExp; read: (text: string, answers: string) => Read
         .map((p) => p.split(/,|\s+(?:right|left|looking|eyes|mirror)\b[^,]*?- how/i)[0].replace(/\s+(only )?$/, '').trim())
         .filter(Boolean)
         .slice(0, 6);
+      const handOf = (label: string) => (/left hand/i.test(label) ? 'left' : /right hand/i.test(label) ? 'right' : undefined);
       return {
         name: `${d} footers, five ways`,
         scoring: 'count',
-        stations: (labels.length ? labels : ['Normal']).map((label) => ({ d, balls, label })),
+        stations: (labels.length ? labels : ['Normal']).map((label) => {
+          const hand = handOf(label);
+          return hand ? { d, balls, label, hand } : { d, balls, label };
+        }),
       };
     },
   },
@@ -466,7 +467,6 @@ const RECOGNIZERS: { test: RegExp; read: (text: string, answers: string) => Read
       scoring: 'streak',
       limit: Number(t.match(/timer to (\d+)/i)?.[1]) || undefined,
       stations: [{ d: 0, balls: 0, mode: 'zone', zoneFt: 3 }],
-      surfaces: ['green'],
     }),
   },
   {
@@ -480,7 +480,7 @@ const RECOGNIZERS: { test: RegExp; read: (text: string, answers: string) => Read
   },
   {
     test: /3 gates, play the break/i,
-    read: () => ({ name: '3 gates, play the break', scoring: 'count', stations: [6, 9, 12].map((d) => ({ d, balls: 6 })), surfaces: ['green'] }),
+    read: () => ({ name: '3 gates, play the break', scoring: 'count', stations: [6, 9, 12].map((d) => ({ d, balls: 6 })) }),
   },
   {
     test: /head to head|competitive putting game|\bgame \d\b|lag putting competition|knock out|up and down game/i,

@@ -39,6 +39,7 @@ export interface Incoming {
   sessions?: SessionDef[];
   /** Ids of sets, drills and sessions deleted on another device. */
   practiceRemoved?: string[];
+  puttersRemoved?: string[];
 }
 
 type PracticeRow = PracticeSet | DrillDef | SessionDef;
@@ -145,6 +146,12 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
   );
   await upsert(
     'putters',
+    graves
+      .filter((t) => t.kind === 'putter')
+      .map((t) => ({ id: t.id, user_id: session.userId, payload: {}, deleted: true, updated_at: t.at })),
+  );
+  await upsert(
+    'putters',
     putters.map((p) => ({
       id: p.id,
       user_id: session.userId,
@@ -187,6 +194,7 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
     rounds: remoteRounds.filter((r) => !r.deleted).map((r) => ({ ...r.payload, updated: r.updated_at })),
     putters: remotePutters.filter((p) => !p.deleted).map((p) => ({ ...p.payload, updated: p.updated_at })),
     removed: remoteRounds.filter((r) => r.deleted).map((r) => r.id),
+    puttersRemoved: remotePutters.filter((p) => p.deleted).map((p) => p.id),
     settings: settingsRows.length
       ? {
           baseline: settingsRows[0].payload?.baseline ?? [],

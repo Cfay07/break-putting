@@ -44,7 +44,9 @@ export function ZoneBars({
               />
             </span>
             <span className="zone-v num">{waiting ? '' : signed(z.sgPerRound)}</span>
-            <span className="zone-n">{z.attempts} putts</span>
+            <span className="zone-n">
+              {z.attempts} putts{!waiting && z.attempts ? ` · ${signed(z.sgPerPutt)} each` : ''}
+            </span>
           </button>
         );
       })}

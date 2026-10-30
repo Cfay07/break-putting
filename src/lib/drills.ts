@@ -71,7 +71,7 @@ export const APP_DRILLS: DrillDef[] = [
     scoring: 'count',
     stations: [30, 40, 50, 60].map((d) => at(d, 3, { mode: 'zone', zoneFt: d / 10 })),
     how: 'Three balls each from 30, 40, 50 and 60 feet. A ball counts inside a tenth of the putt: 3 feet from 30, 6 from 60.',
-    surfaces: GREEN,
+    surfaces: BOTH,
   },
   {
     id: 'past-it',
@@ -79,7 +79,7 @@ export const APP_DRILLS: DrillDef[] = [
     scoring: 'count',
     stations: [at(20, 10, { mode: 'zone', zoneFt: 1.5 })],
     how: 'From 20 feet, every ball has to finish 12 to 18 inches past. Count the ones that do.',
-    surfaces: GREEN,
+    surfaces: BOTH,
     fixes: ['short'],
   },
   {
@@ -88,7 +88,7 @@ export const APP_DRILLS: DrillDef[] = [
     scoring: 'count',
     stations: [at(25, 10, { mode: 'zone', zoneFt: 2 })],
     how: 'From 25 feet, stop the ball in a 2-foot zone just past the hole.',
-    surfaces: GREEN,
+    surfaces: BOTH,
     fixes: ['long'],
   },
   {
@@ -97,14 +97,82 @@ export const APP_DRILLS: DrillDef[] = [
     scoring: 'count',
     stations: [20, 30, 40].map((d) => at(d, 1, { mode: 'twoputt' })),
     how: 'One ball each from 20, 30 and 40 feet. It counts if you are in the hole in two.',
+    surfaces: BOTH,
+  },
+  {
+    id: 'ladder-3-6',
+    name: '3 to 6 ladder',
+    scoring: 'count',
+    stations: [3, 4, 5, 6].map((d) => at(d, 3)),
+    how: 'Three balls each from 3, 4, 5 and 6 feet. Count the ones that drop.',
+    surfaces: BOTH,
+  },
+  {
+    id: 'firm-3',
+    name: 'Firm three-footers',
+    scoring: 'count',
+    stations: [at(3, 10)],
+    how: 'Ten from 3 feet, each hit firm enough to finish a foot past if it misses. Lip-outs and a decelerating stroke both show up here.',
+    surfaces: BOTH,
+    fixes: ['short'],
+  },
+  {
+    id: 'clock-4',
+    name: 'Around the clock at 4',
+    scoring: 'count',
+    stations: [at(4, 8)],
+    how: 'Eight balls in a circle 4 feet from the hole, so every putt breaks a different way. Read each one.',
     surfaces: GREEN,
+    fixes: ['high', 'low'],
+  },
+  {
+    id: 'uphill-8',
+    name: 'Uphill eights',
+    scoring: 'count',
+    stations: [at(8, 10)],
+    how: 'Ten uphill 8-footers from the same spot, hit firm enough to take the break out.',
+    surfaces: GREEN,
+    fixes: ['short'],
+  },
+  {
+    id: 'downhill-10',
+    name: 'Downhill tens',
+    scoring: 'count',
+    stations: [at(10, 10, { mode: 'zone', zoneFt: 1.5 })],
+    how: 'Ten downhill 10-footers. A ball counts if it drops or stops within 18 inches past.',
+    surfaces: GREEN,
+    fixes: ['long'],
+  },
+  {
+    id: 'twenty-thirty',
+    name: 'Twenty and thirty',
+    scoring: 'count',
+    stations: [at(20, 5, { mode: 'zone', zoneFt: 2 }), at(30, 5, { mode: 'zone', zoneFt: 3 })],
+    how: 'Five balls each from 20 and 30 feet. A ball counts inside a tenth of the putt: 2 feet from 20, 3 from 30.',
+    surfaces: BOTH,
+  },
+  {
+    id: 'left-hand',
+    name: 'Left hand only',
+    scoring: 'count',
+    stations: [3, 4, 5, 6].map((d) => at(d, 5, { hand: 'left' })),
+    how: 'Five balls each from 3, 4, 5 and 6 feet with only your left hand on the putter.',
+    surfaces: BOTH,
+  },
+  {
+    id: 'right-hand',
+    name: 'Right hand only',
+    scoring: 'count',
+    stations: [3, 4, 5, 6].map((d) => at(d, 5, { hand: 'right' })),
+    how: 'Five balls each from 3, 4, 5 and 6 feet with only your right hand on the putter.',
+    surfaces: BOTH,
   },
   {
     id: 'back-edge',
-    name: 'Back edge',
+    name: 'Pace to the far end',
     scoring: 'count',
     stations: [at(0, 10, { mode: 'zone', zoneFt: 0.5, far: true })],
-    how: 'From the far end of the mat, stop the ball within a grip length of the back edge without touching it.',
+    how: 'Start at one end of your space and roll each ball to stop within a putter grip of the far end, without touching it. No hole: this is pace for long putts.',
     surfaces: ['indoor'],
   },
 ].map((d) => ({ putting: true, source: 'app' as const, ...d }) as DrillDef);
@@ -141,34 +209,25 @@ export interface FittedStation extends Station {
 
 export interface Fitted extends Omit<DrillDef, 'stations'> {
   stations: FittedStation[];
-  /** Lag stations left out because the room is shorter than they are. */
-  dropped?: number;
 }
 
 /**
- * A drill made to fit the room you have. Stations past the limit move in to it and say so. A
- * drill whose shortest putt is already past the limit does not fit at all: a lag drill shrunk
- * to twelve feet of carpet is a different drill wearing its name.
+ * A drill made to fit the room you have. Every station past the limit moves in to it and keeps
+ * where it was, so the drill always runs and always says what changed. Practice-against-play
+ * compares each ball at the distance it was actually rolled from, so a moved station never
+ * borrows the original distance's numbers.
  */
-export function fitToRoom(drill: DrillDef, room: number): Fitted | null {
+export function fitToRoom(drill: DrillDef, room: number): Fitted {
   if (!drill.putting) return drill;
-  const real = drill.stations.filter((s) => !s.far && s.d > 0);
-  if (real.length && Math.min(...real.map((s) => s.d)) > room) return null;
-  // A two-putt or a speed zone is judged on pace over its distance, so moving it in makes it
-  // a different drill. Those stations are left out; a make station just moves in.
-  const lag = (s: Station) => !s.far && s.d > room && (s.mode === 'twoputt' || s.mode === 'zone');
-  const kept = drill.stations.filter((s) => !lag(s));
-  if (!kept.length) return null;
-  const dropped = drill.stations.length - kept.length;
   return {
     ...drill,
-    ...(dropped ? { dropped } : {}),
-    stations: kept.map((s) => (s.far ? { ...s, d: room } : s.d > room ? { ...s, d: room, movedFrom: s.d } : s)),
+    stations: drill.stations.map((s) => (s.far ? { ...s, d: room } : s.d > room ? { ...s, d: room, movedFrom: s.d } : s)),
   };
 }
 
-export function fits(drill: DrillDef, surface: Surface, room: number): boolean {
-  return drill.surfaces.includes(surface) && fitToRoom(drill, room) !== null;
+/** Room never stops a drill, it only reshapes it. A surface can: no break to read on carpet. */
+export function fits(drill: DrillDef, surface: Surface): boolean {
+  return drill.surfaces.includes(surface);
 }
 
 const ZONE_EDGES: [Zone, number][] = [
@@ -213,7 +272,6 @@ export function drillsFor(
   const scored = drills
     .filter((d) => d.putting && !d.partner && d.surfaces.includes(surface) && d.scoring !== 'game')
     .map((d, i) => ({ f: fitToRoom(d, room), i }))
-    .filter((x): x is { f: Fitted; i: number } => x.f !== null)
     .map((x) => ({ ...x, share: zoneShare(x.f, zone) }))
     .filter((x) => x.share >= 0.5);
   const aimed = (f: Fitted) => (!f.fixes ? 1 : lean && f.fixes.includes(lean) ? 0 : 2);

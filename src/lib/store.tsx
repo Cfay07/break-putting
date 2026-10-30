@@ -23,6 +23,7 @@ export type Action =
   | { t: 'renamePutter'; id: string; name: string }
   | { t: 'setActivePutter'; id: string }
   | { t: 'retirePutter'; id: string; retired: boolean }
+  | { t: 'deletePutter'; id: string; moveTo?: string }
   | { t: 'saveCourse'; course: SavedCourse }
   | { t: 'deleteCourse'; id: string }
   | { t: 'newRound'; round: Round }
@@ -165,6 +166,26 @@ export function reducer(state: AppState, a: Action): AppState {
             : p,
         ),
       };
+    case 'deletePutter': {
+      // Its rounds and sets move to the putter you picked, so deleting a putter never deletes putting.
+      const at = now();
+      const move = a.moveTo;
+      const rest = state.putters.filter((p) => p.id !== a.id);
+      const wasActive = state.putters.find((p) => p.id === a.id)?.active;
+      const heir = move ?? rest.find((p) => !p.retired)?.id;
+      return {
+        ...state,
+        putters: wasActive && heir ? rest.map((p) => ({ ...p, active: p.id === heir, updated: at })) : rest,
+        rounds: move
+          ? state.rounds.map((r) => (r.putterId === a.id ? { ...r, putterId: move, updated: at } : r))
+          : state.rounds,
+        practice: move
+          ? state.practice.map((x) => (x.putterId === a.id ? { ...x, putterId: move, updated: at } : x))
+          : state.practice,
+        tombstones: [...state.tombstones.filter((t) => t.id !== a.id), { id: a.id, kind: 'putter' as const, at }],
+      };
+    }
+
     case 'saveCourse':
       return {
         ...state,
@@ -471,9 +492,12 @@ export function reducer(state: AppState, a: Action): AppState {
 
       const putterById = new Map(state.putters.map((p) => [p.id, p]));
       for (const incoming of putters) {
+        const grave = graves.get(incoming.id);
+        if (grave !== undefined && grave >= (incoming.updated ?? '')) continue;
         const mine = putterById.get(incoming.id);
         if (!mine || (mine.updated ?? '') < (incoming.updated ?? '')) putterById.set(incoming.id, incoming);
       }
+      for (const id of a.incoming.puttersRemoved ?? []) putterById.delete(id);
 
       const takeSettings = settings && (state.settingsUpdated ?? '') < settings.updated;
 

@@ -26,9 +26,9 @@ export function DrillPage({ id }: { id: string }) {
     );
   }
   const fitted = fitToRoom(drill, room);
-  const usable = !!fitted && drill.surfaces.includes(surface);
+  const usable = drill.surfaces.includes(surface);
   const h = historyOf(state.practice, family(drill.id), family);
-  const moved = fitted?.stations.filter((s) => s.movedFrom) ?? [];
+  const moved = fitted.stations.filter((s) => s.movedFrom);
   const reads = h && drill.putting ? practiceVsPlay(h.sets, scoped.rounds) : [];
   const gap = biggestGap(reads);
   const latest = h?.last.surface;
@@ -60,18 +60,12 @@ export function DrillPage({ id }: { id: string }) {
 
       {!usable && (
         <p className="small note-line">
-          {!drill.surfaces.includes(surface)
-            ? `This one is for ${drill.surfaces.map((s) => SURFACE_LABELS[s].toLowerCase()).join(' or ')}.`
-            : `It starts past the ${room} ft you have room for ${surface === 'indoor' ? 'indoors' : 'on this green'}.`}
+          This one needs real break and slope, so it is for a green.
         </p>
       )}
-      {usable && (moved.length > 0 || !!fitted?.dropped) && (
+      {usable && moved.length > 0 && (
         <p className="small note-line">
-          Fitted to your {room} ft:
-          {moved.length > 0 && ` ${[...new Set(moved.map((s) => s.movedFrom))].join(', ')} ft moved in to ${room}.`}
-          {fitted?.dropped
-            ? ` ${fitted.dropped} lag ${fitted.dropped === 1 ? 'station' : 'stations'} left out, since a two-putt from ${room} ft is a different drill.`
-            : ''}
+          Fitted to your {room} ft: {[...new Set(moved.map((s) => s.movedFrom))].join(', ')} ft moved in to {room}.
         </p>
       )}
 
@@ -159,7 +153,7 @@ export function DrillPage({ id }: { id: string }) {
         </>
       )}
 
-      {rolling && fitted && <DrillLogger drill={fitted} surface={surface} onClose={() => setRolling(false)} />}
+      {rolling && <DrillLogger drill={fitted} surface={surface} onClose={() => setRolling(false)} />}
     </div>
   );
 }

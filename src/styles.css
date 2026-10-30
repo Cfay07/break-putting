@@ -1240,7 +1240,7 @@ a.btn { text-decoration: none; }
 .zone-fill.gain { background: var(--good); }
 .zone-row:not(.on) .zone-fill { opacity: 0.55; }
 .zone-v { text-align: right; font-size: 14px; font-weight: 800; }
-.zone-n { grid-column: 1; font-size: 11px; color: var(--ink-3); }
+.zone-n { grid-column: 1 / -1; font-size: 11px; color: var(--ink-2); }
 .zone-row.waiting .zone-k { color: var(--ink-3); }
 
 .drill-list { display: grid; gap: 8px; }
@@ -1488,3 +1488,9 @@ a.btn { text-decoration: none; }
 .import-session input { width: 20px; height: 20px; margin-top: 2px; }
 .import-main { display: grid; gap: 4px; min-width: 0; }
 .import-unread { color: #8a4526; }
+.hands-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.hands-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); font-weight: 600; text-align: right; padding: 6px 4px; }
+.hands-table td { text-align: right; padding: 8px 4px; border-top: 1px solid var(--line); font-weight: 700; }
+.hands-table td:first-child { text-align: left; font-weight: 700; }
+.hands-n { display: block; font-size: 11px; font-weight: 400; color: var(--ink-2); }
+.putter-delete { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }

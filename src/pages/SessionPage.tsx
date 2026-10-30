@@ -25,7 +25,7 @@ export function SessionPage({ id }: { id: string }) {
 
   const blocks = session.blocks.map((b) => {
     const drill = resolveDrill(state, b.drill);
-    const usable = !!drill && (!drill.putting || fits(drill, surface, room));
+    const usable = !!drill && (!drill.putting || fits(drill, run?.surface ?? surface));
     const minutes = b.minutes ?? drill?.minutes;
     const setId = run?.done[session.blocks.indexOf(b)];
     const set = setId ? state.practice.find((s) => s.id === setId) : undefined;
@@ -90,11 +90,9 @@ export function SessionPage({ id }: { id: string }) {
                   {done
                     ? setScore(x.drill, x.set!)
                     : !x.usable
-                      ? x.drill && !x.drill.surfaces.includes(run?.surface ?? surface)
-                        ? `For ${x.drill.surfaces.map((s) => SURFACE_LABELS[s].toLowerCase()).join(' or ')}`
-                        : `Needs more than your ${room} ft`
+                      ? 'Needs a green'
                       : x.drill
-                        ? distanceText(fitToRoom(x.drill, room) ?? x.drill)
+                        ? distanceText(fitToRoom(x.drill, room))
                         : ''}
                 </span>
               </button>
@@ -151,7 +149,6 @@ export function SessionPage({ id }: { id: string }) {
 
       {open !== null && blocks[open]?.drill && (() => {
         const fitted = fitToRoom(blocks[open].drill!, room);
-        if (!fitted) return null;
         const n = nextIndex(open);
         return (
           <DrillLogger

@@ -30,13 +30,13 @@ const SURFACES: Surface[] = ['indoor', 'green'];
 const SESSIONS_SHOWN = 4;
 
 export function SessionRow({ id }: { id: string }) {
-  const { state, surface, room } = usePractice();
+  const { state, surface } = usePractice();
   const x = state.sessions.find((s) => s.id === id);
   if (!x) return null;
   const mins = x.blocks.reduce((n, b) => n + (b.minutes ?? 0), 0);
   const off = x.blocks.filter((b) => {
     const d = resolveDrill(state, b.drill);
-    return d?.putting && !fits(d, surface, room);
+    return d?.putting && !fits(d, surface);
   }).length;
   return (
     <a className="nav-row" href={`#/practice/session/${x.id}`}>
@@ -45,7 +45,7 @@ export function SessionRow({ id }: { id: string }) {
         <span className="small muted">
           {x.blocks.length} {x.blocks.length === 1 ? 'block' : 'blocks'}
           {mins ? ` · ${mins} min` : ''}
-          {off ? ` · ${off} need more room` : ''}
+          {off ? ` · ${off} need a green` : ''}
         </span>
       </span>
       <Chevron />
@@ -89,7 +89,7 @@ function ZoneCard({
         <>
           <div className="focus-num num">{signed(z.sgPerRound)}</div>
           <p className="small muted focus-sub">
-            strokes a round · {z.makes} of {z.attempts} holed
+            strokes a round · {signed(z.sgPerPutt)} a putt · {z.makes} of {z.attempts} holed
             {confidenceOf(z.sample) === 'thin' && ' · thin sample'}
           </p>
           {close && (
@@ -249,8 +249,9 @@ export function Practice() {
           <h2>Where the strokes go</h2>
           <ZoneBars zones={focus.zones} on={zone.zone} onPick={setPicked} />
           <p className="small muted" style={{ marginTop: 8 }}>
-            Strokes a round against {scratch ? 'scratch' : 'your baseline'}, from {scope}. Tap a distance for its
-            drills.
+            Strokes a round against {scratch ? 'scratch' : 'your baseline'}, from {scope}, already adjusted for
+            distance. A wide zone holds more putts a round, so each row also says what one putt costs. Tap a distance
+            for its drills.
           </p>
         </>
       )}
@@ -318,6 +319,15 @@ export function Practice() {
           </span>
           <Chevron />
         </a>
+        {sets.some((x) => x.stations?.some((st) => st.hand)) && (
+          <a className="nav-row" href="#/practice/hands">
+            <span className="nav-main">
+              <strong>One hand at a time</strong>
+              <span className="small muted">Left against right, and against your rounds</span>
+            </span>
+            <Chevron />
+          </a>
+        )}
         {allReads.some((r) => r.gap !== null) && (
           <a className="nav-row" href="#/practice/distances">
             <span className="nav-main">

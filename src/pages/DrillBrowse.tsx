@@ -25,12 +25,12 @@ export function DrillBrowse() {
       </div>
       <h1 className="page-title">Every drill</h1>
       <p className="small muted" style={{ margin: '2px 0 0' }}>
-        {SURFACE_LABELS[surface]}, up to {room} ft. Drills that need more room are listed last.
+        {SURFACE_LABELS[surface]}, up to {room} ft. Every drill fits itself to that length. The ones that need a real green are listed last.
       </p>
       {GROUPS.map((g) => {
         const list = drills
           .filter((d) => d.source === g.k)
-          .map((d) => ({ d, ok: !d.putting || fits(d, surface, room) }))
+          .map((d) => ({ d, ok: !d.putting || fits(d, surface) }))
           .sort((a, b) => Number(b.ok) - Number(a.ok));
         if (!list.length) return null;
         return (
@@ -45,7 +45,7 @@ export function DrillBrowse() {
                       {d.from && <span className="small muted"> · edited</span>}
                     </strong>
                     <span className="small muted">
-                      {[distanceText(d), SCORING_LABELS[d.scoring], ok ? '' : 'needs more room'].filter(Boolean).join(' · ')}
+                      {[distanceText(d), SCORING_LABELS[d.scoring], ok ? '' : 'needs a green'].filter(Boolean).join(' · ')}
                     </span>
                   </span>
                   <Chevron />

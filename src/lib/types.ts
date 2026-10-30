@@ -300,6 +300,9 @@ export type Scoring = 'count' | 'ladder' | 'streak' | 'game' | 'done';
 /** What a ball at a station is judged on. Each one has a twin on the course. */
 export type BallMode = 'make' | 'twoputt' | 'zone';
 
+/** A station putted with one hand. No hand means both, the normal way. */
+export type Hand = 'left' | 'right';
+
 export interface Station {
   d: number;
   balls: number;
@@ -310,6 +313,7 @@ export interface Station {
   zoneFt?: number;
   /** As far as there is room for: the back of the mat. */
   far?: boolean;
+  hand?: Hand;
   label?: string;
 }
 
@@ -360,6 +364,7 @@ export interface SessionDef {
 export interface StationResult {
   d: number;
   mode: BallMode;
+  hand?: Hand;
   made: number;
   attempts: number;
 }
