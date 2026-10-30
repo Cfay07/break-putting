@@ -240,7 +240,7 @@ export interface Putter {
 
 export interface Tombstone {
   id: string;
-  kind: 'round' | 'putter';
+  kind: 'round' | 'putter' | 'practice';
   at: string;
 }
 
@@ -264,6 +264,143 @@ export interface AppState {
   settingsUpdated?: string;
   /** Hides the running score and the bleed drop while playing, for competitive rounds. */
   quietTrack?: boolean;
+  /** Drill sets. Kept apart from rounds so nothing that reads a round can ever read these. */
+  practice: PracticeSet[];
+  /** Drills you built or imported, and your edited copies of anyone else's. */
+  drills: DrillDef[];
+  sessions: SessionDef[];
+  /** Longest putt there is room for, per surface. Drills fit themselves to it. */
+  room: Record<Surface, number>;
+  /** A session in progress on this phone. Never synced: it is a stopwatch, not a record. */
+  run?: SessionRun;
+  /** Where you are putting today, on this phone. */
+  surface?: Surface;
+}
+
+/** Indoor is a mat or a facility green: flat and true. Green is real grass with real break. */
+export type Surface = 'indoor' | 'green';
+
+export const SURFACE_LABELS: Record<Surface, string> = { indoor: 'Indoor', green: 'Green' };
+
+export const DEFAULT_ROOM: Record<Surface, number> = { indoor: 12, green: 60 };
+
+/** Distance zones, each owning the putts that start inside it. */
+export type Zone = 'tapin' | 'short' | 'mid' | 'long' | 'lag';
+
+/** What the tagged misses from a zone keep doing, when they agree. */
+export type Lean = 'start-line' | 'short' | 'long' | 'high' | 'low';
+
+/**
+ * count: every ball scored at its station. ladder: stations cleared in order, a miss does what
+ * the drill says. streak: makes in a row, a miss starts over. game: head to head. done: a block
+ * with nothing to score, like range work.
+ */
+export type Scoring = 'count' | 'ladder' | 'streak' | 'game' | 'done';
+
+/** What a ball at a station is judged on. Each one has a twin on the course. */
+export type BallMode = 'make' | 'twoputt' | 'zone';
+
+export interface Station {
+  d: number;
+  balls: number;
+  mode?: BallMode;
+  /** Makes needed to clear it, on a ladder or as a pass mark. */
+  need?: number;
+  /** Zone drills: how close counts, in feet. */
+  zoneFt?: number;
+  /** As far as there is room for: the back of the mat. */
+  far?: boolean;
+  label?: string;
+}
+
+/** What a failed ladder station does. */
+export type OnMiss = 'end' | 'restart' | 'checkpoint' | 'back' | 'stay';
+
+export interface DrillDef {
+  id: string;
+  name: string;
+  scoring: Scoring;
+  stations: Station[];
+  how: string;
+  minutes?: number;
+  /** Streaks: makes in a row to finish. None means go until you stop. */
+  target?: number;
+  /** Minutes on the clock, for drills scored on finishing in time. */
+  limit?: number;
+  onMiss?: OnMiss;
+  /** Station indexes a checkpoint restart goes back to. */
+  checkpoints?: number[];
+  surfaces: Surface[];
+  /** Chipping and range blocks ride along in a session but never meet a putting stat. */
+  putting: boolean;
+  source: 'app' | 'mine' | 'import';
+  /** The drill this is your edited copy of. The original stays as written. */
+  from?: string;
+  /** Needs a partner or a group, so it is never suggested as something to go do alone. */
+  partner?: boolean;
+  fixes?: Lean[];
+  updated?: string;
+  kind?: 'drill';
+}
+
+export interface SessionBlock {
+  drill: string;
+  minutes?: number;
+}
+
+export interface SessionDef {
+  id: string;
+  name: string;
+  blocks: SessionBlock[];
+  source: 'mine' | 'import';
+  updated?: string;
+  kind?: 'session';
+}
+
+export interface StationResult {
+  d: number;
+  mode: BallMode;
+  made: number;
+  attempts: number;
+}
+
+/**
+ * One drill, rolled once. A mat putt is flat, true and the same speed every time, so a set is
+ * never a round and never feeds strokes gained, xP or the model.
+ */
+export interface PracticeSet {
+  id: string;
+  date: string;
+  drill: string;
+  surface: Surface;
+  putterId?: string;
+  /** Per distance, so practice can sit next to play at the same distance. */
+  stations?: StationResult[];
+  /** Balls that counted, whatever counting means for this drill. */
+  made: number;
+  attempts: number;
+  /** Longest run of makes. */
+  run?: number;
+  /** Ladder stations cleared. */
+  reached?: number;
+  /** Finished the drill, or finished inside the clock. */
+  finished?: boolean;
+  seconds?: number;
+  game?: { opponent: string; result: 'win' | 'loss' | 'tie'; mine?: number; theirs?: number };
+  /** The session this was rolled inside, if any. */
+  session?: string;
+  updated?: string;
+  kind?: 'set';
+}
+
+export interface SessionRun {
+  session: string;
+  surface: Surface;
+  startedAt: string;
+  block: number;
+  blockStartedAt: string;
+  /** Block index to the set rolled for it. */
+  done: Record<number, string>;
 }
 
 /**
@@ -282,6 +419,8 @@ const BLACK = '#141414';
 /** Putter pills take the brand's colour, so you can read the tag without reading the words. */
 const BRAND_PILLS: { match: RegExp; bg: string; ink: string }[] = [
   { match: /scotty|cameron|phantom\s?x|titleist/i, bg: '#c8102e', ink: BLACK },
+  // Before Odyssey, so a TRTL reads as its own dark green rather than Odyssey teal.
+  { match: /\btrtl\b|turtle/i, bg: '#1e4632', ink: WHITE },
   { match: /odyssey|toulon|callaway/i, bg: '#0e9594', ink: BLACK },
   { match: /taylormade|spider/i, bg: '#8c5a2b', ink: WHITE },
   { match: /\bping\b/i, bg: '#1a4f9c', ink: WHITE },

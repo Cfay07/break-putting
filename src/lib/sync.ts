@@ -1,7 +1,22 @@
 import { currentSession, online, table } from './cloud';
-import type { AppState, Putter, Round, SavedCourse, Tombstone } from './types';
+import type {
+  AppState,
+  DrillDef,
+  PracticeSet,
+  Putter,
+  Round,
+  SavedCourse,
+  SessionDef,
+  Surface,
+  Tombstone,
+} from './types';
 
 const LAST_SYNC = 'break.lastSync';
+/**
+ * Practice keeps its own clock. If it shared the rounds clock, a practice upload that failed
+ * while the rounds went up would be stamped past and never retried.
+ */
+const LAST_PRACTICE_SYNC = 'break.lastPracticeSync';
 
 export interface SyncResult {
   pushed: number;
@@ -13,8 +28,20 @@ export interface Incoming {
   rounds: Round[];
   putters: Putter[];
   removed: string[];
-  settings?: { baseline: [number, number][]; courses: SavedCourse[]; updated: string };
+  settings?: {
+    baseline: [number, number][];
+    courses: SavedCourse[];
+    room?: Record<Surface, number>;
+    updated: string;
+  };
+  practice?: PracticeSet[];
+  drills?: DrillDef[];
+  sessions?: SessionDef[];
+  /** Ids of sets, drills and sessions deleted on another device. */
+  practiceRemoved?: string[];
 }
+
+type PracticeRow = PracticeSet | DrillDef | SessionDef;
 
 interface Row<T> {
   id: string;
@@ -23,9 +50,9 @@ interface Row<T> {
   updated_at: string;
 }
 
-function lastSync(): string {
+function lastSync(key = LAST_SYNC): string {
   try {
-    return localStorage.getItem(LAST_SYNC) ?? '1970-01-01T00:00:00Z';
+    return localStorage.getItem(key) ?? '1970-01-01T00:00:00Z';
   } catch {
     return '1970-01-01T00:00:00Z';
   }
@@ -36,9 +63,9 @@ export function lastSyncedAt(): string | null {
   return v.startsWith('1970') ? null : v;
 }
 
-function stamp(at: string): void {
+function stamp(at: string, key = LAST_SYNC): void {
   try {
-    localStorage.setItem(LAST_SYNC, at);
+    localStorage.setItem(key, at);
   } catch {
     // a missed stamp only means the next sync sends a little more than it had to
   }
@@ -133,7 +160,7 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
       [
         {
           user_id: session.userId,
-          payload: { baseline: state.baseline, courses: state.courses },
+          payload: { baseline: state.baseline, courses: state.courses, room: state.room },
           updated_at: state.settingsUpdated,
         },
       ],
@@ -164,12 +191,17 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
       ? {
           baseline: settingsRows[0].payload?.baseline ?? [],
           courses: settingsRows[0].payload?.courses ?? [],
+          room: settingsRows[0].payload?.room,
           updated: settingsRows[0].updated_at,
         }
       : undefined,
   };
 
   stamp(syncedAt);
+
+  // Last, and on its own. A practice table that is missing or refusing must never cost a round.
+  const practice = await syncPractice(state, session.userId).catch(() => null);
+  if (practice) Object.assign(incoming, practice);
 
   return {
     result: {
@@ -178,6 +210,45 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
       at: startedAt,
     },
     incoming,
+  };
+}
+
+/**
+ * Sets, drills and sessions share one table, told apart by a kind on the payload. A set saved
+ * before kinds existed has none, and a set is what it is.
+ */
+async function syncPractice(
+  state: AppState,
+  userId: string,
+): Promise<Pick<Incoming, 'practice' | 'drills' | 'sessions' | 'practiceRemoved'>> {
+  const since = lastSync(LAST_PRACTICE_SYNC);
+  const startedAt = new Date().toISOString();
+  const changed = (u?: string) => !u || u > since;
+  const rows: PracticeRow[] = [
+    ...state.practice.filter((x) => changed(x.updated)).map((x) => ({ ...x, kind: 'set' as const })),
+    ...state.drills.filter((x) => changed(x.updated)).map((x) => ({ ...x, kind: 'drill' as const })),
+    ...state.sessions.filter((x) => changed(x.updated)).map((x) => ({ ...x, kind: 'session' as const })),
+  ];
+  const graves = state.tombstones.filter((t) => t.kind === 'practice' && t.at > since);
+
+  await upsert('practice', [
+    ...rows.map((r) => ({
+      id: r.id,
+      user_id: userId,
+      payload: r,
+      deleted: false,
+      updated_at: r.updated ?? startedAt,
+    })),
+    ...graves.map((t) => ({ id: t.id, user_id: userId, payload: {}, deleted: true, updated_at: t.at })),
+  ]);
+  const pulled = await pull<PracticeRow>('practice', since);
+  stamp(serverStamp(pulled.at, startedAt), LAST_PRACTICE_SYNC);
+  const live = pulled.rows.filter((r) => !r.deleted).map((r) => ({ ...r.payload, updated: r.updated_at }));
+  return {
+    practice: live.filter((r) => !r.kind || r.kind === 'set') as PracticeSet[],
+    drills: live.filter((r) => r.kind === 'drill') as DrillDef[],
+    sessions: live.filter((r) => r.kind === 'session') as SessionDef[],
+    practiceRemoved: pulled.rows.filter((r) => r.deleted).map((r) => r.id),
   };
 }
 
@@ -204,6 +275,7 @@ export async function syncQuietly(
 export function resetSyncClock(): void {
   try {
     localStorage.removeItem(LAST_SYNC);
+    localStorage.removeItem(LAST_PRACTICE_SYNC);
   } catch {
     // nothing to reset
   }

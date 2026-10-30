@@ -3,6 +3,8 @@
 Written 2026-10-25. Conor's two goals, in his words: **100% consistency and honesty about the
 stats, accurate with ourselves and our data**, and **easy to use and good to look at**.
 
+Practice has its own roadmap in [PRACTICE.md](PRACTICE.md).
+
 Update this file as phases land. An exit condition that is not met is not met, however much
 work went in.
 

@@ -1,3 +1,11 @@
+import { Practice } from './pages/Practice';
+import { DrillPage } from './pages/DrillPage';
+import { DrillEdit } from './pages/DrillEdit';
+import { SessionPage } from './pages/SessionPage';
+import { SessionEdit } from './pages/SessionEdit';
+import { DrillBrowse } from './pages/DrillBrowse';
+import { Distances } from './pages/Distances';
+import { SessionList } from './pages/SessionList';
 import { Rounds } from './pages/Rounds';
 import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
@@ -51,9 +59,12 @@ const TABS = [
   { path: '/', label: 'Rounds' },
   { path: '/track', label: 'Track' },
   { path: '/stats', label: 'Stats' },
-  { path: '/team', label: 'Team' },
+  { path: '/practice', label: 'Practice' },
   { path: '/settings', label: 'Settings' },
 ];
+
+/** Team lives under Settings over the winter, so its page lights the tab it is reached from. */
+const PARENT: Record<string, string> = { '/team': '/settings' };
 
 /** Track earns a tab only while a round is going. Otherwise it is a dead end. */
 function tabsFor(live: boolean, route: string) {
@@ -151,12 +162,31 @@ export default function App() {
   // /round/<id> and /round/<id>/hole/<n>, so a stat can land on the hole it is talking about
   // rather than the top of the round.
   const roundMatch = route.match(/^\/round\/([^/]+)(?:\/hole\/(\d+))?$/);
-  const page = roundMatch ? (
+  const practiceMatch = route.match(/^\/practice\/(drill|edit|session|session-edit)\/([^/]+)$/);
+  const page = practiceMatch ? (
+    practiceMatch[1] === 'drill' ? (
+      <DrillPage key={practiceMatch[2]} id={practiceMatch[2]} />
+    ) : practiceMatch[1] === 'edit' ? (
+      <DrillEdit key={practiceMatch[2]} id={practiceMatch[2]} />
+    ) : practiceMatch[1] === 'session-edit' ? (
+      <SessionEdit key={practiceMatch[2]} id={practiceMatch[2]} />
+    ) : (
+      <SessionPage key={practiceMatch[2]} id={practiceMatch[2]} />
+    )
+  ) : route === '/practice/drills' ? (
+    <DrillBrowse />
+  ) : route === '/practice/distances' ? (
+    <Distances />
+  ) : route === '/practice/sessions' ? (
+    <SessionList />
+  ) : roundMatch ? (
     <RoundDetail id={roundMatch[1]} openHole={roundMatch[2] ? Number(roundMatch[2]) : undefined} />
   ) : route === '/track' ? (
     <Track />
   ) : route === '/stats' ? (
     <Stats />
+  ) : route === '/practice' ? (
+    <Practice />
   ) : route === '/team' ? (
     <Team />
   ) : route === '/settings' ? (
@@ -173,7 +203,9 @@ export default function App() {
         : 'Track'
       : route === '/stats'
         ? 'All rounds'
-        : route === '/team'
+        : route.startsWith('/practice')
+          ? 'Practice'
+          : route === '/team'
           ? 'Team'
           : route === '/settings'
             ? 'Settings'
@@ -188,7 +220,8 @@ export default function App() {
       <main className="main">{page}</main>
       <nav className="nav">
         {tabsFor(!!live, route).map((t) => {
-          const on = t.path === '/' ? route === '/' || route.startsWith('/round/') : route === t.path;
+          const here = route.startsWith('/practice') ? '/practice' : (PARENT[route] ?? route);
+          const on = t.path === '/' ? here === '/' || here.startsWith('/round/') : here === t.path;
           return (
             <a key={t.path} href={`#${t.path}`} className={on ? 'on' : undefined}>
               {t.label}

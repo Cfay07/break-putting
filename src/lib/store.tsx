@@ -2,7 +2,19 @@ import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNo
 import { clearStored, emptyState, load, newId, save } from './storage';
 import type { Incoming } from './sync';
 import { holedOut } from './types';
-import type { AppState, Hole, Putt, Round, SavedCourse, TrackUI } from './types';
+import type {
+  AppState,
+  DrillDef,
+  Hole,
+  PracticeSet,
+  Putt,
+  Round,
+  SavedCourse,
+  SessionDef,
+  Surface,
+  TrackUI,
+} from './types';
+import { DEFAULT_ROOM } from './types';
 
 const now = () => new Date().toISOString();
 
@@ -34,6 +46,19 @@ export type Action =
   | { t: 'deleteRound'; id: string }
   | { t: 'setBaseline'; baseline: [number, number][] }
   | { t: 'setQuietTrack'; on: boolean }
+  | { t: 'addPracticeSet'; set: PracticeSet }
+  | { t: 'deletePracticeSet'; id: string }
+  | { t: 'saveDrill'; drill: DrillDef }
+  | { t: 'deleteDrill'; id: string }
+  | { t: 'saveSession'; session: SessionDef }
+  | { t: 'deleteSession'; id: string }
+  | { t: 'importPractice'; drills: DrillDef[]; sessions: SessionDef[] }
+  | { t: 'setRoom'; surface: Surface; feet: number }
+  | { t: 'startRun'; session: string; surface: Surface }
+  | { t: 'finishBlock'; block: number; setId: string }
+  | { t: 'goToBlock'; block: number }
+  | { t: 'endRun' }
+  | { t: 'setSurface'; surface: Surface }
   | { t: 'replaceState'; state: AppState }
   | { t: 'mergeState'; state: AppState }
   | { t: 'updateFromFile'; state: AppState }
@@ -67,6 +92,40 @@ export function makeRound(fields: {
 
 export function liveRound(state: AppState): Round | undefined {
   return state.rounds.find((r) => !r.finished);
+}
+
+/** Practice records carry real ids, so a backup and this device agree on what is the same one. */
+function unionById<T extends { id: string }>(mine: T[], theirs: T[]): T[] {
+  const have = new Set(mine.map((s) => s.id));
+  return [...mine, ...theirs.filter((s) => !have.has(s.id))];
+}
+
+function upsert<T extends { id: string }>(list: T[], item: T): T[] {
+  return list.some((x) => x.id === item.id)
+    ? list.map((x) => (x.id === item.id ? item : x))
+    : [...list, item];
+}
+
+/** Newer copy wins, and a local deletion outranks any copy older than it. */
+function mergeIncoming<T extends { id: string; updated?: string }>(
+  mine: T[],
+  incoming: T[],
+  graves: Map<string, string>,
+  removed: string[],
+): T[] {
+  const byId = new Map(mine.map((x) => [x.id, x]));
+  for (const x of incoming) {
+    const grave = graves.get(x.id);
+    if (grave !== undefined && grave >= (x.updated ?? '')) continue;
+    const have = byId.get(x.id);
+    if (!have || (have.updated ?? '') < (x.updated ?? '')) byId.set(x.id, x);
+  }
+  for (const id of removed) byId.delete(id);
+  return [...byId.values()];
+}
+
+function bury(state: AppState, id: string): AppState['tombstones'] {
+  return [...state.tombstones.filter((t) => t.id !== id), { id, kind: 'practice' as const, at: now() }];
 }
 
 const freshTrack: TrackUI = { hole: 1, phase: 'distance', distanceInput: '', draft: null };
@@ -266,6 +325,76 @@ export function reducer(state: AppState, a: Action): AppState {
     case 'setQuietTrack':
       return { ...state, quietTrack: a.on };
 
+    case 'addPracticeSet':
+      return { ...state, practice: [...state.practice, { ...a.set, updated: now() }] };
+
+    case 'deletePracticeSet':
+      return { ...state, practice: state.practice.filter((s) => s.id !== a.id), tombstones: bury(state, a.id) };
+
+    case 'saveDrill':
+      return { ...state, drills: upsert(state.drills, { ...a.drill, updated: now() }) };
+
+    case 'deleteDrill':
+      return { ...state, drills: state.drills.filter((d) => d.id !== a.id), tombstones: bury(state, a.id) };
+
+    case 'saveSession':
+      return { ...state, sessions: upsert(state.sessions, { ...a.session, updated: now() }) };
+
+    case 'deleteSession':
+      return {
+        ...state,
+        sessions: state.sessions.filter((x) => x.id !== a.id),
+        tombstones: bury(state, a.id),
+        run: state.run?.session === a.id ? undefined : state.run,
+      };
+
+    case 'importPractice': {
+      const at = now();
+      return {
+        ...state,
+        drills: [...state.drills, ...a.drills.map((d) => ({ ...d, updated: at }))],
+        sessions: [...state.sessions, ...a.sessions.map((x) => ({ ...x, updated: at }))],
+      };
+    }
+
+    case 'setRoom':
+      return {
+        ...state,
+        room: { ...DEFAULT_ROOM, ...state.room, [a.surface]: a.feet },
+        settingsUpdated: now(),
+      };
+
+    case 'startRun': {
+      const at = now();
+      return {
+        ...state,
+        run: { session: a.session, surface: a.surface, startedAt: at, block: 0, blockStartedAt: at, done: {} },
+      };
+    }
+
+    case 'finishBlock': {
+      if (!state.run) return state;
+      const done = { ...state.run.done, [a.block]: a.setId };
+      // Rolling a finished block again replaces its set and leaves you where you are.
+      if (state.run.done[a.block] !== undefined) return { ...state, run: { ...state.run, done } };
+      const blocks = state.sessions.find((x) => x.id === state.run!.session)?.blocks.length ?? 0;
+      let next = a.block + 1;
+      while (next < blocks && done[next]) next++;
+      return {
+        ...state,
+        run: { ...state.run, done, block: Math.min(next, blocks), blockStartedAt: now() },
+      };
+    }
+
+    case 'goToBlock':
+      return state.run ? { ...state, run: { ...state.run, block: a.block, blockStartedAt: now() } } : state;
+
+    case 'endRun':
+      return { ...state, run: undefined };
+
+    case 'setSurface':
+      return { ...state, surface: a.surface };
+
     case 'setBaseline':
       return { ...state, baseline: a.baseline, settingsUpdated: now() };
 
@@ -286,6 +415,9 @@ export function reducer(state: AppState, a: Action): AppState {
         putters: [...state.putters, ...newPutters],
         courses: [...state.courses, ...newCourses],
         rounds: [...newRounds, ...state.rounds],
+        practice: unionById(state.practice, a.state.practice ?? []),
+        drills: unionById(state.drills, a.state.drills ?? []),
+        sessions: unionById(state.sessions, a.state.sessions ?? []),
       };
     }
 
@@ -304,11 +436,23 @@ export function reducer(state: AppState, a: Action): AppState {
           ...state.putters,
           ...a.state.putters.filter((p) => !putterIds.has(p.id)),
         ],
+        practice: unionById(state.practice, a.state.practice ?? []),
+        drills: unionById(state.drills, a.state.drills ?? []),
+        sessions: unionById(state.sessions, a.state.sessions ?? []),
       };
     }
 
     case 'applyIncoming': {
-      const { rounds, putters, removed, settings } = a.incoming;
+      const {
+        rounds,
+        putters,
+        removed,
+        settings,
+        practice = [],
+        drills = [],
+        sessions = [],
+        practiceRemoved = [],
+      } = a.incoming;
 
       // Whichever copy changed last wins, so a phone that was offline mid-round is not
       // overwritten by an older copy sitting on another device.
@@ -337,14 +481,25 @@ export function reducer(state: AppState, a: Action): AppState {
         ...state,
         rounds: [...byId.values()],
         putters: [...putterById.values()],
+        practice: mergeIncoming(state.practice, practice, graves, practiceRemoved),
+        drills: mergeIncoming(state.drills, drills, graves, practiceRemoved),
+        sessions: mergeIncoming(state.sessions, sessions, graves, practiceRemoved),
         baseline: takeSettings && settings.baseline.length ? settings.baseline : state.baseline,
         courses: takeSettings ? settings.courses : state.courses,
+        room: takeSettings && settings.room ? { ...DEFAULT_ROOM, ...settings.room } : state.room,
         settingsUpdated: takeSettings ? settings.updated : state.settingsUpdated,
       };
     }
 
     case 'replaceState':
-      return { ...a.state, track: freshTrack };
+      return {
+        ...a.state,
+        practice: a.state.practice ?? [],
+        drills: a.state.drills ?? [],
+        sessions: a.state.sessions ?? [],
+        room: { ...DEFAULT_ROOM, ...a.state.room },
+        track: freshTrack,
+      };
 
     case 'clearAll':
       clearStored();

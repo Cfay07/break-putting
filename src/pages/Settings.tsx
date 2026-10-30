@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Account } from '../components/Account';
 import { ConfirmButton } from '../components/ConfirmButton';
+import { PracticeImport } from '../components/PracticeImport';
 import { PutterTag } from '../components/PutterTag';
 import { parsePaste } from '../lib/importer';
 import { fmtDate, today } from '../lib/format';
@@ -110,6 +111,11 @@ export function Settings() {
     <>
       <h2>Account</h2>
       <Account />
+
+      <h2>Team</h2>
+      <a className="btn btn-ghost btn-wide" href="#/team">
+        Leaderboard and join code
+      </a>
 
       <h2>Putters</h2>
       {state.putters.length === 0 && <p className="small muted">No putters yet. Add the one in your bag.</p>}
@@ -356,6 +362,9 @@ export function Settings() {
         Add as a finished round
       </button>
       </details>
+
+      <h2 id="practice-import">Practice files</h2>
+      <PracticeImport />
 
       <h2>Data</h2>
       <div className="btn-row">

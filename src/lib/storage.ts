@@ -1,4 +1,4 @@
-import { DEFAULT_BASELINE, type AppState } from './types';
+import { DEFAULT_BASELINE, DEFAULT_ROOM, type AppState } from './types';
 
 const KEY = 'break.state';
 const OWNER_KEY = 'break.owner';
@@ -17,6 +17,10 @@ export function emptyState(): AppState {
     rounds: [],
     baseline: DEFAULT_BASELINE,
     tombstones: [],
+    practice: [],
+    drills: [],
+    sessions: [],
+    room: DEFAULT_ROOM,
     track: { hole: 1, phase: 'distance', distanceInput: '', draft: null },
   };
 }

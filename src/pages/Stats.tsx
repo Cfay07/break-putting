@@ -38,7 +38,8 @@ import { byStrike } from '../lib/stats';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
-import { Sheet } from '../components/Sheet';
+import { StatsFilter } from '../components/StatsFilter';
+import { applyFilter, filterLabel, isFiltered, NO_FILTER, type RoundFilter } from '../lib/roundFilter';
 import { Trend } from '../components/Trend';
 import { fmtDate, pctText, signed } from '../lib/format';
 import { Bar } from '../components/Bar';
@@ -82,78 +83,18 @@ function sideFromStats(label: string, s: S, scale = 1): Side {
   };
 }
 
-/** One picker, two dimensions. They are mutually exclusive views, so a second control would
- *  be more chrome for no more reach. */
-const SCOPES = ['all', 'competitive', 'casual', 'slow', 'medium', 'fast', 'glass'] as const;
-type Scope = (typeof SCOPES)[number];
-const SCOPE_LABELS: Record<Scope, string> = {
-  all: 'All rounds',
-  competitive: 'Competitive',
-  casual: 'Casual',
-  slow: 'Slow greens',
-  medium: 'Medium greens',
-  fast: 'Fast greens',
-  glass: 'Glass greens',
-};
-const GREEN_SCOPES: Scope[] = ['slow', 'medium', 'fast', 'glass'];
-
-/** A putter is a scope too. Prefixed so it cannot collide with a green speed named later. */
-const PUTTER = 'putter:';
-type Pick = Scope | `${typeof PUTTER}${string}`;
-const isPutter = (p: Pick): p is `${typeof PUTTER}${string}` => p.startsWith(PUTTER);
-const putterId = (p: Pick): string => p.slice(PUTTER.length);
-
 export function Stats() {
   const { state } = useApp();
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState(AVG);
 
-  const [scope, setScope] = useState<Pick>('all');
-  const [scopeSheet, setScopeSheet] = useState(false);
+  const [filter, setFilter] = useState<RoundFilter>(NO_FILTER);
+  const [filterOpen, setFilterOpen] = useState(false);
 
-  const rounds = useMemo(() => {
-    const finished = state.rounds.filter((r) => r.finished);
-    const picked =
-      scope === 'all'
-        ? finished
-        : isPutter(scope)
-          ? finished.filter((r) => r.putterId === putterId(scope))
-          : scope === 'competitive' || scope === 'casual'
-            ? finished.filter((r) => !!r.competitive === (scope === 'competitive'))
-            : finished.filter((r) => r.greenSpeed === scope);
-    return [...picked].sort((a, b) => a.date.localeCompare(b.date));
-  }, [state.rounds, scope]);
-
-  /**
-   * Every putter that has a finished round, with the window it was used in. A putter era is
-   * also a stretch of time, and that is the whole caveat on comparing two of them, so the
-   * dates belong on the picker rather than buried in a note.
-   */
-  const putterScopes = useMemo(() => {
-    const finished = state.rounds.filter((r) => r.finished);
-    return state.putters
-      .map((p) => {
-        const rs = finished
-          .filter((r) => r.putterId === p.id)
-          .sort((a, b) => a.date.localeCompare(b.date));
-        return rs.length
-          ? { id: p.id, name: p.name, rounds: rs.length, from: rs[0].date, to: rs[rs.length - 1].date }
-          : null;
-      })
-      .filter((x): x is NonNullable<typeof x> => x !== null)
-      .sort((a, b) => b.to.localeCompare(a.to));
-  }, [state.rounds, state.putters]);
-
-  // Only offer a green speed you have actually played, so the list is never full of dead ends.
-  const perScope = useMemo(() => {
-    const done = state.rounds.filter((r) => r.finished);
-    const n = {} as Record<Scope, number>;
-    n.all = done.length;
-    n.competitive = done.filter((r) => r.competitive).length;
-    n.casual = done.length - n.competitive;
-    for (const g of GREEN_SCOPES) n[g] = done.filter((r) => r.greenSpeed === g).length;
-    return n;
-  }, [state.rounds]);
+  const rounds = useMemo(
+    () => applyFilter(state.rounds, filter).sort((a, b) => a.date.localeCompare(b.date)),
+    [state.rounds, filter],
+  );
 
   const o = useMemo(() => overall(rounds, state.baseline), [rounds, state.baseline]);
   const taggedRounds = useMemo(
@@ -273,71 +214,28 @@ export function Stats() {
 
   return (
     <div id="stats-root">
-      <div className="board-bar" style={{ marginTop: 0 }}>
-        <span className="field-label" style={{ margin: 0 }}>
-          Showing
-        </span>
-        <button className="pick" onClick={() => setScopeSheet(true)}>
-          {isPutter(scope)
-            ? (putterScopes.find((p) => p.id === putterId(scope))?.name ?? 'Putter')
-            : SCOPE_LABELS[scope]}
-        </button>
-      </div>
+      <button className={isFiltered(filter) ? 'filter-bar on' : 'filter-bar'} onClick={() => setFilterOpen(true)}>
+        <span className="filter-bar-k">Showing</span>
+        <span className="filter-bar-v">{filterLabel(filter, state.putters)}</span>
+        <span className="filter-bar-n">{rounds.length} {rounds.length === 1 ? 'round' : 'rounds'}</span>
+      </button>
       <SectionNav scope="#stats-root" />
 
-      {scopeSheet && (
-        <Sheet title="Showing" onClose={() => setScopeSheet(false)}>
-          <div className="menu">
-            {SCOPES.filter((sc) => !GREEN_SCOPES.includes(sc) || perScope[sc] > 0).map((sc) => (
-              <button
-                key={sc}
-                aria-current={sc === scope}
-                onClick={() => {
-                  setScope(sc);
-                  setScopeSheet(false);
-                }}
-              >
-                <span className="menu-row">{SCOPE_LABELS[sc]}</span>
-                <span className="small muted">{perScope[sc]}</span>
-              </button>
-            ))}
-            {putterScopes.length > 1 &&
-              putterScopes.map((p) => (
-                <button
-                  key={p.id}
-                  aria-current={scope === `${PUTTER}${p.id}`}
-                  onClick={() => {
-                    setScope(`${PUTTER}${p.id}`);
-                    setScopeSheet(false);
-                  }}
-                >
-                  <span className="menu-row">
-                    {p.name}
-                    <span className="small muted" style={{ display: 'block', fontWeight: 400 }}>
-                      {fmtDate(p.from)} to {fmtDate(p.to)}
-                    </span>
-                  </span>
-                  <span className="small muted">{p.rounds}</span>
-                </button>
-              ))}
-          </div>
-          <p className="small muted" style={{ marginTop: 10 }}>
-            Green speed is set on the new round sheet and can be fixed afterwards on the round
-            page. Rounds without one do not appear under a green speed.
-          </p>
-        </Sheet>
+      {filterOpen && (
+        <StatsFilter
+          value={filter}
+          rounds={state.rounds}
+          putters={state.putters}
+          onChange={setFilter}
+          onClose={() => setFilterOpen(false)}
+        />
       )}
       {o.rounds === 0 ? (
         <div className="empty">
-          <p style={{ margin: 0 }}>
-            {scope === 'competitive'
-              ? 'No rounds marked competitive yet. Open a round and tap the Casual chip under the course name to flip it.'
-              : scope === 'casual'
-                ? 'No casual rounds. Every round you have logged is marked competitive.'
-                : isPutter(scope)
-                  ? 'No finished rounds with that putter yet.'
-                  : `No rounds on ${SCOPE_LABELS[scope].toLowerCase()} yet.`}
-          </p>
+          <p style={{ margin: '0 0 10px' }}>No rounds match {filterLabel(filter, state.putters).toLowerCase()}.</p>
+          <button className="btn btn-ghost" onClick={() => setFilter(NO_FILTER)}>
+            Show all rounds
+          </button>
         </div>
       ) : (
         <>
