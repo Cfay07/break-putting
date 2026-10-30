@@ -1,5 +1,5 @@
 import { signed } from '../lib/format';
-import type { Zone } from '../lib/types';
+import { isLagZone, type Zone } from '../lib/types';
 import { confidenceOf } from '../lib/sample';
 import type { ZoneRead } from '../lib/practice';
 
@@ -45,7 +45,14 @@ export function ZoneBars({
             </span>
             <span className="zone-v num">{waiting ? '' : signed(z.sgPerRound)}</span>
             <span className="zone-n">
-              {z.attempts} putts{!waiting && z.attempts ? ` · ${signed(z.sgPerPutt)} each` : ''}
+              {z.attempts} putts
+              {!waiting && z.attempts
+                ? isLagZone(z.zone)
+                  ? z.leave !== null
+                    ? ` · leaves ${z.leave.toFixed(1)} ft · ${z.threePutts} three-putts`
+                    : ''
+                  : ` · ${Math.round((z.makes / z.attempts) * 100)}% holed, scratch ${Math.round((z.scratchMakes / z.attempts) * 100)}%`
+                : ''}
             </span>
           </button>
         );

@@ -22,6 +22,7 @@ import { drawRoundSheet, pngFile } from '../lib/shareCard';
 import { publishRound, shareUrl } from '../lib/shareLink';
 import { currentSession } from '../lib/cloud';
 import { ConfirmButton } from '../components/ConfirmButton';
+import { SURFACE_LABELS } from '../lib/types';
 import { ScoreMark } from '../components/ScoreMark';
 import { DistanceTable } from '../components/DistanceTable';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
@@ -42,7 +43,7 @@ import { Sheet } from '../components/Sheet';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
 import { go } from '../lib/router';
 import { pct, roundStats, suspectHoles } from '../lib/stats';
-import { useApp } from '../lib/store';
+import { findRound, useApp } from '../lib/store';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
 
 
@@ -72,7 +73,8 @@ function SgCell({ value }: { value: number | null }) {
 
 export function RoundDetail({ id, openHole }: { id: string; openHole?: number }) {
   const { state, dispatch } = useApp();
-  const round = state.rounds.find((r) => r.id === id);
+  const round = findRound(state, id);
+  const practice = !!round?.practice;
   // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
   const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
   const roundXp = useMemo(() => {
@@ -160,14 +162,19 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   return (
     <>
       <div style={{ marginBottom: 6 }}>
-        <button className="linkish tiny" onClick={() => go('/')}>
-          ← Rounds
+        <button className="linkish tiny" onClick={() => go(practice ? '/stats/practice' : '/')}>
+          {practice ? '← Practice stats' : '← Rounds'}
         </button>
       </div>
       <div className="round-head">
         <h3 style={{ fontSize: 21 }}>{fmtDateLong(round.date)}</h3>
         <PutterTag putterId={round.putterId} />
       </div>
+      {practice && (
+        <p className="small muted" style={{ margin: '2px 0 0' }}>
+          Practice round · {SURFACE_LABELS[round.practice!.surface]}. Never counted in your round stats.
+        </p>
+      )}
       {(round.course || round.firstNine) && (
         <p className="small muted" style={{ margin: '2px 0 0' }}>
           {[round.course, [round.firstNine, round.secondNine].filter(Boolean).join(' + ')]
@@ -175,6 +182,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             .join(' · ')}
         </p>
       )}
+      {!practice && (
       <div className="chips" style={{ marginTop: 8 }}>
         <button
           className="chip"
@@ -235,6 +243,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           {round.competitive ? 'Competitive' : 'Casual'}
         </button>
       </div>
+      )}
       <div className="btn-row" style={{ marginTop: 10 }}>
         <button className="btn btn-ghost" onClick={() => setEditing(true)}>
           Edit round
@@ -245,7 +254,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           confirmLabel="Tap again to delete"
           onConfirm={() => {
             dispatch({ t: 'deleteRound', id: round.id });
-            go('/');
+            go(practice ? '/stats/practice' : '/');
           }}
         />
       </div>

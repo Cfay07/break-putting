@@ -1,5 +1,5 @@
 import { fixDrill } from './pinpoint';
-import type { AppState, DrillDef, Lean, Station, Surface, Zone } from './types';
+import { isLagZone, type AppState, type DrillDef, type Lean, type Station, type Surface, type Zone } from './types';
 
 const BOTH: Surface[] = ['indoor', 'green'];
 const GREEN: Surface[] = ['green'];
@@ -236,7 +236,9 @@ const ZONE_EDGES: [Zone, number][] = [
   ['short', 5],
   ['mid', 8],
   ['long', 15],
-  ['lag', Infinity],
+  ['far', 30],
+  ['lag', 40],
+  ['deep', Infinity],
 ];
 
 export function zoneOfFeet(d: number): Zone {
@@ -252,7 +254,7 @@ export function zoneShare(drill: Fitted, zone: Zone): number {
   const balls = drill.stations.map((s) => ({ d: s.d, far: !!s.far, n: s.balls || 1 }));
   const total = balls.reduce((s, b) => s + b.n, 0);
   if (!total) return 0;
-  const inZone = (b: (typeof balls)[number]) => (b.far ? zone === 'long' || zone === 'lag' : zoneOfFeet(b.d) === zone);
+  const inZone = (b: (typeof balls)[number]) => (b.far ? zone === 'long' || zone === 'far' : zoneOfFeet(b.d) === zone);
   return balls.filter(inZone).reduce((s, b) => s + b.n, 0) / total;
 }
 
@@ -273,11 +275,16 @@ export function drillsFor(
   const scored = drills
     .filter((d) => d.putting && !d.partner && d.surfaces.includes(surface) && d.scoring !== 'game')
     .map((d, i) => ({ f: fitToRoom(d, room), i }))
-    .map((x) => ({ ...x, share: zoneShare(x.f, zone) }))
-    .filter((x) => x.share >= 0.5);
+    .map((x) => ({
+      ...x,
+      share: zoneShare(x.f, zone),
+      // Lag drills spread over several long zones, so any lag zone counts them together.
+      lagShare: isLagZone(zone) ? zoneShare(x.f, 'far') + zoneShare(x.f, 'lag') + zoneShare(x.f, 'deep') : 0,
+    }))
+    .filter((x) => x.share >= 0.5 || (x.share > 0 && x.lagShare >= 0.5));
   const aimed = (f: Fitted) => (!f.fixes ? 1 : lean && f.fixes.includes(lean) ? 0 : 2);
   return scored
-    .sort((a, b) => aimed(a.f) - aimed(b.f) || b.share - a.share || a.i - b.i)
+    .sort((a, b) => aimed(a.f) - aimed(b.f) || b.share - a.share || b.lagShare - a.lagShare || a.i - b.i)
     .map((x) => x.f)
     .slice(0, MAX_DRILLS);
 }

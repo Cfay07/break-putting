@@ -1,31 +1,26 @@
 import { useMemo, useState } from 'react';
 import { Chevron } from '../components/Chevron';
 import { DrillLogger } from '../components/DrillLogger';
-import { PracticeDays } from '../components/PracticeDays';
-import { PracticeLog } from '../components/PracticeLog';
-import { SetColumns } from '../components/SetColumns';
 import { Sheet } from '../components/Sheet';
 import { ZoneBars } from '../components/ZoneBars';
 import { distanceText, drillsFor, fits, fitToRoom, resolveDrill, type Fitted } from '../lib/drills';
-import { fmtDate, signed } from '../lib/format';
+import { fmtDate, signed, today } from '../lib/format';
 import {
-  biggestGap,
-  byTime,
   focusOf,
   histories,
   LEAN_TEXT,
-  practiceVsPlay,
   totalsOf,
   type ZoneRead,
 } from '../lib/practice';
 import { clock, setScoreShort } from '../lib/practiceView';
 import { confidenceOf } from '../lib/sample';
-import { putterName } from '../lib/store';
+import { liveRound, makeRound, putterName } from '../lib/store';
+import { go } from '../lib/router';
 import { usePractice } from '../lib/usePractice';
 import { DEFAULT_BASELINE, SURFACE_LABELS, type Surface, type Zone } from '../lib/types';
 import { useNow } from '../components/useNow';
 import { COND_LABEL, fixDrill, fixFor, pinpoint, practiceFix, practicePattern, SLICE_NEED, sliceSince, type Slice } from '../lib/pinpoint';
-import type { MissDir } from '../lib/types';
+import { isLagZone, type MissDir } from '../lib/types';
 
 const SURFACES: Surface[] = ['indoor', 'green'];
 
@@ -33,8 +28,10 @@ const NEXT_DOOR: Record<Zone, Zone[]> = {
   tapin: ['short'],
   short: ['tapin', 'mid'],
   mid: ['short', 'long'],
-  long: ['mid', 'lag'],
-  lag: ['long'],
+  long: ['mid', 'far'],
+  far: ['long', 'lag'],
+  lag: ['far', 'deep'],
+  deep: ['lag'],
 };
 
 /** Drills for a zone, or the nearest real ones when none land squarely in it. Never an empty card. */
@@ -119,9 +116,9 @@ function ZoneCard({
         <>
           <div className="focus-num num">{signed(z.sgPerRound)}</div>
           <p className="small muted focus-sub">
-            strokes a round · {signed(z.sgPerPutt)} a putt · {z.makes} of {z.attempts} holed
-            {confidenceOf(z.sample) === 'thin' && ' · thin sample'}
+            strokes a round against scratch{confidenceOf(z.sample) === 'thin' && ' · thin sample'}
           </p>
+          <ZoneStats z={z} />
           {close && (
             <p className="small muted focus-sub">
               {close.label} is close behind at {signed(close.sgPerRound)}, near enough to be a tie.
@@ -160,7 +157,7 @@ function ZoneCard({
           {why.map((w) => (
             <div key={w.slice.cond} className="why-item">
               <strong>
-                {COND_LABEL[w.slice.cond]}: {w.slice.made} of {w.slice.attempts} {z.zone === 'lag' ? 'finished close' : 'holed'}
+                {COND_LABEL[w.slice.cond]}: {w.slice.made} of {w.slice.attempts} {isLagZone(z.zone) ? 'finished within 3 ft' : 'holed'}
               </strong>
               <span className="small muted">
                 {Math.round((w.slice.made / w.slice.attempts) * 100)}% against{' '}
@@ -192,6 +189,37 @@ function ZoneCard({
       </div>
       </>
       )}
+    </div>
+  );
+}
+
+/**
+ * The plain numbers under the strokes gained. Short putts are judged on holing them, long ones
+ * on where they finish, so each zone gets the stats that fit it.
+ */
+export function ZoneStats({ z }: { z: ZoneRead }) {
+  const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0);
+  const cells = isLagZone(z.zone)
+    ? [
+        { v: z.leave !== null ? `${z.leave.toFixed(1)} ft` : '', k: 'Average leave' },
+        { v: `${z.threePutts} of ${z.firstPutts}`, k: 'Three-putts' },
+        { v: signed(z.sgPerPutt), k: 'Per putt' },
+      ]
+    : [
+        { v: `${pct(z.makes, z.attempts)}%`, k: `Holed, ${z.makes} of ${z.attempts}` },
+        { v: `${pct(z.scratchMakes, z.attempts)}%`, k: 'Scratch holes' },
+        { v: signed(z.sgPerPutt), k: 'Per putt' },
+      ];
+  return (
+    <div className="zone-stats">
+      {cells
+        .filter((c) => c.v)
+        .map((c) => (
+          <div key={c.k}>
+            <strong className="num">{c.v}</strong>
+            <span>{c.k}</span>
+          </div>
+        ))}
     </div>
   );
 }
@@ -238,10 +266,12 @@ function RoomSheet({ onClose }: { onClose: () => void }) {
 }
 
 export function Practice() {
-  const { state, dispatch, surface, room, putterId, scoped, family, fitted, drills } = usePractice();
+  const { state, dispatch, surface, room, putterId, scoped, family, drills } = usePractice();
   const [rolling, setRolling] = useState<Fitted | null>(null);
   const [picked, setPicked] = useState<Zone | null>(null);
   const [roomOpen, setRoomOpen] = useState(false);
+  // Anywhere from nine to eighteen: short enough to fit a session, long enough to mean something.
+  const [holeCount, setHoleCount] = useState(9);
   const now = useNow(!!state.run, 1000);
 
   const focus = useMemo(() => focusOf(state.rounds, state.baseline, putterId), [state.rounds, state.baseline, putterId]);
@@ -249,7 +279,13 @@ export function Practice() {
   const sets = state.practice;
   const list = histories(sets, family);
   const totals = totalsOf(sets);
-  const games = sets.filter((s) => s.game);
+  const live = liveRound(state);
+  const startRound = (holeCount: number) => {
+    if (!putterId) return;
+    const round = makeRound({ date: today(), putterId, holeCount });
+    dispatch({ t: 'newRound', round: { ...round, label: 'Practice round', practice: { surface } } });
+    go('/track');
+  };
 
   const lastOf = (id: string) => {
     const h = list.find((x) => x.drill === family(id));
@@ -291,18 +327,7 @@ export function Practice() {
   const lastRolled = new Map<string, string>();
   for (const x of sets) if (x.session && (lastRolled.get(x.session) ?? '') < x.date) lastRolled.set(x.session, x.date);
   const recentSessions = [...state.sessions].sort((a, b) => (lastRolled.get(b.id) ?? '').localeCompare(lastRolled.get(a.id) ?? ''));
-  const allReads = useMemo(() => practiceVsPlay(sets, scoped.rounds), [sets, scoped.rounds]);
-  const record = useMemo(() => {
-    const m = new Map<string, { w: number; l: number; t: number }>();
-    for (const s of games) {
-      const r = m.get(s.game!.opponent) ?? { w: 0, l: 0, t: 0 };
-      if (s.game!.result === 'win') r.w++;
-      else if (s.game!.result === 'loss') r.l++;
-      else r.t++;
-      m.set(s.game!.opponent, r);
-    }
-    return [...m.entries()].sort((a, b) => b[1].w - a[1].w || a[1].l - b[1].l);
-  }, [games]);
+
 
   return (
     <div>
@@ -406,39 +431,39 @@ export function Practice() {
         </p>
       )}
 
-      {list.length > 0 && (
+      <h2>Practice round</h2>
+      {live && !live.practice ? (
+        <p className="small muted">Finish or discard the round you are logging first.</p>
+      ) : live ? (
+        <a className="btn btn-primary btn-wide" href="#/track">
+          Back to your practice round
+        </a>
+      ) : (
         <>
-          <h2>Your drills</h2>
-          <div className="row-list">
-            {list.map((h) => {
-              const d = fitted(h.drill) ?? resolveDrill(state, h.drill);
-              if (!d) return null;
-              const gap = biggestGap(practiceVsPlay(h.sets, scoped.rounds));
-              return (
-                <a key={h.drill} className="drill-row" href={`#/practice/drill/${h.drill}`}>
-                  <span className="drill-main">
-                    <strong>{d.name}</strong>
-                    <span className="small muted">
-                      {gap ? (
-                        <>
-                          {gap.d} ft: {Math.round((gap.practice.made / gap.practice.attempts) * 100)}% here,{' '}
-                          <span className="play-ink">{Math.round((gap.play.made / gap.play.attempts) * 100)}% in rounds</span>
-                        </>
-                      ) : (
-                        `${h.sets.length} ${h.sets.length === 1 ? 'set' : 'sets'} · best ${setScoreShort(d, h.best)}`
-                      )}
-                    </span>
-                  </span>
-                  <SetColumns h={h} />
-                  <span className="drill-last num">{setScoreShort(d, h.last)}</span>
-                </a>
-              );
-            })}
+          <p className="small muted" style={{ margin: '0 0 8px' }}>
+            Every putt logged like a round, with no score. It never counts toward your round stats.
+          </p>
+          <div className="round-start">
+            <span className="mini-step">
+              <button aria-label="One hole fewer" disabled={holeCount <= 9} onClick={() => setHoleCount(holeCount - 1)}>
+                −
+              </button>
+              <span className="num">
+                {holeCount}
+                <span className="muted"> holes</span>
+              </span>
+              <button aria-label="One hole more" disabled={holeCount >= 18} onClick={() => setHoleCount(holeCount + 1)}>
+                +
+              </button>
+            </span>
+            <button className="btn btn-primary" disabled={!putterId} onClick={() => startRound(holeCount)}>
+              Start
+            </button>
           </div>
         </>
       )}
 
-      <div className="row-list" style={{ marginTop: list.length ? 8 : 18 }}>
+      <div className="row-list" style={{ marginTop: 18 }}>
         <a className="nav-row" href="#/practice/drills">
           <span className="nav-main">
             <strong>Browse every drill</strong>
@@ -446,53 +471,19 @@ export function Practice() {
           </span>
           <Chevron />
         </a>
-        {sets.some((x) => x.stations?.some((st) => st.hand)) && (
-          <a className="nav-row" href="#/practice/hands">
+        {(sets.length > 0 || (state.practiceRounds ?? []).some((r) => r.finished)) && (
+          <a className="nav-row" href="#/stats/practice">
             <span className="nav-main">
-              <strong>One hand at a time</strong>
-              <span className="small muted">Left against right, and against your rounds</span>
-            </span>
-            <Chevron />
-          </a>
-        )}
-        {allReads.some((r) => r.gap !== null) && (
-          <a className="nav-row" href="#/practice/distances">
-            <span className="nav-main">
-              <strong>Practice against play</strong>
-              <span className="small muted">Every distance, side by side</span>
+              <strong>Practice stats</strong>
+              <span className="small muted">
+                {totals.sets} {totals.sets === 1 ? 'set' : 'sets'}, {totals.putts} putts · your drills, rounds and
+                practice against play
+              </span>
             </span>
             <Chevron />
           </a>
         )}
       </div>
-
-      {record.length > 0 && (
-        <>
-          <h2>Head to head</h2>
-          {record.map(([who, r]) => (
-            <div key={who} className="stat-row">
-              <span className="k">{who}</span>
-              <span className="v num">
-                {r.w}-{r.l}
-                {r.t ? `-${r.t}` : ''}
-              </span>
-            </div>
-          ))}
-        </>
-      )}
-
-      {sets.length > 0 && (
-        <>
-          <h2>Days you practiced</h2>
-          <p className="small muted" style={{ margin: '0 0 8px' }}>
-            {totals.sets} {totals.sets === 1 ? 'set' : 'sets'}, {totals.putts} putts, {totals.days}{' '}
-            {totals.days === 1 ? 'day' : 'days'}. None of it counts toward your round stats.
-          </p>
-          <PracticeDays sets={[...sets].sort(byTime)} />
-          <h2>Recent practice</h2>
-          <PracticeLog limit={4} />
-        </>
-      )}
 
       {roomOpen && <RoomSheet onClose={() => setRoomOpen(false)} />}
       {rolling && <DrillLogger key={rolling.id} drill={rolling} surface={surface} onClose={() => setRolling(null)} />}

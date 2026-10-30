@@ -1,4 +1,5 @@
 import { sample, confidenceOf, type Sample } from './sample';
+import { expectedPutts } from './sg';
 import { bucketOf, overall, type BucketKey } from './stats';
 import type { BallMode, Lean, PracticeSet, Putt, Round, Zone } from './types';
 
@@ -7,7 +8,11 @@ export const ZONES: { key: Zone; label: string; buckets: BucketKey[] }[] = [
   { key: 'short', label: '3 to 5 ft', buckets: ['b35'] },
   { key: 'mid', label: '6 to 8 ft', buckets: ['b68'] },
   { key: 'long', label: '9 to 15 ft', buckets: ['b915'] },
-  { key: 'lag', label: '16 ft and out', buckets: ['b1630', 'b3140', 'b4150', 'b5160', 'b61'] },
+  // Split three ways on purpose. One "16 ft and out" zone held three putts for every one in the
+  // others, so its strokes a round looked worst from its width alone.
+  { key: 'far', label: '16 to 30 ft', buckets: ['b1630'] },
+  { key: 'lag', label: '31 to 40 ft', buckets: ['b3140'] },
+  { key: 'deep', label: '41 ft and out', buckets: ['b4150', 'b5160', 'b61'] },
 ];
 
 /** Putts a zone needs before it can be named the place to practice. */
@@ -39,6 +44,12 @@ export interface ZoneRead {
    * number is bigger without the putting being worse; this is the skill gap on its own.
    */
   sgPerPutt: number;
+  /** What a scratch player holes from these same putts, from the baseline. Short zones only. */
+  scratchMakes: number;
+  /** Average leave after a miss, in feet, and three-putts from a first putt here. */
+  leave: number | null;
+  firstPutts: number;
+  threePutts: number;
   makes: number;
   attempts: number;
   sample: Sample;
@@ -125,14 +136,27 @@ export function scopeRounds(rounds: Round[], putterId?: string): { rounds: Round
 function zonesOf(rounds: Round[], baseline: [number, number][]) {
   const o = overall(rounds, baseline);
   const byZone = new Map<Zone, Putt[]>();
+  const extra = new Map<Zone, { scratch: number; leaves: number[]; first: number; three: number }>();
+  const ex = (z: Zone) => extra.get(z) ?? { scratch: 0, leaves: [], first: 0, three: 0 };
   for (const r of rounds) {
     for (const h of r.holes) {
-      for (const p of h.putts) {
+      h.putts.forEach((p, i) => {
         const z = zoneOf(p.d);
         const list = byZone.get(z) ?? [];
         list.push(p);
         byZone.set(z, list);
-      }
+        const e = ex(z);
+        // Expected putts and make chance add to about two from any distance, so the baseline
+        // gives a scratch make rate without a second table.
+        e.scratch += Math.min(1, Math.max(0, 2 - expectedPutts(baseline, p.d)));
+        const next = h.putts[i + 1];
+        if (!p.made && next) e.leaves.push(next.d);
+        if (i === 0) {
+          e.first++;
+          if (h.putts.length >= 3) e.three++;
+        }
+        extra.set(z, e);
+      });
     }
   }
   const zones: ZoneRead[] = ZONES.map((z) => {
@@ -141,11 +165,16 @@ function zonesOf(rounds: Round[], baseline: [number, number][]) {
     const sgPerRound = z.buckets.reduce((s, b) => s + (o.bucketSgPerRound[b] ?? 0), 0);
     const sg = z.buckets.reduce((s, b) => s + o.pooled.buckets[b].sg, 0);
     const counted = z.buckets.reduce((s, b) => s + o.pooled.buckets[b].sgPutts, 0);
+    const e = ex(z.key);
     return {
       zone: z.key,
       label: z.label,
       sgPerRound,
       sgPerPutt: counted ? sg / counted : 0,
+      scratchMakes: e.scratch,
+      leave: e.leaves.length ? e.leaves.reduce((a, b) => a + b, 0) / e.leaves.length : null,
+      firstPutts: e.first,
+      threePutts: e.three,
       makes,
       attempts,
       sample: sample(attempts, FOCUS_NEED, 'putts'),

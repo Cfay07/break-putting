@@ -104,11 +104,19 @@ export function Track() {
   const draftChance = draftPutt ? makeChanceOf(makeModel, draftPutt) : null;
   const cleanCalled = !!draft.executionAssessed && !FACTORS.some((f: Factor) => draft[f]);
   const hasPars = round.holes.some((h) => h.par !== undefined);
+  // A practice round is only putts: no course, no par, no score on the hole.
+  const practice = !!round.practice;
 
   const setDraft = (patch: Record<string, unknown>) =>
     dispatch({ t: 'setTrack', patch: { draft: { ...draft, ...patch } } });
 
   const finish = () => {
+    if (practice) {
+      dispatch({ t: 'finishRound' });
+      go(`/round/${round.id}`);
+      void syncQuietly(state, dispatch);
+      return;
+    }
     dispatch({
       t: 'updateRound',
       id: round.id,
@@ -174,7 +182,7 @@ export function Track() {
         </div>
       </div>
 
-      {!hasPars && (
+      {!hasPars && !practice && (
         <button
           className="btn btn-ghost btn-wide"
           style={{ marginBottom: 12 }}
@@ -210,14 +218,16 @@ export function Track() {
               ? 'chipped in'
               : `${hole.putts.length} ${hole.putts.length === 1 ? 'putt' : 'putts'}`}
           </h3>
-          <div style={{ marginTop: 10 }}>
-            <HoleScore
-              hole={hole}
-              onChange={(patch) =>
-                dispatch({ t: 'setHoleScore', roundId: round.id, hole: hole.hole, patch })
-              }
-            />
-          </div>
+          {!practice && (
+            <div style={{ marginTop: 10 }}>
+              <HoleScore
+                hole={hole}
+                onChange={(patch) =>
+                  dispatch({ t: 'setHoleScore', roundId: round.id, hole: hole.hole, patch })
+                }
+              />
+            </div>
+          )}
           {!quiet && bouncedBack && (
             <p className="small muted" style={{ margin: '10px 0 0' }}>
               Bounced back. Bleeding stopped.
@@ -228,9 +238,9 @@ export function Track() {
             <button
               className="btn btn-primary btn-wide"
               disabled={!canFinish}
-              onClick={() => setFinishing(true)}
+              onClick={() => (practice ? finish() : setFinishing(true))}
             >
-              Finish round
+              {practice ? 'Finish practice round' : 'Finish round'}
             </button>
           ) : (
             <button
@@ -285,7 +295,7 @@ export function Track() {
               MISSED
             </button>
           </div>
-          {hole.putts.length === 0 && (
+          {hole.putts.length === 0 && !practice && (
             <button
               className="btn btn-ghost btn-wide"
               style={{ marginTop: 10 }}
@@ -490,8 +500,8 @@ export function Track() {
       )}
 
       <div className="btn-row" style={{ marginTop: 26 }}>
-        <button className="btn" disabled={!canFinish} onClick={() => setFinishing(true)}>
-          Finish round
+        <button className="btn" disabled={!canFinish} onClick={() => (practice ? finish() : setFinishing(true))}>
+          {practice ? 'Finish practice round' : 'Finish round'}
         </button>
         <ConfirmButton
           style={{ flex: '0 0 auto' }}
@@ -499,7 +509,7 @@ export function Track() {
           confirmLabel="Tap again to discard"
           onConfirm={() => {
             dispatch({ t: 'deleteRound', id: round.id });
-            go('/');
+            go(practice ? '/practice' : '/');
           }}
         />
       </div>

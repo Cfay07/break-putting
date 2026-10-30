@@ -189,8 +189,8 @@ export default function App() {
     <RoundDetail id={roundMatch[1]} openHole={roundMatch[2] ? Number(roundMatch[2]) : undefined} />
   ) : route === '/track' ? (
     <Track />
-  ) : route === '/stats' ? (
-    <Stats />
+  ) : route === '/stats' || route === '/stats/practice' ? (
+    <Stats key={route} practice={route === '/stats/practice'} />
   ) : route === '/practice' ? (
     <Practice />
   ) : route === '/team' ? (
@@ -209,6 +209,8 @@ export default function App() {
         : 'Track'
       : route === '/stats'
         ? 'All rounds'
+        : route === '/stats/practice'
+          ? 'Practice'
         : route.startsWith('/practice')
           ? 'Practice'
           : route === '/team'
@@ -226,7 +228,11 @@ export default function App() {
       <main className="main">{page}</main>
       <nav className="nav">
         {tabsFor(!!live, route).map((t) => {
-          const here = route.startsWith('/practice') ? '/practice' : (PARENT[route] ?? route);
+          const here = route.startsWith('/practice')
+            ? '/practice'
+            : route.startsWith('/stats')
+              ? '/stats'
+              : (PARENT[route] ?? route);
           const on = t.path === '/' ? here === '/' || here.startsWith('/round/') : here === t.path;
           return (
             <a key={t.path} href={`#${t.path}`} className={on ? 'on' : undefined}>

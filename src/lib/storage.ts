@@ -19,6 +19,7 @@ export function emptyState(): AppState {
     tombstones: [],
     practice: [],
     drills: [],
+    practiceRounds: [],
     sessions: [],
     room: DEFAULT_ROOM,
     track: { hole: 1, phase: 'distance', distanceInput: '', draft: null },

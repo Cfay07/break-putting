@@ -113,3 +113,19 @@ Two speeds, so neither claims more than its data holds.
 
 First real readings: left-to-right putts from 3 to 5 ft (5 of 13 against 85%) and from 9 to 15 ft
 (1 of 22 against 33%), both past chance; downhill lag finishing close 55% against 75%, still a lead.
+
+## Later on 2026-10-30
+
+- **Zones are a fair width.** "16 ft and out" held three putts for every one in the other zones,
+  so its strokes a round looked worst from width alone. It is now 16 to 30, 31 to 40 and 41 and
+  out. Each zone shows plain numbers beside strokes gained: holed against what scratch holes from
+  the same putts up to 15 ft, average leave and three-putts beyond.
+- **Practice rounds** are logged putt by putt on the Track screen like a real round, with no
+  course, par or score, 9 to 18 holes. They live in `practiceRounds`, never in `rounds`, so no
+  stat, model, Work on or team page can read one. They sync through the practice table as kind
+  `round` and open on the normal round page, labelled.
+- **Stats has a Rounds and Practice switch.** Practice review (rounds, drills, practice against
+  play, hands, head to head, calendar, log) moved there; the Practice tab is for doing.
+
+**Next:** redesign the Practice tab around what to do today, now that review lives in Stats.
+Mockups first, before any build.

@@ -92,8 +92,14 @@ export function makeRound(fields: {
   };
 }
 
+/** The round being logged, real or practice. Only one can be going at a time. */
 export function liveRound(state: AppState): Round | undefined {
-  return state.rounds.find((r) => !r.finished);
+  return state.rounds.find((r) => !r.finished) ?? (state.practiceRounds ?? []).find((r) => !r.finished);
+}
+
+/** A round by id from either list, for the screens that show both kinds the same way. */
+export function findRound(state: AppState, id: string): Round | undefined {
+  return state.rounds.find((r) => r.id === id) ?? (state.practiceRounds ?? []).find((r) => r.id === id);
 }
 
 /** Practice records carry real ids, so a backup and this device agree on what is the same one. */
@@ -133,10 +139,11 @@ function bury(state: AppState, id: string): AppState['tombstones'] {
 const freshTrack: TrackUI = { hole: 1, phase: 'distance', distanceInput: '', draft: null };
 
 function mapRound(state: AppState, id: string, fn: (r: Round) => Round): AppState {
-  return {
-    ...state,
-    rounds: state.rounds.map((r) => (r.id === id ? { ...fn(r), updated: now() } : r)),
-  };
+  const touch = (r: Round) => (r.id === id ? { ...fn(r), updated: now() } : r);
+  if (state.practiceRounds?.some((r) => r.id === id)) {
+    return { ...state, practiceRounds: state.practiceRounds.map(touch) };
+  }
+  return { ...state, rounds: state.rounds.map(touch) };
 }
 
 export function reducer(state: AppState, a: Action): AppState {
@@ -202,6 +209,13 @@ export function reducer(state: AppState, a: Action): AppState {
       };
 
     case 'newRound':
+      if (a.round.practice) {
+        return {
+          ...state,
+          practiceRounds: [{ ...a.round, updated: now() }, ...(state.practiceRounds ?? [])],
+          track: freshTrack,
+        };
+      }
       return {
         ...state,
         rounds: [{ ...a.round, updated: now() }, ...state.rounds],
@@ -332,6 +346,15 @@ export function reducer(state: AppState, a: Action): AppState {
       });
 
     case 'deleteRound': {
+      const practice = (state.practiceRounds ?? []).find((r) => r.id === a.id);
+      if (practice) {
+        return {
+          ...state,
+          practiceRounds: state.practiceRounds.filter((r) => r.id !== a.id),
+          tombstones: bury(state, a.id),
+          track: practice.finished ? state.track : freshTrack,
+        };
+      }
       const wasLive = state.rounds.find((r) => r.id === a.id && !r.finished);
       return {
         ...state,
@@ -453,6 +476,7 @@ export function reducer(state: AppState, a: Action): AppState {
         practice: unionById(state.practice, a.state.practice ?? []),
         drills: unionById(state.drills, a.state.drills ?? []),
         sessions: unionById(state.sessions, a.state.sessions ?? []),
+        practiceRounds: unionById(state.practiceRounds ?? [], a.state.practiceRounds ?? []),
       };
     }
 
@@ -474,6 +498,7 @@ export function reducer(state: AppState, a: Action): AppState {
         practice: unionById(state.practice, a.state.practice ?? []),
         drills: unionById(state.drills, a.state.drills ?? []),
         sessions: unionById(state.sessions, a.state.sessions ?? []),
+        practiceRounds: unionById(state.practiceRounds ?? [], a.state.practiceRounds ?? []),
       };
     }
 
@@ -486,6 +511,7 @@ export function reducer(state: AppState, a: Action): AppState {
         practice = [],
         drills = [],
         sessions = [],
+        practiceRounds = [],
         practiceRemoved = [],
       } = a.incoming;
 
@@ -522,6 +548,7 @@ export function reducer(state: AppState, a: Action): AppState {
         practice: mergeIncoming(state.practice, practice, graves, practiceRemoved),
         drills: mergeIncoming(state.drills, drills, graves, practiceRemoved),
         sessions: mergeIncoming(state.sessions, sessions, graves, practiceRemoved),
+        practiceRounds: mergeIncoming(state.practiceRounds ?? [], practiceRounds, graves, practiceRemoved),
         baseline: takeSettings && settings.baseline.length ? settings.baseline : state.baseline,
         courses: takeSettings ? settings.courses : state.courses,
         room: takeSettings && settings.room ? { ...DEFAULT_ROOM, ...settings.room } : state.room,
@@ -535,6 +562,7 @@ export function reducer(state: AppState, a: Action): AppState {
         practice: a.state.practice ?? [],
         drills: a.state.drills ?? [],
         sessions: a.state.sessions ?? [],
+        practiceRounds: a.state.practiceRounds ?? [],
         room: { ...DEFAULT_ROOM, ...a.state.room },
         track: freshTrack,
       };

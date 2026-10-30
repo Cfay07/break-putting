@@ -1,7 +1,7 @@
 import { leanOf, type LeanRead } from './practice';
 import { puttSG } from './sg';
 import type { BreakDir, DrillDef, Lean, MissDir, PracticeSet, Putt, Round, Surface, Zone } from './types';
-import { breakBucket, breakDirsOf, slopeOf } from './types';
+import { breakBucket, breakDirsOf, isLagZone, slopeOf } from './types';
 
 /* ---------- drills made for one finding ---------- */
 
@@ -108,7 +108,9 @@ const ZONE_RANGE: Record<Zone, [number, number]> = {
   short: [3, 5],
   mid: [6, 8],
   long: [9, 15],
-  lag: [16, Infinity],
+  far: [16, 30],
+  lag: [31, 40],
+  deep: [41, Infinity],
 };
 
 function condsOf(p: Putt): Cond[] {
@@ -134,7 +136,7 @@ interface Scored {
  */
 export function pinpoint(rounds: Round[], baseline: [number, number][], zone: Zone): Slice[] {
   const [lo, hi] = ZONE_RANGE[zone];
-  const lag = zone === 'lag';
+  const lag = isLagZone(zone);
   const tagged: (Scored & { conds: Cond[] })[] = [];
   let holes = 0;
   for (const r of rounds) {
@@ -199,7 +201,7 @@ export function sliceSince(
         if (p.d < lo || p.d > hi || !condsOf(p).includes(cond)) return;
         const next = h.putts[i + 1];
         side.attempts++;
-        if (zone === 'lag' ? p.made || (!!next && next.d <= 3) : p.made) side.made++;
+        if (isLagZone(zone) ? p.made || (!!next && next.d <= 3) : p.made) side.made++;
       });
     }
   }

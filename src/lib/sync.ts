@@ -37,12 +37,13 @@ export interface Incoming {
   practice?: PracticeSet[];
   drills?: DrillDef[];
   sessions?: SessionDef[];
+  practiceRounds?: Round[];
   /** Ids of sets, drills and sessions deleted on another device. */
   practiceRemoved?: string[];
   puttersRemoved?: string[];
 }
 
-type PracticeRow = PracticeSet | DrillDef | SessionDef;
+type PracticeRow = PracticeSet | DrillDef | SessionDef | (Round & { kind?: 'round' });
 
 interface Row<T> {
   id: string;
@@ -228,7 +229,7 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
 async function syncPractice(
   state: AppState,
   userId: string,
-): Promise<Pick<Incoming, 'practice' | 'drills' | 'sessions' | 'practiceRemoved'>> {
+): Promise<Pick<Incoming, 'practice' | 'drills' | 'sessions' | 'practiceRounds' | 'practiceRemoved'>> {
   const since = lastSync(LAST_PRACTICE_SYNC);
   const startedAt = new Date().toISOString();
   const changed = (u?: string) => !u || u > since;
@@ -236,6 +237,7 @@ async function syncPractice(
     ...state.practice.filter((x) => changed(x.updated)).map((x) => ({ ...x, kind: 'set' as const })),
     ...state.drills.filter((x) => changed(x.updated)).map((x) => ({ ...x, kind: 'drill' as const })),
     ...state.sessions.filter((x) => changed(x.updated)).map((x) => ({ ...x, kind: 'session' as const })),
+    ...(state.practiceRounds ?? []).filter((x) => changed(x.updated)).map((x) => ({ ...x, kind: 'round' as const })),
   ];
   const graves = state.tombstones.filter((t) => t.kind === 'practice' && t.at > since);
 
@@ -256,6 +258,7 @@ async function syncPractice(
     practice: live.filter((r) => !r.kind || r.kind === 'set') as PracticeSet[],
     drills: live.filter((r) => r.kind === 'drill') as DrillDef[],
     sessions: live.filter((r) => r.kind === 'session') as SessionDef[],
+    practiceRounds: live.filter((r) => r.kind === 'round') as Round[],
     practiceRemoved: pulled.rows.filter((r) => r.deleted).map((r) => r.id),
   };
 }

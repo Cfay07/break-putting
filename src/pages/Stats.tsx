@@ -39,6 +39,7 @@ import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
 import { StatsFilter } from '../components/StatsFilter';
+import { PracticeStats } from './PracticeStats';
 import { applyFilter, filterLabel, isFiltered, NO_FILTER, type RoundFilter } from '../lib/roundFilter';
 import { Trend } from '../components/Trend';
 import { fmtDate, pctText, signed } from '../lib/format';
@@ -83,7 +84,33 @@ function sideFromStats(label: string, s: S, scale = 1): Side {
   };
 }
 
-export function Stats() {
+/** Rounds or practice. Two views of the same tab that never share a number. */
+function StatsSwitch({ practice }: { practice: boolean }) {
+  return (
+    <div className="seg seg-quiet" role="group" aria-label="Which stats" style={{ marginBottom: 12 }}>
+      <a className="seg-link" aria-current={!practice} href="#/stats">
+        Rounds
+      </a>
+      <a className="seg-link" aria-current={practice} href="#/stats/practice">
+        Practice
+      </a>
+    </div>
+  );
+}
+
+export function Stats({ practice = false }: { practice?: boolean }) {
+  if (practice) {
+    return (
+      <div>
+        <StatsSwitch practice />
+        <PracticeStats />
+      </div>
+    );
+  }
+  return <RoundStats />;
+}
+
+function RoundStats() {
   const { state } = useApp();
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState(AVG);
@@ -214,6 +241,7 @@ export function Stats() {
 
   return (
     <div id="stats-root">
+      <StatsSwitch practice={false} />
       <button className={isFiltered(filter) ? 'filter-bar on' : 'filter-bar'} onClick={() => setFilterOpen(true)}>
         <span className="filter-bar-k">Showing</span>
         <span className="filter-bar-v">{filterLabel(filter, state.putters)}</span>

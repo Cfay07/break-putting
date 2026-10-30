@@ -115,7 +115,7 @@ export function Rounds() {
         <div className="card card-live">
           <span className="tiny">Round in progress</span>
           <h3 style={{ marginTop: 4 }}>
-            {live.course || fmtDate(live.date)} · hole {state.track.hole}
+            {live.practice ? 'Practice round' : live.course || fmtDate(live.date)} · hole {state.track.hole}
             {state.track.phase === 'tags' ? ', tagging a miss' : `, putt ${
               (live.holes.find((h) => h.hole === state.track.hole)?.putts.length ?? 0) + 1
             }`}

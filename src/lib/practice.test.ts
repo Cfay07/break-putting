@@ -94,7 +94,7 @@ describe('drills and room', () => {
   });
 
   it('only offers drills that fit the surface and the room', () => {
-    for (const z of ['tapin', 'short', 'mid', 'long', 'lag'] as const) {
+    for (const z of ['tapin', 'short', 'mid', 'long', 'far', 'lag', 'deep'] as const) {
       for (const d of drillsFor(APP_DRILLS, z, null, 'indoor', 12)) {
         expect(d.surfaces).toContain('indoor');
         expect(Math.max(...d.stations.map((s) => s.d))).toBeLessThanOrEqual(12);
@@ -316,5 +316,24 @@ describe('pinpoint', () => {
   it('stays quiet until the misses agree', () => {
     const s1 = set('p1', 'ten-4', 10, 20, '2026-11-05', { stations: [{ d: 4, mode: 'make', made: 10, attempts: 20, misses: { left: 3, right: 3, short: 3 } }] });
     expect(practicePattern([s1])).toBeNull();
+  });
+});
+
+describe('practice rounds', () => {
+  it('live in their own list and are logged like a round', () => {
+    let s = reducer(emptyState(), { t: 'addPutter', id: 'p', name: 'P' });
+    const r = { ...round('p', 5, 2), finished: false, holes: [{ hole: 1, putts: [] }], holeCount: 9, practice: { surface: 'indoor' as const } };
+    s = reducer(s, { t: 'newRound', round: r });
+    expect(s.rounds).toHaveLength(0);
+    expect(s.practiceRounds).toHaveLength(1);
+    s = reducer(s, { t: 'addPutt', putt: { d: 12, made: false } });
+    s = reducer(s, { t: 'addPutt', putt: { d: 2, made: true } });
+    expect(s.practiceRounds[0].holes[0].putts.map((p) => p.d)).toEqual([12, 2]);
+    s = reducer(s, { t: 'finishRound' });
+    expect(s.practiceRounds[0].finished).toBe(true);
+    expect(s.rounds).toHaveLength(0);
+    s = reducer(s, { t: 'deleteRound', id: r.id });
+    expect(s.practiceRounds).toHaveLength(0);
+    expect(s.tombstones.find((t) => t.id === r.id)?.kind).toBe('practice');
   });
 });

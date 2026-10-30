@@ -211,6 +211,11 @@ export interface Round {
   bumpy?: number;
   /** When this round last changed, so two devices can merge by taking the newer copy. */
   updated?: string;
+  /**
+   * A practice round: logged putt by putt like a real one, no score. Practice rounds live in their
+   * own list, so nothing that reads real rounds can ever see one.
+   */
+  practice?: { surface: Surface };
   holeCount: number;
   holes: Hole[];
   finished: boolean;
@@ -268,6 +273,8 @@ export interface AppState {
   practice: PracticeSet[];
   /** Drills you built or imported, and your edited copies of anyone else's. */
   drills: DrillDef[];
+  /** Practice rounds. Never in `rounds`, so no stat, model or team page reads them. */
+  practiceRounds: Round[];
   sessions: SessionDef[];
   /** Longest putt there is room for, per surface. Drills fit themselves to it. */
   room: Record<Surface, number>;
@@ -285,7 +292,12 @@ export const SURFACE_LABELS: Record<Surface, string> = { indoor: 'Indoor', green
 export const DEFAULT_ROOM: Record<Surface, number> = { indoor: 12, green: 60 };
 
 /** Distance zones, each owning the putts that start inside it. */
-export type Zone = 'tapin' | 'short' | 'mid' | 'long' | 'lag';
+export type Zone = 'tapin' | 'short' | 'mid' | 'long' | 'far' | 'lag' | 'deep';
+
+/** Zones judged on where the ball finishes rather than whether it dropped. */
+export function isLagZone(z: Zone): boolean {
+  return z === 'far' || z === 'lag' || z === 'deep';
+}
 
 /** What the tagged misses from a zone keep doing, when they agree. */
 export type Lean = 'start-line' | 'short' | 'long' | 'high' | 'low';
