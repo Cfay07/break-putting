@@ -1,3 +1,4 @@
+import { BackLink } from '../components/BackLink';
 import { Chevron } from '../components/Chevron';
 import { allDrills, distanceText, fits, scoringLabel } from '../lib/drills';
 import { usePractice } from '../lib/usePractice';
@@ -16,9 +17,7 @@ export function DrillBrowse() {
   return (
     <div>
       <div className="page-top">
-        <a href="#/practice" className="back-link">
-          Practice
-        </a>
+        <BackLink />
         <a href="#/practice/edit/new" className="back-link">
           New drill
         </a>

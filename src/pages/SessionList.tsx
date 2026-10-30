@@ -1,3 +1,4 @@
+import { BackLink } from '../components/BackLink';
 import { SessionRow } from './Practice';
 import { usePractice } from '../lib/usePractice';
 import { SURFACE_LABELS } from '../lib/types';
@@ -7,9 +8,7 @@ export function SessionList() {
   return (
     <div>
       <div className="page-top">
-        <a href="#/practice" className="back-link">
-          Practice
-        </a>
+        <BackLink />
         <a href="#/practice/session-edit/new" className="back-link">
           New session
         </a>

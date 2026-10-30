@@ -16,7 +16,7 @@ import { SharedRound } from './pages/SharedRound';
 import { Stats } from './pages/Stats';
 import { Team } from './pages/Team';
 import { Track } from './pages/Track';
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { bleedSummary } from './lib/bleed';
 import { fitMakeModel, makeability } from './lib/makeability';
 import { runLapsed } from './lib/practice';
@@ -136,6 +136,12 @@ export default function App() {
     // and this must not overrule that move. Replaced, not pushed, so back cannot land here again.
     if (staleTrack && window.location.hash === '#/track') window.location.replace(`#${afterTrack(latest.current)}`);
   }, [staleTrack]);
+
+  // A link keeps the scroll of the page it left, which opened long pages with their back link
+  // off screen. Layout effect, so a page scrolling itself to a hole in its own effect still wins.
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, [route]);
 
   const hasRun = !!state.run;
   useEffect(() => {

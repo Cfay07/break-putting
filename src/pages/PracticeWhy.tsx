@@ -1,3 +1,4 @@
+import { BackLink } from '../components/BackLink';
 import { useState } from 'react';
 import { DrillLogger } from '../components/DrillLogger';
 import { DrillPreview } from '../components/DrillPreview';
@@ -195,9 +196,7 @@ export function PracticeWhy() {
   return (
     <div>
       <div className="page-top">
-        <a href="#/practice" className="back-link">
-          ‹ Practice
-        </a>
+        <BackLink />
       </div>
       <h1 className="page-title">Why this</h1>
       {focus.rounds > 0 && (

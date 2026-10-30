@@ -1,3 +1,4 @@
+import { BackLink } from '../components/BackLink';
 import { VsPlay } from '../components/VsPlay';
 import { biggestGap, practiceVsPlay } from '../lib/practice';
 import { usePractice } from '../lib/usePractice';
@@ -22,9 +23,7 @@ export function Distances() {
   return (
     <div>
       <div className="page-top">
-        <a href="#/practice" className="back-link">
-          Practice
-        </a>
+        <BackLink />
       </div>
       <h1 className="page-title">Practice against play</h1>
       <p className="small muted" style={{ margin: '2px 0 0' }}>

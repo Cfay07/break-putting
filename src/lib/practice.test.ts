@@ -15,6 +15,7 @@ import { readBlock, readSheet } from './sheetImport';
 import { signedFor, sample } from './sample';
 import { tallyStations } from './practiceView';
 import { overall } from './stats';
+import { backLabel, nextTrail } from './router';
 import { reducer } from './store';
 import { emptyState } from './storage';
 import { DEFAULT_BASELINE, type DrillDef, type PracticeSet, type Putt, type Round } from './types';
@@ -635,5 +636,30 @@ describe('a session left running', () => {
     const ended = reducer(again, { t: 'endRun' });
     expect(ended.run).toBeUndefined();
     expect(ended.practice).toHaveLength(1);
+  });
+});
+
+describe('back link', () => {
+  const walk = (...routes: string[]) => routes.reduce<string[]>(nextTrail, []);
+
+  it('goes to where you came from, not always the tab', () => {
+    expect(walk('/practice', '/practice/sessions', '/practice/session/a')).toEqual(['/practice', '/practice/sessions', '/practice/session/a']);
+    expect(walk('/stats/practice', '/practice/drill/x').at(-2)).toBe('/stats/practice');
+  });
+
+  it('never points back into a form you just saved', () => {
+    expect(walk('/practice', '/practice/session/a', '/practice/session-edit/a', '/practice/session/a')).toEqual(['/practice', '/practice/session/a']);
+    expect(walk('/practice', '/practice/drill/x', '/practice/edit/x', '/practice/drill/x').at(-2)).toBe('/practice');
+  });
+
+  it('drops what came after a page you return to, and a tab starts over', () => {
+    expect(walk('/practice', '/practice/sessions', '/practice/session/a', '/practice/sessions')).toEqual(['/practice', '/practice/sessions']);
+    expect(walk('/practice', '/practice/sessions', '/settings', '/practice')).toEqual(['/practice']);
+  });
+
+  it('names the page it goes to', () => {
+    expect(backLabel('/practice/sessions')).toBe('Sessions');
+    expect(backLabel('/stats/practice')).toBe('Stats');
+    expect(backLabel('/practice/session/a')).toBe('Session');
   });
 });

@@ -1,3 +1,4 @@
+import { BackLink } from '../components/BackLink';
 import { useState } from 'react';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { DrillLogger } from '../components/DrillLogger';
@@ -38,9 +39,7 @@ export function DrillPage({ id }: { id: string }) {
   return (
     <div>
       <div className="page-top">
-        <a href="#/practice" className="back-link">
-          Practice
-        </a>
+        <BackLink />
         <a href={`#/practice/edit/${drill.id}`} className="back-link">
           Edit
         </a>

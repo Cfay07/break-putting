@@ -1,3 +1,4 @@
+import { BackLink } from '../components/BackLink';
 import { handGap, handLink, handsOf, HAND_NEED, LINK_WEEKS } from '../lib/hands';
 import type { Tally2 } from '../lib/practice';
 import { usePractice } from '../lib/usePractice';
@@ -28,9 +29,7 @@ export function Hands() {
   return (
     <div>
       <div className="page-top">
-        <a href="#/practice" className="back-link">
-          Practice
-        </a>
+        <BackLink />
       </div>
       <h1 className="page-title">One hand at a time</h1>
       {!rows.length ? (

@@ -1,3 +1,4 @@
+import { BackLink } from './BackLink';
 import { useState } from 'react';
 import { ConfirmButton } from './ConfirmButton';
 import { Sheet } from './Sheet';
@@ -92,9 +93,7 @@ export function PracticeLogPage() {
   return (
     <div>
       <div className="page-top">
-        <a href="#/practice" className="back-link">
-          Practice
-        </a>
+        <BackLink />
       </div>
       <h1 className="page-title">Every practice</h1>
       <div style={{ marginTop: 12 }}>
