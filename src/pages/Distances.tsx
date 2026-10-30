@@ -8,7 +8,7 @@ const SURFACES: Surface[] = ['indoor', 'green'];
 
 /**
  * Every distance you have practiced, next to the same distance on the course. Indoor and green
- * stay apart: a flat true surface reads higher, and averaging it with grass would hide that.
+ * stay apart: a mat reads higher, and averaging it with grass would hide that.
  */
 export function Distances() {
   const { state, scoped } = usePractice();

@@ -66,7 +66,7 @@ export function PracticeStats() {
   const model = useMemo(() => fitMakeModel(state.rounds.filter((r) => r.finished)), [state.rounds]);
   const played = (state.practiceRounds ?? []).filter((r) => r.finished).sort((a, b) => b.date.localeCompare(a.date));
   const prac = played.length ? overall(played, state.baseline) : null;
-  // Indoor and green rounds never share a column: a flat, true room flatters every number.
+  // Indoor and green rounds never share a column: a mat breaks less and rolls truer, which flatters every number.
   const bySurface = SURFACES.map((sf) => {
     const rs = played.filter((r) => r.practice?.surface === sf);
     return { sf, n: rs.length, o: rs.length ? sideOf(rs, state.baseline, model) : null };
@@ -149,7 +149,7 @@ export function PracticeStats() {
           </div>
           {bySurface.some((x) => x.sf === 'indoor') && (
             <p className="small muted" style={{ margin: '8px 0 0' }}>
-              A flat, true room flatters every make. Read an indoor round against your other indoor rounds, not against
+              A mat rolls truer and breaks less than a course, so it flatters every make. Read an indoor round against your other indoor rounds, not against
               a course. Expected putts says how hard each set of putts was, so compare putts against it.
             </p>
           )}

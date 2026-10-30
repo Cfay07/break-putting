@@ -284,7 +284,7 @@ export interface AppState {
   surface?: Surface;
 }
 
-/** Indoor is a mat or a facility green: flat and true. Green is real grass with real break. */
+/** Indoor is a mat or a facility green: true, with little break. Green is real grass with real break. */
 export type Surface = 'indoor' | 'green';
 
 export const SURFACE_LABELS: Record<Surface, string> = { indoor: 'Indoor', green: 'Green' };
@@ -388,7 +388,7 @@ export interface StationResult {
 }
 
 /**
- * One drill, rolled once. A mat putt is flat, true and the same speed every time, so a set is
+ * One drill, rolled once. A mat putt is true, close to straight and the same speed every time, so a set is
  * never a round and never feeds strokes gained, xP or the model.
  */
 export interface PracticeSet {

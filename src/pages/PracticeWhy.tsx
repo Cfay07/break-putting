@@ -93,7 +93,7 @@ function ZoneCard({
       {z.lean && (
         <p className="small focus-lean">
           {z.lean.n} of {z.lean.of} tagged misses from here {LEAN_TEXT[z.lean.lean]}.
-          {readMiss && surface === 'indoor' && ' A flat surface has no break, so the read side of that waits for a green.'}
+          {readMiss && surface === 'indoor' && ' A mat has too little break to train the read, so that part waits for a green.'}
         </p>
       )}
       {holding ? (

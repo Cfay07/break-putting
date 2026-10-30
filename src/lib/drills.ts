@@ -232,7 +232,7 @@ export function fitToRoom(drill: DrillDef, room: number): Fitted {
   };
 }
 
-/** Room never stops a drill, it only reshapes it. A surface can: no break to read on carpet. */
+/** Room never stops a drill, it only reshapes it. A surface can: a mat has too little break to read. */
 export function fits(drill: DrillDef, surface: Surface): boolean {
   return drill.surfaces.includes(surface);
 }
