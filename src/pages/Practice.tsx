@@ -178,7 +178,7 @@ export function Practice() {
       const read = worst.lean.lean === 'high' || worst.lean.lean === 'low';
       lines.push(
         `${worst.lean.n} of ${worst.lean.of} tagged misses from there ${LEAN_TEXT[worst.lean.lean]}.` +
-          (read && surface === 'indoor' ? ' A mat has too little break to train the read, so that part waits for a green.' : ''),
+          (read && surface === 'indoor' ? ' A flat spot cannot train the read. On a putt with real slope, switch to Green.' : ''),
       );
     }
     picks = unique([zoneDrills[0], fromPractice ? patternFix : null, ...zoneDrills.slice(1)]);

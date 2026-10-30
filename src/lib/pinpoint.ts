@@ -70,7 +70,7 @@ export function fixDrill(id: string): DrillDef | undefined {
       return { ...base, name: `Apex tee, ${WAY[dir]}, ${d} ft`, stations: ten(d), surfaces: GREEN, how: `Find a ${d}-footer that breaks ${WAY[dir]}. Put a tee at the apex, a touch higher than it looks, and roll ten over it.` };
     case 'aim-lr':
     case 'aim-rl':
-      return { ...base, name: `Start it ${EDGE[dir]}, ${d} ft`, stations: ten(d), surfaces: ['indoor'], how: `A mat has too little break to train the read, so train the start line a ${WAY[dir]} putt needs: two tees a ball apart, one cup outside the ${EDGE[dir]} edge. Ten from ${d} feet; count the ones that go through.` };
+      return { ...base, name: `Start it ${EDGE[dir]}, ${d} ft`, stations: ten(d), surfaces: ['indoor'], how: `On a flat spot you cannot train the read, so train the start line a ${WAY[dir]} putt needs: two tees a ball apart, one cup outside the ${EDGE[dir]} edge. Ten from ${d} feet; count the ones that go through.` };
     case 'firm-lr':
     case 'firm-rl':
       return { ...base, name: `Firmer, less break, ${d} ft`, stations: ten(d), surfaces: GREEN, how: `A ${d}-foot putt breaking ${WAY[dir]}. Play half the break you read and hit it to finish a foot past.` };
