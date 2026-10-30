@@ -78,7 +78,9 @@ export function PuttEditor({
 }) {
   const dirs = breakDirsOf(putt);
 
-  const cleanCalled = !!putt.executionAssessed && !FACTORS.some((f) => putt[f]);
+  // A toe or heel strike is a fault, so it can never sit beside "Nothing wrong".
+  const offCentre = putt.strike === 'toe' || putt.strike === 'heel';
+  const cleanCalled = !!putt.executionAssessed && !FACTORS.some((f) => putt[f]) && !offCentre;
 
   return (
     <div className="card" style={{ marginBottom: 12 }}>
@@ -213,7 +215,11 @@ export function PuttEditor({
             onPatch(
               cleanCalled
                 ? { executionAssessed: undefined }
-                : { ...Object.fromEntries(FACTORS.map((f) => [f, false])), executionAssessed: true },
+                : {
+                    ...Object.fromEntries(FACTORS.map((f) => [f, false])),
+                    ...(offCentre ? { strike: undefined } : {}),
+                    executionAssessed: true,
+                  },
             )
           }
         >

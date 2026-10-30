@@ -102,7 +102,9 @@ export function Track() {
   const draftPutt = draft.d ? ({ ...draft, d: draft.d, made: !!draft.made } as Putt) : null;
   const draftXp = draftPutt ? xpOf(makeModel, state.baseline, draftPutt) : null;
   const draftChance = draftPutt ? makeChanceOf(makeModel, draftPutt) : null;
-  const cleanCalled = !!draft.executionAssessed && !FACTORS.some((f: Factor) => draft[f]);
+  // A toe or heel strike is a fault, so it can never sit beside "Nothing wrong".
+  const offCentre = draft.strike === 'toe' || draft.strike === 'heel';
+  const cleanCalled = !!draft.executionAssessed && !FACTORS.some((f: Factor) => draft[f]) && !offCentre;
   const hasPars = round.holes.some((h) => h.par !== undefined);
   // A practice round is only putts: no course, no par, no score on the hole.
   const practice = !!round.practice;
@@ -429,6 +431,7 @@ export function Track() {
                     ? { executionAssessed: undefined }
                     : {
                         ...Object.fromEntries(FACTORS.map((f: Factor) => [f, false])),
+                        ...(offCentre ? { strike: undefined } : {}),
                         executionAssessed: true,
                       },
                 )
@@ -462,7 +465,11 @@ export function Track() {
               <span className="dx-v">{draftXp.toFixed(2)}</span>
               <span className="dx-k">Chance it drops</span>
               <span className="dx-v">
-                {draftChance === null ? '—' : `${(draftChance * 100).toFixed(2)}%`}
+                {draftChance === null ? (
+                  <span className="dx-note">Past your longest putt, {makeModel.longest} ft</span>
+                ) : (
+                  `${(draftChance * 100).toFixed(2)}%`
+                )}
               </span>
             </div>
           )}
