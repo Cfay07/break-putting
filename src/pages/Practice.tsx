@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Chevron } from '../components/Chevron';
 import { DrillLogger } from '../components/DrillLogger';
+import { DrillPreview } from '../components/DrillPreview';
 import { Sheet } from '../components/Sheet';
 import { ZoneBars } from '../components/ZoneBars';
 import { distanceText, drillsFor, fits, fitToRoom, resolveDrill, type Fitted } from '../lib/drills';
@@ -268,6 +269,8 @@ function RoomSheet({ onClose }: { onClose: () => void }) {
 export function Practice() {
   const { state, dispatch, surface, room, putterId, scoped, family, drills } = usePractice();
   const [rolling, setRolling] = useState<Fitted | null>(null);
+  // A tap shows what the drill is; only Start opens the counter.
+  const [preview, setPreview] = useState<Fitted | null>(null);
   const [picked, setPicked] = useState<Zone | null>(null);
   const [roomOpen, setRoomOpen] = useState(false);
   // Anywhere from nine to eighteen: short enough to fit a session, long enough to mean something.
@@ -368,7 +371,7 @@ export function Practice() {
               {pattern.n} of your last {pattern.of} tagged misses went {pattern.dir}. {DIR_MEANS[pattern.dir]}
             </p>
             <div className="focus-drills">
-              <button className="focus-drill" onClick={() => setRolling(patternFix)}>
+              <button className="focus-drill" onClick={() => setPreview(patternFix)}>
                 <span>
                   <strong>{patternFix.name}</strong>
                 </span>
@@ -396,7 +399,7 @@ export function Practice() {
             why={why}
             surface={surface}
             lastOf={lastOf}
-            onRoll={setRolling}
+            onRoll={setPreview}
           />
           <h2>Where the strokes go</h2>
           <ZoneBars zones={focus.zones} on={zone.zone} onPick={setPicked} />
@@ -486,6 +489,16 @@ export function Practice() {
       </div>
 
       {roomOpen && <RoomSheet onClose={() => setRoomOpen(false)} />}
+      {preview && (
+        <DrillPreview
+          drill={preview}
+          onClose={() => setPreview(null)}
+          onStart={() => {
+            setRolling(preview);
+            setPreview(null);
+          }}
+        />
+      )}
       {rolling && <DrillLogger key={rolling.id} drill={rolling} surface={surface} onClose={() => setRolling(null)} />}
     </div>
   );
