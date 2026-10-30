@@ -1549,3 +1549,21 @@ a.btn { text-decoration: none; }
 .target-why { font-size: 13px; font-weight: 600; color: var(--ink); text-decoration: none; padding-top: 4px; }
 button.nav-row { width: 100%; font: inherit; text-align: left; color: var(--ink); cursor: pointer; }
 div.nav-row[aria-disabled='true'] { opacity: 0.6; }
+
+.carry { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.carry > div { display: grid; gap: 2px; padding: 10px 12px; border-radius: 8px; background: var(--paper); }
+.carry strong { font-size: 20px; font-weight: 800; }
+.carry span { font-size: 11px; color: var(--ink-2); line-height: 1.25; }
+.test-head { display: flex; align-items: baseline; gap: 8px; }
+.test-big { font-size: 40px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
+.test-bars { display: flex; align-items: flex-end; gap: 4px; height: 64px; margin-top: 12px; border-bottom: 1.5px solid var(--line); }
+.test-bars i { flex: 1; max-width: 28px; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--ink-3); }
+.test-bars i:last-child { background: var(--ink); }
+.test-bars i.best { box-shadow: inset 0 3px 0 var(--accent); }
+.miss-card { display: grid; gap: 6px; }
+.miss-bar { display: grid; grid-template-columns: 48px 1fr 28px; align-items: center; gap: 10px; font-size: 13px; }
+.miss-bar .num { text-align: right; color: var(--ink-2); }
+.miss-track { height: 10px; border-radius: 3px; background: var(--paper); overflow: hidden; }
+.miss-track i { display: block; height: 100%; background: var(--ink-3); }
+.miss-track i.top { background: var(--ink); }
+.inline-link { color: var(--ink); font-weight: 600; text-decoration: none; white-space: nowrap; }

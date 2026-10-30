@@ -143,7 +143,7 @@ export interface Slice {
   d: number;
 }
 
-const ZONE_RANGE: Record<Zone, [number, number]> = {
+export const ZONE_RANGE: Record<Zone, [number, number]> = {
   tapin: [0, 2],
   short: [3, 5],
   mid: [6, 8],
@@ -252,7 +252,7 @@ export function sliceSince(
 
 /* ---------- the fast loop: practice ---------- */
 
-const BANDS = [
+export const BANDS = [
   { label: '3 to 5 ft', lo: 0, hi: 5 },
   { label: '6 to 10 ft', lo: 6, hi: 10 },
   { label: '11 ft and out', lo: 11, hi: Infinity },

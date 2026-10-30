@@ -4,6 +4,7 @@ import { replayStreak } from '../components/StreakLogger';
 import { APP_DRILLS, drillsFor, fitToRoom, resolveDrill } from './drills';
 import { habitsOf } from './habits';
 import { targetKind } from './target';
+import { missBands, pressureOf, spotVsMixed, testTrend } from './practiceReview';
 import { setupOf, TEST_ID, testBalls, testDrill, testStatus, weekOf } from './weeklyTest';
 import { handGap, handLink, handsOf } from './hands';
 import { fixDrill, fixFor, pinpoint, practiceFix, practicePattern } from './pinpoint';
@@ -524,5 +525,47 @@ describe('your target', () => {
     expect(targetKind({ ...base, zone, pattern, lastRound: '2026-11-20' })).toBe('zone');
     expect(targetKind({ ...base, zone, pattern, lastRound: '2026-10-01' })).toBe('practice');
     expect(targetKind({ ...base, zone, lastRound: '2026-10-01' })).toBe('zone');
+  });
+});
+
+describe('practice review', () => {
+  const t = (date: string, made: number): PracticeSet => set(`t${date}`, TEST_ID, made, 18, date);
+
+  it('waits for six tests, then only calls a change bigger than a good or bad week', () => {
+    expect(testTrend([t('2026-11-02', 10), t('2026-11-09', 14)])).toBeNull();
+    const flat = testTrend(['02', '09', '16', '23', '30'].map((d, i) => t(`2026-11-${d}`, 11 + (i % 2))).concat(t('2026-12-07', 12)));
+    expect(flat?.beyond).toBe(false);
+    const up = testTrend([8, 8, 9, 15, 16, 16].map((m, i) => t(`2026-0${i + 1}-05`, m)));
+    expect(up?.first).toBeCloseTo(25 / 3);
+    expect(up?.beyond).toBe(true);
+  });
+
+  it('puts the same putt again and again against the weekly test and practice rounds, fair on distance', () => {
+    const same = set('s', 'ten-4', 9, 10, '2026-11-01', { stations: [{ d: 4, mode: 'make', made: 9, attempts: 10 }] });
+    const ladder = set('l', 'ladder-3-6', 4, 4, '2026-11-01', {
+      stations: [3, 4, 5, 6].map((d) => ({ d, mode: 'make' as const, made: 1, attempts: 1 })),
+    });
+    const test = set('t', TEST_ID, 2, 4, '2026-11-01', {
+      stations: [{ d: 8, mode: 'make', made: 1, attempts: 2 }, { d: 24, mode: 'zone', made: 1, attempts: 2 }],
+    });
+    const r = spotVsMixed([same, ladder, test], [], 'indoor', B);
+    expect(r.same).toMatchObject({ made: 9, attempts: 10 });
+    expect(r.mixed).toMatchObject({ made: 1, attempts: 2 });
+    expect(r.mixed.scratch).toBeLessThan(r.same.scratch);
+    expect(spotVsMixed([same], [], 'green', B).same.attempts).toBe(0);
+  });
+
+  it('shows a miss band only past its minimum', () => {
+    const tagged = (n: number) =>
+      set(`m${n}`, 'ten-4', 0, n, '2026-11-01', { stations: [{ d: 4, mode: 'make', made: 0, attempts: n, misses: { left: n - 2, right: 2 } }] });
+    expect(missBands([tagged(7)], 'indoor')).toEqual([]);
+    expect(missBands([tagged(10)], 'indoor')[0]).toMatchObject({ label: '3 to 5 ft', total: 10, dirs: { left: 8, right: 2 } });
+  });
+
+  it('counts finished in-a-row drills and the longest run', () => {
+    const streak = (id: string, run: number, finished: boolean) => set(id, 'run-3', run, run + 1, '2026-11-01', { run, finished });
+    const p = pressureOf([streak('a', 12, true), streak('b', 31, false), set('c', 'ten-4', 8, 10, '2026-11-01')], (id) => resolveDrill(emptyState(), id));
+    expect(p.streaks).toBe(2);
+    expect(p.best?.run).toBe(31);
   });
 });

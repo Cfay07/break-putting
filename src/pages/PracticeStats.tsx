@@ -1,6 +1,7 @@
 import { Chevron } from '../components/Chevron';
 import { PracticeDays } from '../components/PracticeDays';
 import { PracticeLog } from '../components/PracticeLog';
+import { MissBandsCard, PressureCard, SpotVsMixed, TargetCarry, TestTrendCard } from '../components/PracticeReview';
 import { SetColumns } from '../components/SetColumns';
 import { VsPlay } from '../components/VsPlay';
 import { resolveDrill } from '../lib/drills';
@@ -96,6 +97,9 @@ export function PracticeStats() {
 
   return (
     <div>
+      <TargetCarry />
+      <TestTrendCard />
+
       {prac && (
         <>
           <h2>Practice rounds</h2>
@@ -162,6 +166,17 @@ export function PracticeStats() {
         </>
       )}
 
+      {vs.map(({ s, reads }) => (
+        <div key={s}>
+          <h2>Practice against play, {SURFACE_LABELS[s].toLowerCase()}</h2>
+          <VsPlay reads={reads} />
+        </div>
+      ))}
+
+      <SpotVsMixed />
+      <MissBandsCard />
+      <PressureCard />
+
       {list.length > 0 && (
         <>
           <h2>Your drills</h2>
@@ -192,13 +207,6 @@ export function PracticeStats() {
           </div>
         </>
       )}
-
-      {vs.map(({ s, reads }) => (
-        <div key={s}>
-          <h2>Practice against play, {SURFACE_LABELS[s].toLowerCase()}</h2>
-          <VsPlay reads={reads} />
-        </div>
-      ))}
 
       {sets.some((x) => x.stations?.some((st) => st.hand)) && (
         <div className="row-list" style={{ marginTop: 18 }}>
