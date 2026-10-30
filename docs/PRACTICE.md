@@ -144,4 +144,9 @@ First real readings: left-to-right putts from 3 to 5 ft (5 of 13 against 85%) an
 - **Rounds go stale after six weeks.** Past that, your practice pattern leads the card. No winter
   mode: a player in Florida who stops logging rounds gets the same switch.
 
+- **Stats, Practice** (`components/PracticeReview.tsx`, `lib/practiceReview.ts`): the round target
+  with its fix in practice beside the course, the weekly test by week (a change is only called
+  after six tests and past a good or bad week), same spot against mixed (fair on distance through
+  scratch), tagged practice misses by band, and in-a-row drills. Each hides until it has enough.
+
 **Next:** nothing new until spring. Use the loop and fix what using it turns up.
