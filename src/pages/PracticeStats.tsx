@@ -7,11 +7,40 @@ import { resolveDrill } from '../lib/drills';
 import { fmtDate, signed } from '../lib/format';
 import { biggestGap, byTime, histories, practiceVsPlay, RECENT_ROUNDS, totalsOf } from '../lib/practice';
 import { setScoreShort } from '../lib/practiceView';
-import { overall, roundStats } from '../lib/stats';
+import { fitMakeModel, type MakeModel } from '../lib/makeability';
+import { expectedPutts } from '../lib/sg';
+import { overall, roundScale, roundStats } from '../lib/stats';
+import { xpOf } from '../lib/xp';
+import { useMemo } from 'react';
 import { usePractice } from '../lib/usePractice';
-import { SURFACE_LABELS, type Surface } from '../lib/types';
+import { SURFACE_LABELS, type Round, type Surface } from '../lib/types';
 
 const SURFACES: Surface[] = ['indoor', 'green'];
+
+interface Side {
+  putts: number | null;
+  /**
+   * Expected putts per 18 from the first putts: how hard the putts were, distance and break
+   * together, on the same footing as putts. Putts per 18 means little without it.
+   */
+  xp: number | null;
+  sg: number | null;
+  scoring: number | null;
+}
+
+function sideOf(rounds: Round[], baseline: [number, number][], model: MakeModel): Side {
+  const o = overall(rounds, baseline);
+  // A putt the model cannot read gets the distance-only baseline, which is what xP is with no shape.
+  const xpRound = (r: Round) =>
+    r.holes.filter((h) => h.putts.length).reduce((s, h) => s + (xpOf(model, baseline, h.putts[0]) ?? expectedPutts(baseline, h.putts[0].d)), 0) *
+    roundScale(r);
+  return {
+    putts: o.puttsPerRound,
+    xp: rounds.length ? rounds.reduce((s, r) => s + xpRound(r), 0) / rounds.length : null,
+    sg: o.sgPerRound,
+    scoring: o.scoringPct,
+  };
+}
 const pct = (t: { made: number; attempts: number }) => Math.round((t.made / t.attempts) * 100);
 
 /**
@@ -23,15 +52,17 @@ export function PracticeStats() {
   const sets = state.practice;
   const list = histories(sets, family);
   const totals = totalsOf(sets);
+  // Fitted on real rounds only: the yardstick is how you putt on a course.
+  const model = useMemo(() => fitMakeModel(state.rounds.filter((r) => r.finished)), [state.rounds]);
   const played = (state.practiceRounds ?? []).filter((r) => r.finished).sort((a, b) => b.date.localeCompare(a.date));
   const prac = played.length ? overall(played, state.baseline) : null;
   // Indoor and green rounds never share a column: a flat, true room flatters every number.
   const bySurface = SURFACES.map((sf) => {
     const rs = played.filter((r) => r.practice?.surface === sf);
-    return { sf, n: rs.length, o: rs.length ? overall(rs, state.baseline) : null };
+    return { sf, n: rs.length, o: rs.length ? sideOf(rs, state.baseline, model) : null };
   }).filter((x) => x.o);
   const recent = [...scoped.rounds].sort((a, b) => a.date.localeCompare(b.date)).slice(-RECENT_ROUNDS);
-  const real = recent.length ? overall(recent, state.baseline) : null;
+  const real = recent.length ? sideOf(recent, state.baseline, model) : null;
 
   const record = new Map<string, { w: number; l: number; t: number }>();
   for (const s of sets) {
@@ -80,9 +111,10 @@ export function PracticeStats() {
               <tbody>
                 {(
                   [
-                    ['Putts per 18', (o: NonNullable<typeof real>) => o.puttsPerRound?.toFixed(1) ?? ''],
-                    ['Strokes gained per 18', (o: NonNullable<typeof real>) => (o.sgPerRound !== null ? signed(o.sgPerRound) : '')],
-                    ['Three-putts per 18', (o: NonNullable<typeof real>) => o.threePuttsPerRound?.toFixed(1) ?? ''],
+                    ['Putts per 18', (o: Side) => o.putts?.toFixed(1) ?? ''],
+                    ['Expected putts (xP)', (o: Side) => o.xp?.toFixed(1) ?? ''],
+                    ['Strokes gained per 18', (o: Side) => (o.sg !== null ? signed(o.sg) : '')],
+                    ['Holed from 3 to 10 ft', (o: Side) => (o.scoring !== null ? `${Math.round(o.scoring)}%` : '')],
                   ] as const
                 ).map(([k, f]) => (
                   <tr key={k}>
@@ -100,8 +132,8 @@ export function PracticeStats() {
           </div>
           {bySurface.some((x) => x.sf === 'indoor') && (
             <p className="small muted" style={{ margin: '8px 0 0' }}>
-              A flat, true room flatters makes and all but erases three-putts. Read an indoor round against your other
-              indoor rounds, not against a course.
+              A flat, true room flatters every make. Read an indoor round against your other indoor rounds, not against
+              a course. Expected putts says how hard each set of putts was, so compare putts against it.
             </p>
           )}
           <div className="row-list" style={{ marginTop: 10 }}>
