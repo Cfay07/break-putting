@@ -22,7 +22,7 @@ import { useRoute } from './lib/router';
 import { courseLabel, overall, roundStats } from './lib/stats';
 import { publishRounds, publishStats, unpublishRounds } from './lib/teams';
 import { syncQuietly } from './lib/sync';
-import { liveRound, useApp } from './lib/store';
+import { findRound, liveRound, useApp } from './lib/store';
 import { holeVsPar, type AppState } from './lib/types';
 
 /**
@@ -112,9 +112,27 @@ export default function App() {
   }, []);
 
   const staleTrack = route === '/track' && !live;
+  // A page for something deleted, reached by swiping back or from another phone, moves on quietly.
+  const grave = (id: string) => state.tombstones.find((t) => t.id === id);
+  const buried = (id: string) => !!grave(id);
+  const deadRound = route.match(/^\/round\/([^/]+)/)?.[1];
+  const deadPractice = route.match(/^\/practice\/(?:session|session-edit|drill|edit)\/([^/]+)$/)?.[1];
+  const deadEnd =
+    deadRound && !findRound(state, deadRound) && buried(deadRound)
+      ? grave(deadRound)!.kind === 'practice'
+        ? '/stats/practice'
+        : '/'
+      : deadPractice && deadPractice !== 'new' && buried(deadPractice)
+        ? '/practice'
+        : null;
   useEffect(() => {
-    // Replaced, not pushed, so swiping back cannot land on the empty Track page again.
-    if (staleTrack) window.location.replace(`#${afterTrack(latest.current)}`);
+    // Same rule: a delete that already moved on keeps its own destination.
+    if (deadEnd && window.location.hash === `#${route}`) window.location.replace(`#${deadEnd}`);
+  }, [deadEnd, route]);
+  useEffect(() => {
+    // Only if Track is still the page: finishing a round ends it and moves on in the same tap,
+    // and this must not overrule that move. Replaced, not pushed, so back cannot land here again.
+    if (staleTrack && window.location.hash === '#/track') window.location.replace(`#${afterTrack(latest.current)}`);
   }, [staleTrack]);
 
   useEffect(() => {

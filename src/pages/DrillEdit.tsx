@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { resolveDrill, SCORING_LABELS } from '../lib/drills';
 import { MODE_WORDS, ON_MISS_TEXT } from '../lib/practiceView';
-import { go } from '../lib/router';
+import { go, replaceRoute } from '../lib/router';
 import { newId } from '../lib/storage';
 import { useApp } from '../lib/store';
 import type { BallMode, DrillDef, OnMiss, Scoring, Station, Surface } from '../lib/types';
@@ -264,7 +264,7 @@ export function DrillEdit({ id }: { id: string }) {
             className="btn"
             onConfirm={() => {
               dispatch({ t: 'deleteDrill', id: original.id });
-              go(`/practice/drill/${original.from}`);
+              replaceRoute(`/practice/drill/${original.from}`);
             }}
           />
         )}
@@ -274,7 +274,7 @@ export function DrillEdit({ id }: { id: string }) {
             confirmLabel="Delete it?"
             onConfirm={() => {
               dispatch({ t: 'deleteDrill', id: original!.id });
-              go('/practice');
+              replaceRoute('/practice');
             }}
           />
         )}

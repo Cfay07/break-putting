@@ -14,3 +14,12 @@ export function go(path: string): void {
   window.location.hash = path;
   window.scrollTo(0, 0);
 }
+
+/**
+ * Go somewhere without leaving the current page in history. For anything that just deleted the
+ * page you are on: a pushed route left it one swipe back, showing "That round is gone."
+ */
+export function replaceRoute(path: string): void {
+  window.location.replace(`#${path}`);
+  window.scrollTo(0, 0);
+}

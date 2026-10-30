@@ -8,7 +8,7 @@ import { CupEntry } from '../components/CupEntry';
 import { SegMulti } from '../components/SegMulti';
 import { ReadBreak } from '../components/ReadBreak';
 import { Sheet } from '../components/Sheet';
-import { go } from '../lib/router';
+import { go, replaceRoute } from '../lib/router';
 import { bleedMarks, liveBleed } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
 import { makeChanceOf, xpOf } from '../lib/xp';
@@ -516,7 +516,7 @@ export function Track() {
           confirmLabel="Tap again to discard"
           onConfirm={() => {
             dispatch({ t: 'deleteRound', id: round.id });
-            go(practice ? '/practice' : '/');
+            replaceRoute(practice ? '/practice' : '/');
           }}
         />
       </div>

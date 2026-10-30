@@ -41,7 +41,7 @@ import { PuttEditor } from '../components/PuttEditor';
 import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
-import { go } from '../lib/router';
+import { go, replaceRoute } from '../lib/router';
 import { pct, roundStats, suspectHoles } from '../lib/stats';
 import { findRound, useApp } from '../lib/store';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
@@ -254,7 +254,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           confirmLabel="Tap again to delete"
           onConfirm={() => {
             dispatch({ t: 'deleteRound', id: round.id });
-            go(practice ? '/stats/practice' : '/');
+            replaceRoute(practice ? '/stats/practice' : '/');
           }}
         />
       </div>

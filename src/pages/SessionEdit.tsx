@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { Sheet } from '../components/Sheet';
 import { allDrills, distanceText, resolveDrill } from '../lib/drills';
-import { go } from '../lib/router';
+import { go, replaceRoute } from '../lib/router';
 import { newId } from '../lib/storage';
 import { useApp } from '../lib/store';
 import type { DrillDef, SessionDef } from '../lib/types';
@@ -112,7 +112,7 @@ export function SessionEdit({ id }: { id: string }) {
             confirmLabel="Delete it?"
             onConfirm={() => {
               dispatch({ t: 'deleteSession', id: original.id });
-              go('/practice');
+              replaceRoute('/practice');
             }}
           />
         )}
