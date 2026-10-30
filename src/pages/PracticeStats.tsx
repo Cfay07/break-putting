@@ -25,6 +25,11 @@ export function PracticeStats() {
   const totals = totalsOf(sets);
   const played = (state.practiceRounds ?? []).filter((r) => r.finished).sort((a, b) => b.date.localeCompare(a.date));
   const prac = played.length ? overall(played, state.baseline) : null;
+  // Indoor and green rounds never share a column: a flat, true room flatters every number.
+  const bySurface = SURFACES.map((sf) => {
+    const rs = played.filter((r) => r.practice?.surface === sf);
+    return { sf, n: rs.length, o: rs.length ? overall(rs, state.baseline) : null };
+  }).filter((x) => x.o);
   const recent = [...scoped.rounds].sort((a, b) => a.date.localeCompare(b.date)).slice(-RECENT_ROUNDS);
   const real = recent.length ? overall(recent, state.baseline) : null;
 
@@ -59,35 +64,45 @@ export function PracticeStats() {
       {prac && (
         <>
           <h2>Practice rounds</h2>
-          {real && (
-            <div className="table-wrap">
-              <table className="hands-table">
-                <thead>
-                  <tr>
-                    <th />
-                    <th>Practice</th>
-                    <th>Last {recent.length} real</th>
+          <div className="table-wrap">
+            <table className="hands-table">
+              <thead>
+                <tr>
+                  <th />
+                  {bySurface.map((x) => (
+                    <th key={x.sf}>
+                      {SURFACE_LABELS[x.sf]} ({x.n})
+                    </th>
+                  ))}
+                  {real && <th>Last {recent.length} real</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {(
+                  [
+                    ['Putts per 18', (o: NonNullable<typeof real>) => o.puttsPerRound?.toFixed(1) ?? ''],
+                    ['Strokes gained per 18', (o: NonNullable<typeof real>) => (o.sgPerRound !== null ? signed(o.sgPerRound) : '')],
+                    ['Three-putts per 18', (o: NonNullable<typeof real>) => o.threePuttsPerRound?.toFixed(1) ?? ''],
+                  ] as const
+                ).map(([k, f]) => (
+                  <tr key={k}>
+                    <td>{k}</td>
+                    {bySurface.map((x) => (
+                      <td key={x.sf} className="num">
+                        {f(x.o!)}
+                      </td>
+                    ))}
+                    {real && <td className="num">{f(real)}</td>}
                   </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Putts per 18</td>
-                    <td className="num">{prac.puttsPerRound?.toFixed(1)}</td>
-                    <td className="num">{real.puttsPerRound?.toFixed(1)}</td>
-                  </tr>
-                  <tr>
-                    <td>Strokes gained per 18</td>
-                    <td className="num">{prac.sgPerRound !== null ? signed(prac.sgPerRound) : ''}</td>
-                    <td className="num">{real.sgPerRound !== null ? signed(real.sgPerRound) : ''}</td>
-                  </tr>
-                  <tr>
-                    <td>Three-putts per 18</td>
-                    <td className="num">{prac.threePuttsPerRound?.toFixed(1)}</td>
-                    <td className="num">{real.threePuttsPerRound?.toFixed(1)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {bySurface.some((x) => x.sf === 'indoor') && (
+            <p className="small muted" style={{ margin: '8px 0 0' }}>
+              A flat, true room flatters makes and all but erases three-putts. Read an indoor round against your other
+              indoor rounds, not against a course.
+            </p>
           )}
           <div className="row-list" style={{ marginTop: 10 }}>
             {played.map((r) => {
