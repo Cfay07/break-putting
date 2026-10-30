@@ -50,6 +50,7 @@ export function DrillLogger({
   onNext,
   onSaved,
   onClose,
+  once,
 }: {
   drill: Fitted;
   surface: Surface;
@@ -59,6 +60,8 @@ export function DrillLogger({
   onNext?: () => void;
   onSaved?: (set: PracticeSet) => void;
   onClose: () => void;
+  /** A test is taken once: no going again for a better number. */
+  once?: boolean;
 }) {
   const { state, dispatch } = useApp();
   const family = (id: string) => familyOf(state, id);
@@ -122,7 +125,11 @@ export function DrillLogger({
             </div>
           )}
           <div className="runner-actions">
-            {next ? (
+            {once ? (
+              <button className="btn btn-primary btn-wide" onClick={onClose}>
+                Done
+              </button>
+            ) : next ? (
               <>
                 <button className="btn btn-primary btn-wide" onClick={onNext ?? onClose}>
                   {next}

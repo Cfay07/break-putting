@@ -117,6 +117,8 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
   const first = atStation[0].i;
   const here = balls.slice(first, first + atStation.length);
   const made = balls.filter(Boolean).length;
+  // A drill that mixes holing out with lag, like the weekly test, counts both in one number.
+  const mixed = new Set(queue.map((s) => s.mode ?? 'make')).size > 1;
 
   const tap = (hit: boolean) => {
     const next = [...balls, hit];
@@ -148,7 +150,7 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
       </div>
       <div className="runner-score num">
         {made}
-        <span className="runner-of">{MODE_WORDS[mode].noun}</span>
+        <span className="runner-of">{mixed ? 'counted' : MODE_WORDS[mode].noun}</span>
       </div>
       <p className="tiny runner-ball">
         Ball {Math.min(balls.length + 1, queue.length)} of {queue.length}

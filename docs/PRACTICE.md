@@ -127,5 +127,21 @@ First real readings: left-to-right putts from 3 to 5 ft (5 of 13 against 85%) an
 - **Stats has a Rounds and Practice switch.** Practice review (rounds, drills, practice against
   play, hands, head to head, calendar, log) moved there; the Practice tab is for doing.
 
-**Next:** redesign the Practice tab around what to do today, now that review lives in Stats.
-Mockups first, before any build.
+## The redesign, 2026-10-30 (option 2 of the mockups)
+
+- **One target, then everything to pick from.** The tab leads with a single target card and its
+  two best drills. Rounds name it when they can (a breaking kind of putt past chance, else the
+  costliest distance); stroke habits next; your practice misses next; and with nothing logged at
+  all, the weekly test. Where the strokes go, What's behind it and the habits moved to
+  `#/practice/why`, behind "Why this".
+- **Habits feed drills, not only strokes gained.** Read side, push or pull, lips, toe and heel,
+  decel and three-putt bleed each have their own minimum and their own drill (`lib/habits.ts`).
+- **Weekly test** (`lib/weeklyTest.ts`): the same 18 putts every week in a new order. Twelve from
+  3 to 12 ft count if they drop, six from 20 to 30 ft count inside 3 ft. A short room moves the six
+  in and never drops them. Only the first test of a week counts, and tests only compare against
+  the same eighteen putts. It is the cold-start answer: a new player has a target and a number on
+  day one.
+- **Rounds go stale after six weeks.** Past that, your practice pattern leads the card. No winter
+  mode: a player in Florida who stops logging rounds gets the same switch.
+
+**Next:** nothing new until spring. Use the loop and fix what using it turns up.

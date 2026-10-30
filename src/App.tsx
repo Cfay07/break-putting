@@ -8,6 +8,7 @@ import { Distances } from './pages/Distances';
 import { SessionList } from './pages/SessionList';
 import { Hands } from './pages/Hands';
 import { PracticeLogPage } from './components/PracticeLog';
+import { PracticeWhy } from './pages/PracticeWhy';
 import { Rounds } from './pages/Rounds';
 import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
@@ -219,6 +220,8 @@ export default function App() {
     <Hands />
   ) : route === '/practice/log' ? (
     <PracticeLogPage />
+  ) : route === '/practice/why' ? (
+    <PracticeWhy />
   ) : roundMatch ? (
     <RoundDetail id={roundMatch[1]} openHole={roundMatch[2] ? Number(roundMatch[2]) : undefined} />
   ) : staleTrack ? (

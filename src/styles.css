@@ -1534,3 +1534,18 @@ a.btn { text-decoration: none; }
 .habit { display: grid; gap: 6px; }
 .habit strong { font-size: 15px; }
 .habit .focus-drill { margin-top: 4px; }
+
+.target { display: grid; gap: 8px; border: 1.5px solid var(--ink); border-radius: 14px; padding: 16px; }
+.target h3 { margin: 0; font-size: 18px; line-height: 1.25; }
+.target p { margin: 0; line-height: 1.4; }
+.target-drill {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: var(--tap); padding: 0 14px; border: 1.5px solid var(--ink); border-radius: var(--radius);
+  background: var(--card); color: var(--ink); font: inherit; font-size: 15px; text-align: left; cursor: pointer;
+}
+.target-drill:first-of-type { margin-top: 4px; }
+.target-drill:active { transform: scale(0.99); }
+.target .btn-wide { margin-top: 4px; }
+.target-why { font-size: 13px; font-weight: 600; color: var(--ink); text-decoration: none; padding-top: 4px; }
+button.nav-row { width: 100%; font: inherit; text-align: left; color: var(--ink); cursor: pointer; }
+div.nav-row[aria-disabled='true'] { opacity: 0.6; }

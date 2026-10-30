@@ -1,55 +1,27 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Chevron } from '../components/Chevron';
 import { DrillLogger } from '../components/DrillLogger';
 import { DrillPreview } from '../components/DrillPreview';
 import { Sheet } from '../components/Sheet';
-import { ZoneBars } from '../components/ZoneBars';
-import { distanceText, drillsFor, fits, fitToRoom, resolveDrill, type Fitted } from '../lib/drills';
-import { fmtDate, signed, today } from '../lib/format';
-import {
-  focusOf,
-  histories,
-  LEAN_TEXT,
-  totalsOf,
-  type ZoneRead,
-} from '../lib/practice';
-import { clock, setScoreShort } from '../lib/practiceView';
-import { confidenceOf } from '../lib/sample';
-import { liveRound, makeRound, putterName } from '../lib/store';
-import { go } from '../lib/router';
-import { usePractice } from '../lib/usePractice';
-import { DEFAULT_BASELINE, SURFACE_LABELS, type Surface, type Zone } from '../lib/types';
 import { useNow } from '../components/useNow';
-import { habitsOf } from '../lib/habits';
-import { COND_LABEL, fixDrill, fixFor, pinpoint, practiceFix, practicePattern, SLICE_NEED, sliceSince, type Slice } from '../lib/pinpoint';
-import { isLagZone, type MissDir } from '../lib/types';
+import { drillsNear, fits, fitToRoom, resolveDrill, type Fitted } from '../lib/drills';
+import { fmtDate, today } from '../lib/format';
+import { COND_LABEL } from '../lib/pinpoint';
+import { histories, LEAN_TEXT } from '../lib/practice';
+import { clock, setScoreShort } from '../lib/practiceView';
+import { go } from '../lib/router';
+import { liveRound, makeRound } from '../lib/store';
+import { daysBetween, STALE_DAYS, targetKind } from '../lib/target';
+import { usePlan } from '../lib/usePlan';
+import { usePractice } from '../lib/usePractice';
+import { isLagZone, SURFACE_LABELS, type Surface } from '../lib/types';
+import { nextTestDay, testDrill, testParts, testStatus } from '../lib/weeklyTest';
+import { DIR_MEANS } from './PracticeWhy';
 
 const SURFACES: Surface[] = ['indoor', 'green'];
 
-const NEXT_DOOR: Record<Zone, Zone[]> = {
-  tapin: ['short'],
-  short: ['tapin', 'mid'],
-  mid: ['short', 'long'],
-  long: ['mid', 'far'],
-  far: ['long', 'lag'],
-  lag: ['far', 'deep'],
-  deep: ['lag'],
-};
-
-/** Drills for a zone, or the nearest real ones when none land squarely in it. Never an empty card. */
-function drillsNear(...args: Parameters<typeof drillsFor>): Fitted[] {
-  const [all, zone, lean, surface, room] = args;
-  const here = drillsFor(all, zone, lean, surface, room);
-  if (here.length) return here;
-  for (const z of NEXT_DOOR[zone]) {
-    const near = drillsFor(all, z, lean, surface, room);
-    if (near.length) return near;
-  }
-  return [];
-}
-
 /** Enough to start one without scrolling; the rest are a tap away. */
-const SESSIONS_SHOWN = 4;
+const SESSIONS_SHOWN = 3;
 
 export function SessionRow({ id }: { id: string }) {
   const { state, surface } = usePractice();
@@ -75,173 +47,6 @@ export function SessionRow({ id }: { id: string }) {
   );
 }
 
-function ZoneCard({
-  z,
-  worst,
-  close,
-  was,
-  drills,
-  surface,
-  lastOf,
-  onRoll,
-  toWorst,
-  why,
-}: {
-  z: ZoneRead;
-  worst: boolean;
-  close: ZoneRead | null;
-  /** The season's biggest leak, when it is no longer the recent one. */
-  was: { label: string; sgPerRound: number; rounds: number } | null;
-  drills: Fitted[];
-  surface: Surface;
-  lastOf: (id: string) => string | null;
-  onRoll: (d: Fitted) => void;
-  /** Back to the zone worth working on, from one that is holding up. */
-  toWorst?: () => void;
-  why: WhyItem[];
-}) {
-  const thin = confidenceOf(z.sample) === 'waiting';
-  const holding = !thin && z.sgPerRound >= 0;
-  const readMiss = z.lean && (z.lean.lean === 'high' || z.lean.lean === 'low');
-  return (
-    <div className={`card focus-card${z.sgPerRound < 0 && !thin ? ' lose' : holding ? ' hold' : ''}`}>
-      <div className="focus-head">
-        <h3>{z.label}</h3>
-        {worst && <span className="focus-tag">Biggest leak</span>}
-        {holding && <span className="focus-tag good">Holding up</span>}
-      </div>
-      {thin ? (
-        <p className="small muted" style={{ margin: '4px 0 0' }}>
-          {z.attempts} putts from here so far, too few to say what it costs.
-        </p>
-      ) : (
-        <>
-          <div className="focus-num num">{signed(z.sgPerRound)}</div>
-          <p className="small muted focus-sub">
-            strokes a round against scratch{confidenceOf(z.sample) === 'thin' && ' · thin sample'}
-          </p>
-          <ZoneStats z={z} />
-          {close && (
-            <p className="small muted focus-sub">
-              {close.label} is close behind at {signed(close.sgPerRound)}, near enough to be a tie.
-            </p>
-          )}
-          {was && (
-            <p className="small muted focus-sub">
-              Over all {was.rounds} rounds the biggest leak was {was.label.toLowerCase()} ({signed(was.sgPerRound)}).
-              Lately it is this one instead.
-            </p>
-          )}
-        </>
-      )}
-      {z.lean && (
-        <p className="small focus-lean">
-          {z.lean.n} of {z.lean.of} tagged misses from here {LEAN_TEXT[z.lean.lean]}.
-          {readMiss && surface === 'indoor' && ' A flat surface has no break, so the read side of that waits for a green.'}
-        </p>
-      )}
-      {holding ? (
-        <>
-          <p className="small focus-lean">
-            You beat scratch from here, so there is nothing to fix. The strokes are going somewhere else.
-          </p>
-          {toWorst && (
-            <button className="btn btn-wide" style={{ marginTop: 12 }} onClick={toWorst}>
-              Show the biggest leak
-            </button>
-          )}
-        </>
-      ) : (
-      <>
-      {why.length > 0 && (
-        <div className="why-list">
-          <span className="why-h">What's behind it</span>
-          {isLagZone(z.zone) && (
-            <span className="small muted">From all your putts of 16 ft and out together, since lag goes wrong the same way at any length.</span>
-          )}
-          {why.map((w) => (
-            <div key={w.slice.cond} className="why-item">
-              <strong>
-                {COND_LABEL[w.slice.cond]}: {w.slice.made} of {w.slice.attempts} {isLagZone(z.zone) ? 'finished within 3 ft' : 'holed'}
-              </strong>
-              <span className="small muted">
-                {Math.round((w.slice.made / w.slice.attempts) * 100)}% against{' '}
-                {Math.round((w.slice.restMade / w.slice.restAttempts) * 100)}% on your other tagged putts from here
-                {w.slice.lean ? `. ${w.slice.lean.n} of ${w.slice.lean.of} tagged misses ${LEAN_TEXT[w.slice.lean.lean]}` : ''}.{' '}
-                {-w.slice.gap > w.slice.margin ? 'Bigger than chance.' : `A lead so far, on ${w.slice.attempts} putts.`}
-              </span>
-              <button className="focus-drill fix" onClick={() => onRoll(w.fix)}>
-                <span>
-                  <strong>{w.fix.name}</strong>
-                </span>
-                <span className="small muted num">{lastOf(w.fix.id) ?? '›'}</span>
-              </button>
-              {w.track && <span className="small why-track">{w.track}</span>}
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="focus-drills">
-        {drills.map((d) => (
-          <button key={d.id} className="focus-drill" onClick={() => onRoll(d)}>
-            <span>
-              <strong>{d.name}</strong>
-              <span className="small muted"> · {distanceText(d)}</span>
-            </span>
-            <span className="small muted num">{lastOf(d.id) ?? '›'}</span>
-          </button>
-        ))}
-      </div>
-      </>
-      )}
-    </div>
-  );
-}
-
-/**
- * The plain numbers under the strokes gained. Short putts are judged on holing them, long ones
- * on where they finish, so each zone gets the stats that fit it.
- */
-export function ZoneStats({ z }: { z: ZoneRead }) {
-  const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0);
-  const cells = isLagZone(z.zone)
-    ? [
-        { v: z.leave !== null ? `${z.leave.toFixed(1)} ft` : '', k: 'Average leave' },
-        { v: `${z.threePutts} of ${z.firstPutts}`, k: 'Three-putts' },
-        { v: signed(z.sgPerPutt), k: 'Per putt' },
-      ]
-    : [
-        { v: `${pct(z.makes, z.attempts)}%`, k: `Holed, ${z.makes} of ${z.attempts}` },
-        { v: `${pct(z.scratchMakes, z.attempts)}%`, k: 'A scratch golfer makes' },
-        { v: signed(z.sgPerPutt), k: 'Per putt' },
-      ];
-  return (
-    <div className="zone-stats">
-      {cells
-        .filter((c) => c.v)
-        .map((c) => (
-          <div key={c.k}>
-            <strong className="num">{c.v}</strong>
-            <span>{c.k}</span>
-          </div>
-        ))}
-    </div>
-  );
-}
-
-interface WhyItem {
-  slice: Slice;
-  fix: Fitted;
-  track: string | null;
-}
-
-const DIR_MEANS: Record<MissDir, string> = {
-  left: 'That is start line, not the read.',
-  right: 'That is start line, not the read.',
-  short: 'Short never goes in.',
-  long: 'Long is where the comebackers come from.',
-};
-
 function RoomSheet({ onClose }: { onClose: () => void }) {
   const { dispatch, surface, room } = usePractice();
   const set = (feet: number) => dispatch({ t: 'setRoom', surface, feet: Math.max(3, Math.min(90, feet)) });
@@ -249,7 +54,7 @@ function RoomSheet({ onClose }: { onClose: () => void }) {
     <Sheet title="Room to putt" onClose={onClose}>
       <p className="small muted" style={{ marginTop: 0 }}>
         The longest putt you have room for {surface === 'indoor' ? 'indoors' : 'on the green you use'}. Every
-        drill fits itself to it: a station past it moves in, and a drill that starts past it stays hidden.
+        drill fits itself to it: a station past it moves in.
       </p>
       <div className="step-row">
         <span className="step-k">
@@ -270,73 +75,160 @@ function RoomSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function Practice() {
-  const { state, dispatch, surface, room, putterId, scoped, family, drills, fitted } = usePractice();
-  const [rolling, setRolling] = useState<Fitted | null>(null);
-  // A tap shows what the drill is; only Start opens the counter.
-  const [preview, setPreview] = useState<Fitted | null>(null);
-  const [picked, setPicked] = useState<Zone | null>(null);
-  const [roomOpen, setRoomOpen] = useState(false);
+function RoundSheet({ onClose }: { onClose: () => void }) {
+  const { dispatch, surface, putterId } = usePractice();
   // Anywhere from nine to eighteen: short enough to fit a session, long enough to mean something.
   const [holeCount, setHoleCount] = useState(9);
-  const now = useNow(!!state.run, 1000);
-
-  const focus = useMemo(() => focusOf(state.rounds, state.baseline, putterId), [state.rounds, state.baseline, putterId]);
-  const zone = focus.zones.find((z) => z.zone === (picked ?? focus.worst)) ?? null;
-  const sets = state.practice;
-  const list = histories(sets, family);
-  const totals = totalsOf(sets);
-  const live = liveRound(state);
-  const startRound = (holeCount: number) => {
+  const start = () => {
     if (!putterId) return;
     const round = makeRound({ date: today(), putterId, holeCount });
     dispatch({ t: 'newRound', round: { ...round, label: 'Practice round', practice: { surface } } });
     go('/track');
   };
+  return (
+    <Sheet title="Practice round" onClose={onClose}>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Every putt logged like a round, with no score. It never counts toward your round stats.
+      </p>
+      <div className="round-start">
+        <span className="mini-step">
+          <button aria-label="One hole fewer" disabled={holeCount <= 9} onClick={() => setHoleCount(holeCount - 1)}>
+            −
+          </button>
+          <span className="num">
+            {holeCount}
+            <span className="muted"> holes</span>
+          </span>
+          <button aria-label="One hole more" disabled={holeCount >= 18} onClick={() => setHoleCount(holeCount + 1)}>
+            +
+          </button>
+        </span>
+        <button className="btn btn-primary" disabled={!putterId} onClick={start}>
+          Start
+        </button>
+      </div>
+    </Sheet>
+  );
+}
 
+const unique = (ds: (Fitted | null | undefined)[]): Fitted[] => {
+  const seen = new Set<string>();
+  return ds.filter((d): d is Fitted => !!d && !seen.has(d.id) && !!seen.add(d.id));
+};
+
+export function Practice() {
+  const plan = usePlan();
+  const { state, dispatch, surface, room, drills, fitted, family, focus, worst, whyOf, habits, pattern, patternFix, scope, lastRound } =
+    plan;
+  const [rolling, setRolling] = useState<{ drill: Fitted; once?: boolean } | null>(null);
+  // A tap shows what the drill is; only Start opens the counter.
+  const [preview, setPreview] = useState<{ drill: Fitted; once?: boolean } | null>(null);
+  const [roomOpen, setRoomOpen] = useState(false);
+  const [roundOpen, setRoundOpen] = useState(false);
+  const now = useNow(!!state.run, 1000);
+
+  const date = today();
+  const sets = state.practice;
+  const list = histories(sets, family);
   const lastOf = (id: string) => {
     const h = list.find((x) => x.drill === family(id));
     return h ? `Last ${setScoreShort(resolveDrill(state, id), h.last)}` : null;
   };
+  const live = liveRound(state);
 
-  const scratch = JSON.stringify(state.baseline) === JSON.stringify(DEFAULT_BASELINE);
-  const recentWord = focus.allRounds > focus.rounds ? `last ${focus.rounds}` : `${focus.rounds}`;
-  const scope =
-    focus.putterOnly && putterId
-      ? `your ${recentWord} rounds with the ${putterName(state, putterId)}`
-      : `your ${recentWord} rounds`;
+  const test = testStatus(sets, surface, room, date);
+  const testRun = fitToRoom(testDrill(room, surface, date), room);
+  const lastTest = test.weeks.filter((s) => s !== test.thisWeek).at(-1) ?? null;
 
-  // The slow loop: inside the zone on the card, which kind of putt is behind it, and how that
-  // kind has gone on the course since you started on its fix.
-  const why: WhyItem[] = zone
-    ? pinpoint(scoped.rounds, state.baseline, zone.zone).map((slice) => {
-        const fixId = fixFor(slice.cond, slice.lean?.lean ?? null, slice.d, surface);
-        const fix = fitToRoom(fixDrill(fixId)!, room);
-        const started = sets.filter((x) => x.drill === fixId).map((x) => x.date).sort()[0];
-        let track: string | null = null;
-        if (started) {
-          const t = sliceSince(scoped.rounds, zone.zone, slice.cond, started);
-          const pct = (x: { made: number; attempts: number }) => Math.round((x.made / x.attempts) * 100);
-          track =
-            t.after.attempts >= SLICE_NEED && t.before.attempts
-              ? `On the course since you started it on ${fmtDate(started)}: ${pct(t.after)}% of ${t.after.attempts}, against ${pct(t.before)}% before.`
-              : `Started on ${fmtDate(started)}. ${t.after.attempts} of these putts on the course since, short of the ${SLICE_NEED} it takes to compare.`;
-        }
-        return { slice, fix, track };
-      })
-    : [];
-  // Habits that are not about a distance: reads, start line, lips, strike, decel, bleed.
-  const habits = useMemo(() => habitsOf(scoped.rounds, surface).slice(0, 3), [scoped.rounds, surface]);
-  // The fast loop: your own practice misses, no round needed.
-  const pattern = practicePattern(sets);
-  const patternFix = pattern ? fitToRoom(fixDrill(practiceFix(pattern))!, room) : null;
+  const why = worst ? whyOf(worst) : [];
+  const slice = why[0] ?? null;
+  const kind = targetKind({ zone: worst, slice: slice?.slice ?? null, habit: habits[0] ?? null, pattern, lastRound, today: date });
+  const stale = !lastRound || daysBetween(lastRound, date) > STALE_DAYS;
+  const zoneDrills = worst ? drillsNear(drills, worst.zone, worst.lean?.lean ?? null, surface, room) : [];
+  const pct = (n: number, of: number) => Math.round((n / of) * 100);
+  const fromPractice =
+    pattern && kind !== 'practice'
+      ? `In practice, ${pattern.n} of your last ${pattern.of} tagged misses from ${pattern.band.replace(' and out', ' and longer')} went ${pattern.dir}.`
+      : null;
+
+  let title: string;
+  const lines: string[] = [];
+  let picks: Fitted[] = [];
+  if (kind === 'slice' && worst && slice) {
+    const s = slice.slice;
+    const lag = isLagZone(worst.zone);
+    title = `${COND_LABEL[s.cond]}, ${lag ? '16 ft and out' : worst.label}`;
+    lines.push(
+      `${s.made} of ${s.attempts} ${lag ? 'finished within 3 ft' : 'holed'} in ${scope}, against ${pct(s.restMade, s.restAttempts)}% on your other tagged putts from there.`,
+    );
+    if (s.lean) lines.push(`${s.lean.n} of ${s.lean.of} tagged misses ${LEAN_TEXT[s.lean.lean]}.`);
+    picks = unique([slice.fix, fromPractice ? patternFix : null, ...zoneDrills]);
+  } else if (kind === 'zone' && worst) {
+    title = worst.label;
+    const cost = `It costs ${Math.abs(worst.sgPerRound).toFixed(2)} strokes a round.`;
+    lines.push(
+      isLagZone(worst.zone)
+        ? `You leave it ${worst.leave?.toFixed(1) ?? '?'} ft away on average with ${worst.threePutts} three-putts in ${worst.firstPutts}, in ${scope}. ${cost}`
+        : `${worst.makes} of ${worst.attempts} holed in ${scope}, where a scratch golfer makes ${pct(worst.scratchMakes, worst.attempts)}%. ${cost}`,
+    );
+    if (worst.lean) {
+      const read = worst.lean.lean === 'high' || worst.lean.lean === 'low';
+      lines.push(
+        `${worst.lean.n} of ${worst.lean.of} tagged misses from there ${LEAN_TEXT[worst.lean.lean]}.` +
+          (read && surface === 'indoor' ? ' A flat mat cannot train the read, so that part waits for a green.' : ''),
+      );
+    }
+    picks = unique([zoneDrills[0], fromPractice ? patternFix : null, ...zoneDrills.slice(1)]);
+  } else if (kind === 'habit') {
+    const h = habits[0];
+    title = h.title;
+    lines.push(h.detail);
+    picks = unique([fitted(h.fix), fromPractice ? patternFix : null]);
+  } else if (kind === 'practice' && pattern) {
+    title = `${pattern.band}, ${SURFACE_LABELS[pattern.surface].toLowerCase()}`;
+    lines.push(`${pattern.n} of your last ${pattern.of} tagged misses went ${pattern.dir}. ${DIR_MEANS[pattern.dir]}`);
+    if (lastRound && stale) {
+      lines.push(`Your last round was ${fmtDate(lastRound)}, so this comes from your practice. New rounds take it back.`);
+    }
+    picks = unique([patternFix]);
+  } else if (test.thisWeek) {
+    const t = testParts(test.thisWeek, state.baseline);
+    title = `This week's test: ${test.thisWeek.made} of ${test.thisWeek.attempts}`;
+    lines.push(
+      `Holed ${t.holed} of ${t.of}, where a scratch golfer averages ${t.scratch.toFixed(1)}. ${t.inside} of ${t.lags} lag putts finished close.`,
+    );
+    lines.push(`The next one opens ${fmtDate(nextTestDay(date))}. Until then, mix these in.`);
+    const short = drillsNear(drills, 'mid', null, surface, room)[0];
+    const long = drillsNear(drills, 'far', null, surface, room)[0];
+    picks = unique(t.holed < t.scratch ? [short, long] : [long, short]);
+  } else {
+    title = 'Take the weekly test';
+    lines.push(
+      !focus.rounds
+        ? 'Eighteen putts, about six minutes, no rounds needed. Your rounds name a target once there are enough of them, and until then this is the number that shows you getting better.'
+        : worst && worst.sgPerRound >= 0
+          ? `You beat scratch from every distance in ${scope}. The test is how you keep it that way week to week.`
+          : `${focus.rounds} ${focus.rounds === 1 ? 'round' : 'rounds'} in, too few putts from any one distance to name a target yet. Eighteen putts, about six minutes, and it is the number to beat every week.`,
+    );
+  }
+  if (fromPractice && kind !== 'test') lines.push(fromPractice);
+  // A leak with one drill gets your strongest stroke habit as the second, said out loud.
+  const habitFix = habits[0] ? fitted(habits[0].fix) : null;
+  if ((kind === 'zone' || kind === 'slice') && picks.length < 2 && habitFix && !picks.some((d) => d.id === habitFix.id)) {
+    lines.push(habits[0].detail);
+    picks.push(habitFix);
+  }
+  picks = picks.slice(0, 2);
+  const testIsTarget = kind === 'test';
+  const hasWhy = focus.rounds > 0 || habits.length > 0 || !!pattern;
 
   const runSession = state.run ? state.sessions.find((x) => x.id === state.run!.session) : undefined;
   // Sessions you have rolled lately first, then the rest in the order they came in.
   const lastRolled = new Map<string, string>();
   for (const x of sets) if (x.session && (lastRolled.get(x.session) ?? '') < x.date) lastRolled.set(x.session, x.date);
-  const recentSessions = [...state.sessions].sort((a, b) => (lastRolled.get(b.id) ?? '').localeCompare(lastRolled.get(a.id) ?? ''));
-
+  const recentSessions = [...state.sessions].sort((a, b) =>
+    (lastRolled.get(b.id) ?? '').localeCompare(lastRolled.get(a.id) ?? ''),
+  );
 
   return (
     <div>
@@ -364,81 +256,60 @@ export function Practice() {
         </a>
       )}
 
-      {pattern && patternFix && (
-        <>
-          <h2>From your practice</h2>
-          <div className="card focus-card lose">
-            <div className="focus-head">
-              <h3>
-                {pattern.band}, {SURFACE_LABELS[pattern.surface].toLowerCase()}
-              </h3>
-            </div>
-            <p className="small focus-lean">
-              {pattern.n} of your last {pattern.of} tagged misses went {pattern.dir}. {DIR_MEANS[pattern.dir]}
-            </p>
-            <div className="focus-drills">
-              <button className="focus-drill" onClick={() => setPreview(patternFix)}>
-                <span>
-                  <strong>{patternFix.name}</strong>
-                </span>
-                <span className="small muted num">{lastOf(patternFix.id) ?? '›'}</span>
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {focus.rounds > 0 && zone && (
-        <>
-          <h2>Work on</h2>
-          <ZoneCard
-            z={zone}
-            worst={zone.zone === focus.worst}
-            close={zone.zone === focus.worst ? (focus.zones.find((z) => z.zone === focus.close) ?? null) : null}
-            was={
-              zone.zone === focus.worst && focus.wasWorst
-                ? { label: focus.wasWorst.label, sgPerRound: focus.wasWorst.sgPerRound, rounds: focus.allRounds }
-                : null
-            }
-            drills={drillsNear(drills, zone.zone, zone.lean?.lean ?? null, surface, room)}
-            toWorst={focus.worst && focus.worst !== zone.zone ? () => setPicked(focus.worst) : undefined}
-            why={why}
-            surface={surface}
-            lastOf={lastOf}
-            onRoll={setPreview}
-          />
-          <h2>Where the strokes go</h2>
-          <ZoneBars zones={focus.zones} on={zone.zone} onPick={setPicked} />
-          <p className="small muted" style={{ marginTop: 8 }}>
-            Strokes a round against {scratch ? 'scratch' : 'your baseline'}, from {scope}, already adjusted for
-            distance. A wide zone holds more putts a round, so each row also says what one putt costs. Tap a distance
-            for its drills.
+      <h2>Your target</h2>
+      <div className="card target">
+        <h3>{title}</h3>
+        {lines.map((l) => (
+          <p key={l} className="small muted">
+            {l}
           </p>
-        </>
-      )}
+        ))}
+        {picks.map((d) => (
+          <button key={d.id} className="target-drill" onClick={() => setPreview({ drill: d })}>
+            <strong>{d.name}</strong>
+            <span className="small muted num">{lastOf(d.id) ?? 'Start'}</span>
+          </button>
+        ))}
+        {testIsTarget && !test.thisWeek && (
+          <button className="btn btn-primary btn-wide" onClick={() => setPreview({ drill: testRun, once: true })}>
+            Start the test
+          </button>
+        )}
+        {hasWhy && (
+          <a className="target-why" href="#/practice/why">
+            Why this, and where the strokes go ›
+          </a>
+        )}
+      </div>
 
-      {habits.length > 0 && (
+      {!testIsTarget && (
         <>
-          <h2>Your stroke and reads</h2>
-          <div className="row-list">
-            {habits.map((h) => {
-              const drill = fitted(h.fix);
-              return (
-                <div key={h.key + h.title} className="card habit">
-                  <strong>{h.title}</strong>
-                  <span className="small muted">{h.detail}</span>
-                  {drill && (
-                    <button className="focus-drill" onClick={() => setPreview(drill)}>
-                      <span>
-                        <strong>{drill.name}</strong>
-                      </span>
-                      <span className="small muted num">{lastOf(drill.id) ?? '›'}</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <h2>Weekly test</h2>
+          <button className="nav-row" onClick={() => setPreview({ drill: testRun, once: true })}>
+            <span className="nav-main">
+              {test.thisWeek ? (
+                <>
+                  <strong>
+                    This week: {test.thisWeek.made} of {test.thisWeek.attempts}
+                  </strong>
+                  <span className="small muted">
+                    {test.best && test.weeks.length > 1 ? `Best ${test.best.made}. ` : ''}The next one opens{' '}
+                    {fmtDate(nextTestDay(date))}.
+                  </span>
+                </>
+              ) : (
+                <>
+                  <strong>Due · 18 putts, about 6 min</strong>
+                  <span className="small muted">
+                    {lastTest && test.best
+                      ? `${lastTest.made} of ${lastTest.attempts} last time, best ${test.best.made}`
+                      : 'The first one sets the number to beat.'}
+                  </span>
+                </>
+              )}
+            </span>
+            <Chevron />
+          </button>
         </>
       )}
 
@@ -447,17 +318,19 @@ export function Practice() {
         {recentSessions.slice(0, SESSIONS_SHOWN).map((x) => (
           <SessionRow key={x.id} id={x.id} />
         ))}
-        {state.sessions.length > SESSIONS_SHOWN && (
+        {state.sessions.length > SESSIONS_SHOWN ? (
           <a className="nav-row" href="#/practice/sessions">
             <span className="nav-main">
               <strong>All {state.sessions.length} sessions</strong>
+              <span className="small muted">Or build one</span>
             </span>
             <Chevron />
           </a>
+        ) : (
+          <a className="btn btn-ghost btn-wide" href="#/practice/session-edit/new">
+            Build a session
+          </a>
         )}
-        <a className="btn btn-ghost btn-wide" href="#/practice/session-edit/new">
-          Build a session
-        </a>
       </div>
       {!state.sessions.length && (
         <p className="small muted" style={{ margin: '8px 0 0' }}>
@@ -465,64 +338,45 @@ export function Practice() {
         </p>
       )}
 
-      <h2>Practice round</h2>
-      {live && !live.practice ? (
-        <p className="small muted">Finish or discard the round you are logging first.</p>
-      ) : live ? (
-        <a className="btn btn-primary btn-wide" href="#/track">
-          Back to your practice round
-        </a>
-      ) : (
-        <>
-          <p className="small muted" style={{ margin: '0 0 8px' }}>
-            Every putt logged like a round, with no score. It never counts toward your round stats.
-          </p>
-          <div className="round-start">
-            <span className="mini-step">
-              <button aria-label="One hole fewer" disabled={holeCount <= 9} onClick={() => setHoleCount(holeCount - 1)}>
-                −
-              </button>
-              <span className="num">
-                {holeCount}
-                <span className="muted"> holes</span>
-              </span>
-              <button aria-label="One hole more" disabled={holeCount >= 18} onClick={() => setHoleCount(holeCount + 1)}>
-                +
-              </button>
+      <div className="row-list" style={{ marginTop: 24 }}>
+        {live && !live.practice ? (
+          <div className="nav-row" aria-disabled="true">
+            <span className="nav-main">
+              <strong>Practice round</strong>
+              <span className="small muted">Finish or discard the round you are logging first.</span>
             </span>
-            <button className="btn btn-primary" disabled={!putterId} onClick={() => startRound(holeCount)}>
-              Start
-            </button>
           </div>
-        </>
-      )}
-
-      <div className="row-list" style={{ marginTop: 18 }}>
+        ) : live ? (
+          <a className="nav-row" href="#/track">
+            <span className="nav-main">
+              <strong>Back to your practice round</strong>
+              <span className="small muted">{live.holes.filter((h) => h.putts.length).length} holes logged</span>
+            </span>
+            <Chevron />
+          </a>
+        ) : (
+          <button className="nav-row" onClick={() => setRoundOpen(true)}>
+            <span className="nav-main">
+              <strong>Practice round</strong>
+              <span className="small muted">9 to 18 holes, every putt logged</span>
+            </span>
+            <Chevron />
+          </button>
+        )}
         <a className="nav-row" href="#/practice/drills">
           <span className="nav-main">
-            <strong>Browse every drill</strong>
+            <strong>Every drill</strong>
             <span className="small muted">BREAK!'s, imported, and yours, or build one</span>
           </span>
           <Chevron />
         </a>
-        {(sets.length > 0 || (state.practiceRounds ?? []).some((r) => r.finished)) && (
-          <a className="nav-row" href="#/stats/practice">
-            <span className="nav-main">
-              <strong>Practice stats</strong>
-              <span className="small muted">
-                {totals.sets} {totals.sets === 1 ? 'set' : 'sets'}, {totals.putts} putts · your drills, rounds and
-                practice against play
-              </span>
-            </span>
-            <Chevron />
-          </a>
-        )}
       </div>
 
       {roomOpen && <RoomSheet onClose={() => setRoomOpen(false)} />}
+      {roundOpen && <RoundSheet onClose={() => setRoundOpen(false)} />}
       {preview && (
         <DrillPreview
-          drill={preview}
+          drill={preview.drill}
           onClose={() => setPreview(null)}
           onStart={() => {
             setRolling(preview);
@@ -530,7 +384,15 @@ export function Practice() {
           }}
         />
       )}
-      {rolling && <DrillLogger key={rolling.id} drill={rolling} surface={surface} onClose={() => setRolling(null)} />}
+      {rolling && (
+        <DrillLogger
+          key={rolling.drill.id}
+          drill={rolling.drill}
+          surface={surface}
+          once={rolling.once}
+          onClose={() => setRolling(null)}
+        />
+      )}
     </div>
   );
 }

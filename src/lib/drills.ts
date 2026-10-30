@@ -1,4 +1,5 @@
 import { fixDrill } from './pinpoint';
+import { TEST_ID, testDef } from './weeklyTest';
 import { isLagZone, type AppState, type DrillDef, type Lean, type Station, type Surface, type Zone } from './types';
 
 const BOTH: Surface[] = ['indoor', 'green'];
@@ -195,7 +196,12 @@ export function resolveDrill(state: Pick<AppState, 'drills'>, id: string): Drill
   const copy = state.drills
     .filter((d) => d.from === id)
     .sort((a, b) => (b.updated ?? '').localeCompare(a.updated ?? ''))[0];
-  return copy ?? state.drills.find((d) => d.id === id) ?? APP_DRILLS.find((d) => d.id === id) ?? fixDrill(id);
+  return (
+    copy ??
+    state.drills.find((d) => d.id === id) ??
+    APP_DRILLS.find((d) => d.id === id) ??
+    (id === TEST_ID ? testDef() : fixDrill(id))
+  );
 }
 
 /** The id a drill's history lives under, so an edited copy keeps the original's record. */
@@ -342,3 +348,25 @@ export const SCORING_LABELS: Record<DrillDef['scoring'], string> = {
   game: 'Head to head',
   done: 'Just mark it done',
 };
+
+const NEXT_DOOR: Record<Zone, Zone[]> = {
+  tapin: ['short'],
+  short: ['tapin', 'mid'],
+  mid: ['short', 'long'],
+  long: ['mid', 'far'],
+  far: ['long', 'lag'],
+  lag: ['far', 'deep'],
+  deep: ['lag'],
+};
+
+/** Drills for a zone, or the nearest real ones when none land squarely in it. Never an empty card. */
+export function drillsNear(...args: Parameters<typeof drillsFor>): Fitted[] {
+  const [all, zone, lean, surface, room] = args;
+  const here = drillsFor(all, zone, lean, surface, room);
+  if (here.length) return here;
+  for (const z of NEXT_DOOR[zone]) {
+    const near = drillsFor(all, z, lean, surface, room);
+    if (near.length) return near;
+  }
+  return [];
+}

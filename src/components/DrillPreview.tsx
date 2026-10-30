@@ -3,6 +3,7 @@ import { distanceText, familyOf, scoringLabel, type Fitted } from '../lib/drills
 import { historyOf } from '../lib/practice';
 import { ON_MISS_TEXT, setScore } from '../lib/practiceView';
 import { useApp } from '../lib/store';
+import { TEST_ID } from '../lib/weeklyTest';
 
 /**
  * What a drill is before you are inside it. Tapping a drill used to drop you straight into the
@@ -42,9 +43,11 @@ export function DrillPreview({ drill, onStart, onClose }: { drill: Fitted; onSta
       <button className="btn btn-primary btn-wide" style={{ marginTop: 16 }} onClick={onStart}>
         Start
       </button>
-      <a className="btn btn-ghost btn-wide" style={{ marginTop: 8 }} href={`#/practice/drill/${family(drill.id)}`}>
-        Everything about this drill
-      </a>
+      {drill.id !== TEST_ID && (
+        <a className="btn btn-ghost btn-wide" style={{ marginTop: 8 }} href={`#/practice/drill/${family(drill.id)}`}>
+          Everything about this drill
+        </a>
+      )}
     </Sheet>
   );
 }

@@ -3,6 +3,8 @@ import { replayLadder } from '../components/LadderLogger';
 import { replayStreak } from '../components/StreakLogger';
 import { APP_DRILLS, drillsFor, fitToRoom, resolveDrill } from './drills';
 import { habitsOf } from './habits';
+import { targetKind } from './target';
+import { setupOf, TEST_ID, testBalls, testDrill, testStatus, weekOf } from './weeklyTest';
 import { handGap, handLink, handsOf } from './hands';
 import { fixDrill, fixFor, pinpoint, practiceFix, practicePattern } from './pinpoint';
 import { textLines } from './pdfText';
@@ -462,5 +464,65 @@ describe('pinpoint past 16 ft', () => {
     expect(pinpoint(rounds, B, 'lag')).toEqual(pinpoint(rounds, B, 'far'));
     expect(pinpoint(rounds, B, 'deep')).toEqual(pinpoint(rounds, B, 'far'));
     expect(pinpoint(rounds, B, 'lag').length).toBeGreaterThan(0);
+  });
+});
+
+describe('weekly test', () => {
+  const mkTest = (date: string, made: number, room = 30, surface: 'indoor' | 'green' = 'indoor'): PracticeSet =>
+    set(`w${date}${made}`, TEST_ID, made, 18, date, {
+      surface,
+      stations: testBalls(room).map((b) => ({ d: b.d, mode: b.mode ?? 'make', made: 0, attempts: 1 })),
+    });
+
+  it('is always eighteen balls, and a short room moves the long six in', () => {
+    for (const room of [3, 8, 12, 16, 20, 30, 60]) {
+      const balls = testBalls(room);
+      expect(balls).toHaveLength(18);
+      expect(Math.max(...balls.map((b) => b.d))).toBeLessThanOrEqual(room);
+    }
+    expect(testBalls(30).filter((b) => b.mode === 'zone').map((b) => b.d)).toEqual([20, 22, 24, 26, 28, 30]);
+    expect(testBalls(60)).toEqual(testBalls(30));
+  });
+
+  it('keeps one order all week and changes it the next', () => {
+    const order = (date: string) => testDrill(30, 'indoor', date).stations.map((x) => `${x.d}${x.mode ?? ''}`).join();
+    expect(weekOf('2026-11-04')).toBe('2026-11-02');
+    expect(order('2026-11-02')).toBe(order('2026-11-08'));
+    expect(order('2026-11-09')).not.toBe(order('2026-11-02'));
+    expect([...testDrill(30, 'indoor', '2026-11-09').stations].sort((a, b) => a.d - b.d)).toEqual(
+      [...testBalls(30)].sort((a, b) => a.d - b.d),
+    );
+  });
+
+  it('counts the first test of a week, and only compares the same eighteen putts', () => {
+    const sets = [mkTest('2026-11-02', 10), mkTest('2026-11-03', 16), mkTest('2026-11-10', 12), mkTest('2026-11-11', 15, 12)];
+    const t = testStatus(sets, 'indoor', 30, '2026-11-12');
+    expect(t.thisWeek?.made).toBe(12);
+    expect(t.weeks.map((x) => x.made)).toEqual([10, 12]);
+    expect(t.best?.made).toBe(12);
+    expect(testStatus(sets, 'green', 30, '2026-11-12').thisWeek).toBeNull();
+    expect(setupOf(sets[0].stations!)).not.toBe(setupOf(sets[3].stations!));
+  });
+
+  it('resolves like any drill, without showing up as one to pick', () => {
+    expect(resolveDrill(emptyState(), TEST_ID)?.name).toBe('Weekly test');
+    expect(APP_DRILLS.some((d) => d.id === TEST_ID)).toBe(false);
+  });
+});
+
+describe('your target', () => {
+  const base = { zone: null, slice: null, habit: null, pattern: null, lastRound: null, today: '2026-12-01' };
+  const pattern = { band: '3 to 5 ft', surface: 'indoor' as const, dir: 'left' as const, n: 7, of: 10, d: 4 };
+
+  it('gives a player with nothing logged the weekly test', () => {
+    expect(targetKind(base)).toBe('test');
+  });
+
+  it('leads with the rounds while they are recent, and with practice once they go stale', () => {
+    const f = focusOf([round('a', 7, 6), round('a', 7, 6), round('a', 7, 6), round('a', 7, 6)], B, 'a');
+    const zone = f.zones.find((z) => z.zone === f.worst)!;
+    expect(targetKind({ ...base, zone, pattern, lastRound: '2026-11-20' })).toBe('zone');
+    expect(targetKind({ ...base, zone, pattern, lastRound: '2026-10-01' })).toBe('practice');
+    expect(targetKind({ ...base, zone, lastRound: '2026-10-01' })).toBe('zone');
   });
 });
