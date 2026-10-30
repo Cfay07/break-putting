@@ -337,3 +337,43 @@ describe('practice rounds', () => {
     expect(s.tombstones.find((t) => t.id === r.id)?.kind).toBe('practice');
   });
 });
+
+describe('no suggestion a golfer would squint at', () => {
+  const zones = ['tapin', 'short', 'mid', 'long', 'far', 'lag', 'deep'] as const;
+  const leans = [null, 'start-line', 'short', 'long', 'high', 'low'] as const;
+  const extra: DrillDef[] = [
+    { ...APP_DRILLS[0], id: 's30', name: '30 in a row from 3', scoring: 'streak', stations: [{ d: 3, balls: 0 }], source: 'import' },
+    { ...APP_DRILLS[0], id: 's20', name: '20 in a row from 3', scoring: 'streak', stations: [{ d: 3, balls: 0 }], source: 'import' },
+    { ...APP_DRILLS[0], id: 'up', name: 'Speed', scoring: 'count', stations: [{ d: 15, balls: 3, mode: 'zone', label: 'Uphill' }], source: 'import' },
+  ];
+  const all = [...extra, ...APP_DRILLS];
+  for (const surface of ['indoor', 'green'] as const) {
+    for (const room of [12, 30, 60]) {
+      it(`${surface} at ${room} ft`, () => {
+        for (const z of zones) {
+          for (const lean of leans) {
+            const list = drillsFor(all, z, lean, surface, room);
+            for (const d of list) {
+              expect(d.stations.every((s) => !s.movedFrom || s.d / s.movedFrom >= 0.8)).toBe(true);
+              expect(d.stations.some((s) => s.hand)).toBe(false);
+              if (surface === 'indoor') expect(d.stations.some((s) => /uphill|downhill/i.test(s.label ?? ''))).toBe(false);
+            }
+            const streaks = list.filter((d) => d.scoring === 'streak').map((d) => Math.min(...d.stations.map((s) => s.d)));
+            expect(new Set(streaks).size).toBe(streaks.length);
+          }
+        }
+      });
+    }
+  }
+  it('gives lag findings lag drills, never a gate from 30 feet', () => {
+    for (const cond of ['lr', 'rl', 'double', 'straight', 'uphill', 'downhill', null] as const) {
+      for (const lean of leans) {
+        for (const surface of ['indoor', 'green'] as const) {
+          const name = fixDrill(fixFor(cond, lean, 30, surface))!.name;
+          expect(name).toMatch(/lag/i);
+        }
+      }
+    }
+    expect(fixDrill(fixFor(null, 'long', 4, 'indoor'))!.name).toBe('Dead weight from 4');
+  });
+});

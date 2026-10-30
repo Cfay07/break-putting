@@ -272,21 +272,50 @@ export function drillsFor(
   surface: Surface,
   room: number,
 ): Fitted[] {
+  // A drill is matched on the distances it was written for, never on what squeezing it into a
+  // short room made of it: a 30-foot two-putt drill moved in to 12 feet is not a 12-foot drill.
+  const asWritten = (d: DrillDef) => d as unknown as Fitted;
   const scored = drills
-    .filter((d) => d.putting && !d.partner && d.surfaces.includes(surface) && d.scoring !== 'game')
-    .map((d, i) => ({ f: fitToRoom(d, room), i }))
+    .filter(
+      (d) =>
+        d.putting &&
+        !d.partner &&
+        d.surfaces.includes(surface) &&
+        d.scoring !== 'game' &&
+        d.scoring !== 'done' &&
+        // One-handed and eyes-closed work is a specialty, never the suggested fix.
+        !d.stations.some((s) => s.hand) &&
+        // "Three balls uphill" in a flat room is a drill that cannot be done as written.
+        !(surface === 'indoor' && d.stations.some((s) => /uphill|downhill/i.test(s.label ?? ''))),
+    )
+    .map((d, i) => ({ d, f: fitToRoom(d, room), i }))
+    .filter((x) => x.f.stations.every((s) => !s.movedFrom || s.d / s.movedFrom >= 0.8))
     .map((x) => ({
       ...x,
-      share: zoneShare(x.f, zone),
+      share: zoneShare(asWritten(x.d), zone),
       // Lag drills spread over several long zones, so any lag zone counts them together.
-      lagShare: isLagZone(zone) ? zoneShare(x.f, 'far') + zoneShare(x.f, 'lag') + zoneShare(x.f, 'deep') : 0,
+      lagShare: isLagZone(zone)
+        ? zoneShare(asWritten(x.d), 'far') + zoneShare(asWritten(x.d), 'lag') + zoneShare(asWritten(x.d), 'deep')
+        : 0,
     }))
     .filter((x) => x.share >= 0.5 || (x.share > 0 && x.lagShare >= 0.5));
   const aimed = (f: Fitted) => (!f.fixes ? 1 : lean && f.fixes.includes(lean) ? 0 : 2);
-  return scored
-    .sort((a, b) => aimed(a.f) - aimed(b.f) || b.share - a.share || b.lagShare - a.lagShare || a.i - b.i)
-    .map((x) => x.f)
-    .slice(0, MAX_DRILLS);
+  // Counting makes lines up with the round stats, so it leads; streaks and ladders follow.
+  const kind = (f: Fitted) => (f.scoring === 'count' ? 0 : f.scoring === 'ladder' ? 1 : 2);
+  const ranked = scored.sort(
+    (a, b) => aimed(a.f) - aimed(b.f) || kind(a.f) - kind(b.f) || b.share - a.share || b.lagShare - a.lagShare || a.i - b.i,
+  );
+  // Three versions of "in a row from 3" is one suggestion, not three.
+  const seen = new Set<string>();
+  const out: Fitted[] = [];
+  for (const x of ranked) {
+    const key = `${x.f.scoring}|${Math.min(...x.f.stations.map((s) => s.d))}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(x.f);
+    if (out.length === MAX_DRILLS) break;
+  }
+  return out;
 }
 
 export function distanceText(drill: Pick<DrillDef, 'stations'>): string {

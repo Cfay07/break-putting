@@ -7,7 +7,13 @@ import { breakBucket, breakDirsOf, isLagZone, slopeOf } from './types';
 
 const FIX = /^fix:([a-z]+(?:-[a-z]+)?):(\d+)$/;
 
-type Kind = 'gate' | 'past' | 'die' | 'apex-lr' | 'apex-rl' | 'aim-lr' | 'aim-rl' | 'firm-lr' | 'firm-rl' | 'downhill' | 'uphill' | 'double';
+type Kind =
+  | 'gate' | 'past' | 'die' | 'apex-lr' | 'apex-rl' | 'aim-lr' | 'aim-rl' | 'firm-lr' | 'firm-rl'
+  | 'downhill' | 'uphill' | 'double'
+  | 'lag' | 'lag-lr' | 'lag-rl' | 'lag-up' | 'lag-down' | 'lag-past' | 'lag-dead';
+
+/** From here out a putt is judged on where it finishes, so every fix becomes a lag drill. */
+export const LAG_FROM = 16;
 
 const ten = (d: number, extra: Partial<DrillDef['stations'][number]> = {}) => [{ d, balls: 10, ...extra }];
 const BOTH: Surface[] = ['indoor', 'green'];
@@ -26,13 +32,34 @@ export function fixDrill(id: string): DrillDef | undefined {
   const d = Number(m[2]);
   const base = { id, scoring: 'count' as const, putting: true, source: 'app' as const };
   const dir = kind.endsWith('-lr') ? 'lr' : 'rl';
+  const zone = Math.max(2, Math.round(d / 10));
+  const lag = (name: string, how: string): DrillDef => ({
+    ...base,
+    name,
+    stations: ten(d, { mode: 'zone', zoneFt: zone }),
+    surfaces: BOTH,
+    how: `${how} A ball counts if it drops or finishes within ${zone} feet, a tenth of the putt.`,
+  });
   switch (kind) {
+    case 'lag':
+      return lag(`Lag from ${d}`, `Ten balls from ${d} feet, a new line each time if you have room.`);
+    case 'lag-lr':
+    case 'lag-rl':
+      return lag(`${dir === 'lr' ? 'Left-to-right' : 'Right-to-left'} lags from ${d}`, `Ten ${d}-footers that break ${WAY[dir]}.`);
+    case 'lag-up':
+      return { ...lag(`Uphill lags from ${d}`, `Ten uphill ${d}-footers.`), surfaces: GREEN };
+    case 'lag-down':
+      return { ...lag(`Downhill lags from ${d}`, `Ten downhill ${d}-footers.`), surfaces: GREEN };
+    case 'lag-past':
+      return lag(`Lag past the hole from ${d}`, `Ten from ${d} feet. Only balls that finish past the hole count; short never does.`);
+    case 'lag-dead':
+      return lag(`Lag dead from ${d}`, `Ten from ${d} feet, trying to stop each one at the hole rather than run it by.`);
     case 'gate':
       return { ...base, name: `Gate at ${d} ft`, stations: ten(d), surfaces: BOTH, how: `Two tees a putterhead apart, a foot in front of the ball. Ten from ${d} feet; only putts that go through clean and drop count.` };
     case 'past':
       return { ...base, name: `Past the hole from ${d}`, stations: ten(d), surfaces: BOTH, how: `Ten from ${d} feet. Any miss has to finish 12 to 18 inches past. Short is the one miss you are not allowed.` };
     case 'die':
-      return { ...base, name: `Die it from ${d}`, stations: ten(d, { mode: 'zone', zoneFt: 1 }), surfaces: BOTH, how: `Ten from ${d} feet. A ball counts if it drops or stops within a foot past.` };
+      return { ...base, name: d < 10 ? `Dead weight from ${d}` : `Die it from ${d}`, stations: ten(d, { mode: 'zone', zoneFt: 1 }), surfaces: BOTH, how: `Ten from ${d} feet. A ball counts if it drops or stops within a foot past.` };
     case 'apex-lr':
     case 'apex-rl':
       return { ...base, name: `Apex tee, ${WAY[dir]}, ${d} ft`, stations: ten(d), surfaces: GREEN, how: `Find a ${d}-footer that breaks ${WAY[dir]}. Put a tee at the apex, a touch higher than it looks, and roll ten over it.` };
@@ -67,6 +94,14 @@ export const COND_LABEL: Record<Cond, string> = {
 export function fixFor(cond: Cond | null, lean: Lean | null, d: number, surface: Surface): string {
   const id = (k: Kind) => `fix:${k}:${d}`;
   const green = surface === 'green';
+  if (d >= LAG_FROM) {
+    if (lean === 'short') return id('lag-past');
+    if (lean === 'long') return id('lag-dead');
+    if (cond === 'lr' || cond === 'rl') return id(`lag-${cond}`);
+    if (cond === 'uphill') return id(green ? 'lag-up' : 'lag-past');
+    if (cond === 'downhill') return id(green ? 'lag-down' : 'lag-dead');
+    return id('lag');
+  }
   if (lean === 'start-line') return id('gate');
   if (lean === 'short') return id(cond === 'uphill' && green ? 'uphill' : 'past');
   if (lean === 'long') return id(cond === 'downhill' && green ? 'downhill' : 'die');
