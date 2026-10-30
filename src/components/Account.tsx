@@ -212,8 +212,8 @@ export function Account() {
   return (
     <>
       <p className="small muted">
-        Without an account your rounds live on this phone only, and a team needs one. Sign in and
-        they back up, follow you to a new phone, and show up on your team's board.
+        Without an account your rounds live on this phone only. Sign in and they back up and follow
+        you to a new phone.
       </p>
       {!storedOwner() && state.rounds.length > 0 && (
         <p className="small muted">

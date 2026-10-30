@@ -157,8 +157,8 @@ export function Rounds() {
         <div className="card signin-lead">
           <strong>Your rounds only live on this phone</strong>
           <p className="small" style={{ margin: '4px 0 10px' }}>
-            Make an account and they back up, follow you to a new phone, and let you join your
-            team. It takes an email and a password.
+            Make an account and they back up and follow you to a new phone. It takes an email and a
+            password.
           </p>
           <a className="btn btn-primary btn-wide" href="#/settings">
             Set up an account

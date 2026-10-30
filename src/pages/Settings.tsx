@@ -176,11 +176,6 @@ export function Settings() {
       <h2>Account</h2>
       <Account />
 
-      <h2>Team</h2>
-      <a className="btn btn-ghost btn-wide" href="#/team">
-        Leaderboard and join code
-      </a>
-
       <h2>Putters</h2>
       {state.putters.length === 0 && <p className="small muted">No putters yet. Add the one in your bag.</p>}
       {state.putters
