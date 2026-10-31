@@ -1,8 +1,21 @@
 import { useMemo } from 'react';
 import { carryRows } from '../lib/carry';
-import { roundPayoff } from '../lib/roundPayoff';
+import { roundPayoff, type HabitLine } from '../lib/roundPayoff';
 import { usePractice } from '../lib/usePractice';
 import type { Round } from '../lib/types';
+
+function PatternLine({ tag, h }: { tag: string; h: HabitLine }) {
+  return (
+    <p>
+      <strong>
+        {tag}: {h.title}.
+      </strong>{' '}
+      <span className="muted">
+        {h.round && h.total ? `This round: ${h.round}. All rounds so far: ${h.total}.` : h.detail}
+      </span>
+    </p>
+  );
+}
 
 /** The reason to tag next time: what these tags just said, and how your practice target played. */
 export function RoundPayoff({ round }: { round: Round }) {
@@ -13,24 +26,18 @@ export function RoundPayoff({ round }: { round: Round }) {
     [round, scoped.rounds, state.practice, state.drills, surface],
   );
   if (!round.finished || round.practice) return null;
-  const { tags, found, still, work } = pay;
+  const { tags, found, still, lines, work } = pay;
   const newest = !scoped.rounds.some((r) => r.date > round.date);
   const nudge = !tags.tagged && newest;
-  if (!tags.lines.length && !found.length && !still && !work.length && !nudge) return null;
+  if (!lines.length && !found.length && !still && !work.length && !nudge) return null;
   return (
     <>
       <h2>What this round showed</h2>
       <div className="card payoff">
         {found.map((h) => (
-          <p key={h.title}>
-            <strong>New: {h.title}.</strong> <span className="muted">{h.detail}</span>
-          </p>
+          <PatternLine key={h.title} tag="New" h={h} />
         ))}
-        {still && (
-          <p>
-            <strong>Still there: {still.title}.</strong> <span className="muted">{still.detail}</span>
-          </p>
-        )}
+        {still && <PatternLine tag="Still there" h={still} />}
         {work.map((w) => (
           <p key={w.label}>
             <strong>
@@ -39,9 +46,9 @@ export function RoundPayoff({ round }: { round: Round }) {
             <span className="muted">{w.text}</span>
           </p>
         ))}
-        {tags.lines.length > 0 && (
+        {lines.length > 0 && (
           <p className="muted">
-            From the {tags.tagged} of {tags.putts} putts you tagged. {tags.lines.join(' ')}
+            From the {tags.tagged} of {tags.putts} putts you tagged. {lines.join(' ')}
           </p>
         )}
         {nudge && (

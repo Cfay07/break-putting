@@ -741,6 +741,8 @@ describe('what a round showed', () => {
     expect(roundPayoff(second, rounds, [], 'indoor').found.map((h) => h.title)).toEqual(['When you miss your line, it is a push']);
     expect(roundPayoff(third, rounds, [], 'indoor').found).toEqual([]);
     expect(roundPayoff(third, rounds, [], 'indoor').still?.title).toBe('When you miss your line, it is a push');
+    expect(roundPayoff(third, rounds, [], 'indoor').still).toMatchObject({ round: '2 pushed, 0 pulled', total: '10 pushes and 0 pulls in 10 misses' });
+    expect(roundPayoff(third, rounds, [], 'indoor').lines).toEqual([]);
     expect(roundPayoff(tagged('2026-11-20', [{ d: 6, made: false, lip: true }]), [...rounds], [], 'indoor').still).toBeNull();
   });
 

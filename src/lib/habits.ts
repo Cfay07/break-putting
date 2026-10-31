@@ -14,6 +14,8 @@ export interface Habit {
   key: 'read' | 'start' | 'lip' | 'strike' | 'decel' | 'bleed';
   title: string;
   detail: string;
+  /** The running total on its own, for a card that has to keep it apart from one round. */
+  total?: string;
   fix: string;
   /** For ordering: how much of the problem this is, nought to one. */
   weight: number;
@@ -47,6 +49,7 @@ export function habitsOf(rounds: Round[], surface: Surface): Habit[] {
         key: 'read',
         title: `You ${word}-read ${way} putts`,
         detail: `${n} of the ${side.putts} ${way} putts with a read logged ${verb}; ${side.right} you had right.`,
+        total: `${n} of ${side.putts} ${way} reads`,
         fix: fixFor(side.key, word === 'under' ? 'low' : 'high', 8, surface),
         weight: n / side.putts,
         read: { side: side.key, way: word },
@@ -86,6 +89,7 @@ export function habitsOf(rounds: Round[], surface: Surface): Habit[] {
       key: 'start',
       title: `When you miss your line, it is a ${push > pull ? 'push' : 'pull'}`,
       detail: `${count(push, 'push', 'pushes')} and ${count(pull, 'pull', 'pulls')} in your ${misses} misses. Not most of them, but when you lose the line it goes the same way. The gate shows it on every ball.`,
+      total: `${count(push, 'push', 'pushes')} and ${count(pull, 'pull', 'pulls')} in ${misses} misses`,
       fix: fixFor(null, 'start-line', 6, surface),
       // Its share of all your misses, not how lopsided it is: 19 of 21 going one way is still 19.
       weight: often / misses,
@@ -97,6 +101,7 @@ export function habitsOf(rounds: Round[], surface: Surface): Habit[] {
       key: 'lip',
       title: 'Short putts catching the edge',
       detail: `${lips} of your ${shortMisses} misses from 3 to 10 ft lipped out. A firmer roll takes the edge out of play.`,
+      total: `${lips} lip-outs in ${shortMisses} misses from 3 to 10 ft`,
       fix: fixFor(null, 'short', 5, surface),
       weight: lips / shortMisses,
     });
@@ -110,6 +115,7 @@ export function habitsOf(rounds: Round[], surface: Surface): Habit[] {
       key: 'strike',
       title: 'Off the middle of the face',
       detail: `${off} of your ${struck} tagged strikes were toe or heel.`,
+      total: `${off} of ${struck} strikes off the middle`,
       fix: 'fix:strike:6',
       weight: off / struck,
     });
@@ -120,6 +126,7 @@ export function habitsOf(rounds: Round[], surface: Surface): Habit[] {
       key: 'decel',
       title: 'The stroke quits on it',
       detail: `${decel} of your ${faultTagged} misses with a fault tagged were decel.`,
+      total: `${decel} of ${faultTagged} misses with a fault tagged`,
       fix: 'fix:accel:6',
       weight: decel / faultTagged,
     });
