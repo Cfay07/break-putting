@@ -15,12 +15,16 @@ export interface Habit {
   title: string;
   detail: string;
   fix: string;
-  /** For ordering: how lopsided the habit is, nought to one. */
+  /** For ordering: how much of the problem this is, nought to one. */
   weight: number;
+  /** Read habits belong to one side of the break and one way of getting it wrong. */
+  read?: { side: 'lr' | 'rl'; way: 'under' | 'over' };
 }
 
 const READ_NEED = 12;
 const START_NEED = 8;
+/** Pushes can all go one way and still be a small part of how you miss. Below this it stays quiet. */
+const START_SHARE = 0.1;
 const LIP_NEED = 8;
 const STRIKE_NEED = 15;
 const DECEL_NEED = 6;
@@ -45,10 +49,12 @@ export function habitsOf(rounds: Round[], surface: Surface): Habit[] {
         detail: `${n} of the ${side.putts} ${way} putts with a read logged ${verb}; ${side.right} you had right.`,
         fix: fixFor(side.key, word === 'under' ? 'low' : 'high', 8, surface),
         weight: n / side.putts,
+        read: { side: side.key, way: word },
       });
     }
   }
 
+  let misses = 0;
   let push = 0;
   let pull = 0;
   let lips = 0;
@@ -59,6 +65,7 @@ export function habitsOf(rounds: Round[], surface: Surface): Habit[] {
     for (const h of r.holes) {
       for (const p of h.putts) {
         if (p.made) continue;
+        misses++;
         if (p.push) push++;
         if (p.pull) pull++;
         if (p.decel) decel++;
@@ -72,14 +79,16 @@ export function habitsOf(rounds: Round[], surface: Surface): Habit[] {
   }
 
   const line = push + pull;
-  if (line >= START_NEED && Math.max(push, pull) >= line * 0.75) {
-    const word = push > pull ? 'push' : 'pull';
+  const often = Math.max(push, pull);
+  if (line >= START_NEED && often >= line * 0.75 && often >= misses * START_SHARE) {
+    const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
     out.push({
       key: 'start',
-      title: `You ${word} it`,
-      detail: `${Math.max(push, pull)} of your ${line} start-line misses were ${word}es. The gate shows it on every ball.`,
+      title: `When you miss your line, it is a ${push > pull ? 'push' : 'pull'}`,
+      detail: `${count(push, 'push', 'pushes')} and ${count(pull, 'pull', 'pulls')} in your ${misses} misses. Not most of them, but when you lose the line it goes the same way. The gate shows it on every ball.`,
       fix: fixFor(null, 'start-line', 6, surface),
-      weight: Math.max(push, pull) / line,
+      // Its share of all your misses, not how lopsided it is: 19 of 21 going one way is still 19.
+      weight: often / misses,
     });
   }
 

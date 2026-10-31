@@ -63,7 +63,11 @@ export function roundPayoff(round: Round, scoped: Round[], carry: Carry[], surfa
   const after = inScope ? habitsOf([...before, round], surface) : [];
   const found = after.filter((h) => !had.has(h.title));
   const tags = roundTags(round);
-  const still = after.find((h) => had.has(h.title) && tags.showed.has(h.key)) ?? null;
+  // A read pattern only counts as showing up if this round got that side wrong that way.
+  const sides = readError([round]).sides;
+  const showedHere = (h: Habit) =>
+    h.read ? (sides.find((x) => x.key === h.read!.side)?.[h.read.way] ?? 0) > 0 : tags.showed.has(h.key);
+  const still = after.find((h) => had.has(h.title) && showedHere(h)) ?? null;
   const work = inScope
     ? carry
         .filter((c) => round.date >= c.started)

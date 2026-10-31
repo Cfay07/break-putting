@@ -420,8 +420,25 @@ describe('stroke and reads', () => {
     const push: Putt = { d: 6, made: false, push: true };
     const pull: Putt = { d: 6, made: false, pull: true };
     const h = habitsOf([tagged([...many(7, push), pull])], 'indoor');
-    expect(h.find((x) => x.key === 'start')?.title).toBe('You push it');
+    expect(h.find((x) => x.key === 'start')?.title).toBe('When you miss your line, it is a push');
     expect(habitsOf([tagged([...many(5, push), ...many(3, pull)])], 'indoor').find((x) => x.key === 'start')).toBeUndefined();
+  });
+
+  it('says how many misses a push is out of, and stays quiet when it is a small part of them', () => {
+    const push: Putt = { d: 6, made: false, push: true };
+    const miss: Putt = { d: 6, made: false };
+    const start = (extra: number) => habitsOf([tagged([...many(19, push), ...many(2, { d: 6, made: false, pull: true }), ...many(extra, miss)])], 'indoor').find((x) => x.key === 'start');
+    expect(start(142)?.detail).toContain('19 pushes and 2 pulls in your 163 misses');
+    expect(start(142)?.weight).toBeCloseTo(19 / 163);
+    expect(start(200)).toBeUndefined();
+  });
+
+  it('ranks a habit by how much of the problem it is, not how lopsided', () => {
+    const push: Putt = { d: 6, made: false, push: true };
+    const under: Putt = { d: 8, made: false, breakDirs: ['L→R'], readAs: 1, brokeAs: 2 };
+    const right: Putt = { d: 8, made: true, breakDirs: ['L→R'], readAs: 2, brokeAs: 2 };
+    const h = habitsOf([tagged([...many(19, push), ...many(120, { d: 6, made: false }), ...many(11, under), ...many(8, right)])], 'indoor');
+    expect(h.map((x) => x.key).slice(0, 2)).toEqual(['read', 'start']);
   });
 
   it('calls lips only when they are a real share of short misses', () => {
@@ -721,9 +738,9 @@ describe('what a round showed', () => {
     const third = tagged('2026-11-15', many(2, push));
     const rounds = [first, second, third];
     expect(roundPayoff(first, rounds, [], 'indoor').found).toEqual([]);
-    expect(roundPayoff(second, rounds, [], 'indoor').found.map((h) => h.title)).toEqual(['You push it']);
+    expect(roundPayoff(second, rounds, [], 'indoor').found.map((h) => h.title)).toEqual(['When you miss your line, it is a push']);
     expect(roundPayoff(third, rounds, [], 'indoor').found).toEqual([]);
-    expect(roundPayoff(third, rounds, [], 'indoor').still?.title).toBe('You push it');
+    expect(roundPayoff(third, rounds, [], 'indoor').still?.title).toBe('When you miss your line, it is a push');
     expect(roundPayoff(tagged('2026-11-20', [{ d: 6, made: false, lip: true }]), [...rounds], [], 'indoor').still).toBeNull();
   });
 
