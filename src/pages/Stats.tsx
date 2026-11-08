@@ -756,7 +756,6 @@ function RoundStats() {
             <thead>
               <tr>
                 <th>Putter</th>
-                <th>Rds</th>
                 <th>Putts</th>
                 <th>3P</th>
                 <th>3-10 ft</th>
@@ -774,9 +773,11 @@ function RoundStats() {
                   <tr key={p.id}>
                     <td>
                       {p.name}
-                      {p.active && <span className="small muted"> · in the bag</span>}
+                      <span className="small muted" style={{ display: 'block' }}>
+                        {sub.rounds} {sub.rounds === 1 ? 'round' : 'rounds'}
+                        {p.active ? ' · in the bag' : ''}
+                      </span>
                     </td>
-                    <td>{sub.rounds}</td>
                     <td>{sub.puttsPerRound?.toFixed(1)}</td>
                     <td>{sub.threePuttsPerRound?.toFixed(1)}</td>
                     <td>{pctText(sub.scoringPct)}</td>

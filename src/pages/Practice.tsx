@@ -342,7 +342,7 @@ export function Practice() {
       </div>
       {!state.sessions.length && (
         <p className="small muted" style={{ margin: '8px 0 0' }}>
-          Your team's practice file comes in from Settings, under Practice files.
+          Your team's practice file comes in from Settings, under Imports.
         </p>
       )}
 

@@ -1,107 +1,240 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Account } from '../components/Account';
 import { ConfirmButton } from '../components/ConfirmButton';
+import { NameField } from '../components/NameField';
+import { OldRoundImport } from '../components/OldRoundImport';
 import { PracticeImport } from '../components/PracticeImport';
-import { PutterTag } from '../components/PutterTag';
-import { parsePaste } from '../lib/importer';
+import { Sheet } from '../components/Sheet';
+import { accountName, currentSession } from '../lib/cloud';
 import { fmtDate, today } from '../lib/format';
-import { go } from '../lib/router';
 import { newId } from '../lib/storage';
-import { GreenSpeedPick } from '../components/GreenSpeedPick';
-import { blankHoles, makeRound, useApp } from '../lib/store';
-import { DEFAULT_BASELINE, type AppState, type GreenSpeed } from '../lib/types';
+import { lastSyncedAt } from '../lib/sync';
+import { useApp } from '../lib/store';
+import { DEFAULT_BASELINE, type AppState } from '../lib/types';
+
+type Open =
+  | { k: 'name' | 'account' | 'addPutter' | 'practice' | 'oldRound' | 'baseline' }
+  | { k: 'putter'; id: string }
+  | { k: 'course'; id: string };
+
+function Row({ title, sub, end, onClick }: { title: ReactNode; sub?: ReactNode; end?: ReactNode; onClick?: () => void }) {
+  const inner = (
+    <>
+      <span className="list-main">
+        <span className="list-title">{title}</span>
+        {sub && <span className="list-sub">{sub}</span>}
+      </span>
+      {end ?? (onClick && <span className="list-chev" aria-hidden="true">›</span>)}
+    </>
+  );
+  return onClick ? (
+    <button type="button" className="list-row" onClick={onClick}>
+      {inner}
+    </button>
+  ) : (
+    <div className="list-row">{inner}</div>
+  );
+}
+
+function syncedText(): string {
+  const at = lastSyncedAt();
+  if (!at) return 'Not synced yet';
+  const mins = Math.round((Date.now() - new Date(at).getTime()) / 60000);
+  if (mins < 1) return 'Synced just now';
+  if (mins < 60) return `Synced ${mins} min ago`;
+  if (mins < 60 * 24) return `Synced ${Math.round(mins / 60)} hr ago`;
+  return `Synced ${fmtDate(at.slice(0, 10))}`;
+}
 
 /**
  * Deleting a putter never deletes putting. Its rounds and practice sets move to the putter you
  * pick first, so the per-putter splits stay true; one with nothing logged just goes.
  */
-function PutterDelete({
-  id,
-  moveTo,
-  setMoveTo,
-  onDone,
-}: {
-  id: string;
-  moveTo: string;
-  setMoveTo: (id: string) => void;
-  onDone: () => void;
-}) {
+function PutterDelete({ id, onDone }: { id: string; onDone: () => void }) {
   const { state, dispatch } = useApp();
+  const [moveTo, setMoveTo] = useState('');
   const rounds = state.rounds.filter((r) => r.putterId === id).length;
   const others = state.putters.filter((p) => p.id !== id);
+  if (rounds > 0 && others.length === 0) {
+    return (
+      <p className="small" style={{ margin: 0 }}>
+        {rounds} {rounds === 1 ? 'round was' : 'rounds were'} putted with this one. Add the putter they belong to
+        first, then delete this one.
+      </p>
+    );
+  }
   return (
-    <div className="putter-delete">
-      {rounds > 0 && others.length === 0 ? (
-        <p className="small" style={{ margin: 0 }}>
-          {rounds} {rounds === 1 ? 'round was' : 'rounds were'} putted with this one. Add the putter they belong to
-          first, then delete this one.
-        </p>
-      ) : (
+    <>
+      {rounds > 0 && (
         <>
-          {rounds > 0 && (
-            <>
-              <p className="small" style={{ margin: '0 0 8px' }}>
-                Its {rounds} {rounds === 1 ? 'round moves' : 'rounds move'} to:
-              </p>
-              <div className="chips chips-sm">
-                {others.map((o) => (
-                  <button key={o.id} className={moveTo === o.id ? 'chip chip-sel' : 'chip'} onClick={() => setMoveTo(o.id)}>
-                    {o.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          <div className="btn-row" style={{ marginTop: 10 }}>
-            <button className="btn btn-ghost" onClick={onDone}>
-              Cancel
-            </button>
-            <ConfirmButton
-              label="Delete putter"
-              confirmLabel="Delete it?"
-              className="btn btn-danger"
-              style={rounds > 0 && !moveTo ? { opacity: 0.4, pointerEvents: 'none' } : undefined}
-              onConfirm={() => {
-                dispatch({ t: 'deletePutter', id, moveTo: rounds > 0 ? moveTo : undefined });
-                onDone();
-              }}
-            />
+          <p className="small" style={{ margin: '0 0 8px' }}>
+            Its {rounds} {rounds === 1 ? 'round moves' : 'rounds move'} to:
+          </p>
+          <div className="chips chips-sm">
+            {others.map((o) => (
+              <button key={o.id} className={moveTo === o.id ? 'chip chip-sel' : 'chip'} onClick={() => setMoveTo(o.id)}>
+                {o.name}
+              </button>
+            ))}
           </div>
         </>
       )}
-    </div>
+      <ConfirmButton
+        label="Delete putter"
+        confirmLabel="Tap again to delete"
+        className="btn btn-danger btn-wide"
+        style={{ marginTop: 12, ...(rounds > 0 && !moveTo ? { opacity: 0.4, pointerEvents: 'none' } : {}) }}
+        onConfirm={() => {
+          dispatch({ t: 'deletePutter', id, moveTo: rounds > 0 ? moveTo : undefined });
+          onDone();
+        }}
+      />
+    </>
+  );
+}
+
+function PutterSheet({ id, onClose }: { id: string; onClose: () => void }) {
+  const { state, dispatch } = useApp();
+  const [deleting, setDeleting] = useState(false);
+  const p = state.putters.find((x) => x.id === id);
+  if (!p) return null;
+  return (
+    <Sheet title={p.name || 'Putter'} onClose={onClose}>
+      <div className="field-label" style={{ marginTop: 0 }}>Name</div>
+      <input
+        type="text"
+        aria-label="putter name"
+        value={p.name}
+        onChange={(e) => dispatch({ t: 'renamePutter', id: p.id, name: e.target.value })}
+      />
+      <div className="btn-row" style={{ marginTop: 14 }}>
+        {!p.active && !p.retired && (
+          <button className="btn" onClick={() => dispatch({ t: 'setActivePutter', id: p.id })}>
+            Put in the bag
+          </button>
+        )}
+        <button className="btn" onClick={() => dispatch({ t: 'retirePutter', id: p.id, retired: !p.retired })}>
+          {p.retired ? 'Unretire' : 'Retire'}
+        </button>
+      </div>
+      <div style={{ marginTop: 20 }}>
+        {deleting ? (
+          <PutterDelete id={p.id} onDone={onClose} />
+        ) : (
+          <button className="text-btn text-danger" onClick={() => setDeleting(true)}>
+            Delete this putter
+          </button>
+        )}
+      </div>
+    </Sheet>
+  );
+}
+
+function AddPutterSheet({ onClose }: { onClose: () => void }) {
+  const { dispatch } = useApp();
+  const [name, setName] = useState('');
+  const add = () => {
+    dispatch({ t: 'addPutter', id: newId(), name });
+    onClose();
+  };
+  return (
+    <Sheet title="Add a putter" onClose={onClose}>
+      <input type="text" value={name} placeholder="Cobra Stingray" onChange={(e) => setName(e.target.value)} />
+      <button className="btn btn-primary btn-wide" style={{ marginTop: 12 }} disabled={!name.trim()} onClick={add}>
+        Add putter
+      </button>
+    </Sheet>
+  );
+}
+
+function BaselineSheet({ onClose }: { onClose: () => void }) {
+  const { state, dispatch } = useApp();
+  return (
+    <Sheet title="Expected putts baseline" onClose={onClose}>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Strokes gained compares your hole to these numbers. Edit them if you want a different bar than scratch.
+      </p>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Feet</th>
+              <th>Expected putts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.baseline.map(([feet, exp], i) => (
+              <tr key={feet}>
+                <td>{feet}</td>
+                <td>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={exp}
+                    className="baseline-input"
+                    onChange={(e) => {
+                      const next = state.baseline.map(
+                        (row, j) => (j === i ? [row[0], Number(e.target.value)] : row) as [number, number],
+                      );
+                      dispatch({ t: 'setBaseline', baseline: next });
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button
+        className="btn btn-wide"
+        style={{ marginTop: 10 }}
+        onClick={() => dispatch({ t: 'setBaseline', baseline: DEFAULT_BASELINE })}
+      >
+        Reset to scratch
+      </button>
+    </Sheet>
+  );
+}
+
+function CourseSheet({ id, onClose }: { id: string; onClose: () => void }) {
+  const { state, dispatch } = useApp();
+  const c = state.courses.find((x) => x.id === id);
+  if (!c) return null;
+  const tees = [...new Set(c.tees.map((t) => t.name))];
+  return (
+    <Sheet title={c.name} onClose={onClose}>
+      {c.place && <p className="small muted" style={{ marginTop: 0 }}>{c.place}</p>}
+      {tees.length > 0 && (
+        <>
+          <div className="field-label">Tees</div>
+          <p style={{ margin: 0 }}>{tees.join(', ')}</p>
+        </>
+      )}
+      <ConfirmButton
+        className="btn btn-danger btn-wide"
+        style={{ marginTop: 20 }}
+        label="Remove course"
+        confirmLabel="Tap again to remove"
+        onConfirm={() => {
+          dispatch({ t: 'deleteCourse', id: c.id });
+          onClose();
+        }}
+      />
+      <p className="small muted">Rounds played there keep their scores and pars.</p>
+    </Sheet>
   );
 }
 
 export function Settings() {
   const { state, dispatch } = useApp();
-  const [name, setName] = useState('');
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [moveTo, setMoveTo] = useState('');
+  const [open, setOpen] = useState<Open | null>(null);
+  const close = () => setOpen(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const [pDate, setPDate] = useState(today);
-  const [pCourse, setPCourse] = useState('');
-  const [pPutter, setPPutter] = useState(state.putters.find((p) => p.active)?.id ?? '');
-  const [pHoles, setPHoles] = useState(18);
-  // A pasted round almost always came out of DECADE, and DECADE is where the competitive play lives.
-  const [pComp, setPComp] = useState(true);
-  const [pGreens, setPGreens] = useState<GreenSpeed | undefined>();
-  const [paste, setPaste] = useState('');
-  const [pScore, setPScore] = useState('');
-  const [pCard, setPCard] = useState('');
-  const [pasteErrors, setPasteErrors] = useState<string[]>([]);
-  const [pasteNotes, setPasteNotes] = useState<string[]>([]);
-  const [added, setAdded] = useState<{ id: string; date: string; putts: number } | null>(null);
   const [restoreNote, setRestoreNote] = useState('');
-  const [pending, setPending] = useState<{
-    state: AppState;
-    rounds: number;
-    fresh: number;
-    kept: number;
-  } | null>(null);
+  const [pending, setPending] = useState<{ state: AppState; rounds: number; fresh: number; kept: number } | null>(null);
+  const session = currentSession();
 
-  const exportJson = () => {
+  const backUp = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -111,349 +244,120 @@ export function Settings() {
     URL.revokeObjectURL(url);
   };
 
-  const importJson = async (file: File) => {
+  const readBackup = async (file: File) => {
     try {
       const parsed = JSON.parse(await file.text()) as AppState;
       if (!Array.isArray(parsed.rounds) || !Array.isArray(parsed.putters)) {
-        alert('That file is not a BREAK! backup.');
+        setRestoreNote('That file is not a BREAK! backup.');
         return;
       }
       const incoming = { ...parsed, baseline: parsed.baseline ?? DEFAULT_BASELINE };
       const same = (a: { date: string; holeCount: number }, b: { date: string; holeCount: number }) =>
         a.date === b.date && a.holeCount === b.holeCount;
-      const fresh = incoming.rounds.filter(
-        (r) => !state.rounds.some((x) => x.id === r.id || same(x, r)),
-      ).length;
-      const kept = state.rounds.filter(
-        (x) => !incoming.rounds.some((r) => r.id === x.id || same(x, r)),
-      ).length;
+      const fresh = incoming.rounds.filter((r) => !state.rounds.some((x) => x.id === r.id || same(x, r))).length;
+      const kept = state.rounds.filter((x) => !incoming.rounds.some((r) => r.id === x.id || same(x, r))).length;
       setPending({ state: incoming, rounds: incoming.rounds.length, fresh, kept });
+      setRestoreNote('');
     } catch {
-      alert('Could not read that file.');
+      setRestoreNote('Could not read that file.');
     }
   };
 
-  const runPaste = () => {
-    if (!pPutter) {
-      setPasteErrors(['Pick a putter first.']);
-      return;
-    }
-    const { holes, errors, notes } = parsePaste(paste, pHoles);
-    const tally = holes.reduce((sum, h) => sum + h.putts.length, 0);
-    if (pCard && Number(pCard) !== tally) {
-      notes.push(
-        `This reads ${tally} putts and your card says ${pCard}. The round saved either way and the round page flags the difference.`,
-      );
-    }
-    setPasteErrors(errors);
-    setPasteNotes(notes);
-    if (!holes.some((h) => h.putts.length)) {
-      setAdded(null);
-      return;
-    }
-    const round = makeRound({ date: pDate, course: pCourse, putterId: pPutter, holeCount: pHoles });
-    dispatch({
-      t: 'newRound',
-      round: {
-        ...round,
-        holes: holes.length ? holes : blankHoles(pHoles),
-        competitive: pComp || undefined,
-        greenSpeed: pGreens,
-        score: pScore ? Number(pScore) : undefined,
-        recordedPutts: pCard ? Number(pCard) : undefined,
-        finished: true,
-      },
-    });
-    setAdded({ id: round.id, date: pDate, putts: tally });
-    setPaste('');
-    setPCourse('');
-    setPScore('');
-    setPCard('');
-  };
+  const putters = state.putters.slice().sort((a, b) => Number(a.retired) - Number(b.retired) || Number(b.active) - Number(a.active));
+  const newest = state.rounds.length ? state.rounds.reduce((a, b) => (a.date > b.date ? a : b)).date : null;
 
   return (
     <>
-      <h2>Account</h2>
-      <Account />
+      <h2>You</h2>
+      <div className="list">
+        {session ? (
+          <>
+            <Row title={accountName() || 'Add your name'} sub="Name on every team board" onClick={() => setOpen({ k: 'name' })} />
+            <Row title={session.email} sub={syncedText()} onClick={() => setOpen({ k: 'account' })} />
+          </>
+        ) : (
+          <Row title="Sign in" sub="Back up your rounds and use them on another phone" onClick={() => setOpen({ k: 'account' })} />
+        )}
+      </div>
 
       <h2>Putters</h2>
-      {state.putters.length === 0 && <p className="small muted">No putters yet. Add the one in your bag.</p>}
-      {state.putters
-        .slice()
-        .sort((a, b) => Number(a.retired) - Number(b.retired))
-        .map((p) => (
-          <div className="card putter-row" key={p.id} style={{ opacity: p.retired ? 0.6 : 1 }}>
-            <div className="putter-head">
-              <PutterTag putterId={p.id} />
-              {p.active && <span className="tiny muted">In the bag</span>}
-              {p.retired && <span className="tiny muted">Retired</span>}
-            </div>
-            <input
-              type="text"
-              aria-label="putter name"
-              value={p.name}
-              onChange={(e) => dispatch({ t: 'renamePutter', id: p.id, name: e.target.value })}
-            />
-            <div className="btn-row">
-              {!p.active && !p.retired && (
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => dispatch({ t: 'setActivePutter', id: p.id })}
-                >
-                  Put in the bag
-                </button>
-              )}
-              <button
-                className="btn btn-ghost"
-                onClick={() => dispatch({ t: 'retirePutter', id: p.id, retired: !p.retired })}
-              >
-                {p.retired ? 'Unretire' : 'Retire'}
-              </button>
-              {deleting !== p.id && (
-                <button
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setDeleting(p.id);
-                    setMoveTo('');
-                  }}
-                >
-                  Delete
-                </button>
-              )}
-            </div>
-            {deleting === p.id && <PutterDelete id={p.id} moveTo={moveTo} setMoveTo={setMoveTo} onDone={() => setDeleting(null)} />}
-          </div>
+      <div className="list">
+        {putters.map((p) => (
+          <Row
+            key={p.id}
+            title={p.name}
+            end={p.active ? <span className="list-pill">In the bag</span> : p.retired ? <span className="list-pill off">Retired</span> : undefined}
+            onClick={() => setOpen({ k: 'putter', id: p.id })}
+          />
         ))}
-      <div style={{ display: 'flex', gap: 10 }}>
-        <input
-          type="text"
-          value={name}
-          placeholder="Add a putter"
-          onChange={(e) => setName(e.target.value)}
+        <Row title={<span className="list-add">Add a putter</span>} onClick={() => setOpen({ k: 'addPutter' })} />
+      </div>
+
+      <h2>While you play</h2>
+      <div className="list">
+        <Row
+          title="Hide score on the Track screen"
+          sub="For competitive rounds. Every stat still works out afterwards."
+          end={
+            <button
+              type="button"
+              role="switch"
+              className="switch"
+              aria-checked={!!state.quietTrack}
+              aria-label="Hide score on the Track screen"
+              onClick={() => dispatch({ t: 'setQuietTrack', on: !state.quietTrack })}
+            />
+          }
         />
-        <button
-          className="btn"
-          style={{ flex: '0 0 auto' }}
-          disabled={!name.trim()}
-          onClick={() => {
-            dispatch({ t: 'addPutter', id: newId(), name });
-            setName('');
-          }}
-        >
-          Add
-        </button>
       </div>
 
       <h2>Courses</h2>
       {state.courses.length === 0 ? (
-        <p className="small muted">
-          None saved yet. Pick one when you start a round and it gets kept here with its pars.
-        </p>
+        <p className="small muted">None saved yet. Pick one when you start a round and it gets kept here with its pars.</p>
       ) : (
-        state.courses.map((c) => (
-          <div className="card" key={c.id} style={{ marginBottom: 8 }}>
-            <div className="round-head">
-              <h3 style={{ fontSize: 16 }}>{c.name}</h3>
-              <ConfirmButton
-                className="linkish tiny"
-                label="Remove"
-                confirmLabel="Tap again"
-                onConfirm={() => dispatch({ t: 'deleteCourse', id: c.id })}
-              />
-            </div>
-            <p className="small muted" style={{ margin: '2px 0 0' }}>
-              {[c.place, c.tees.map((t) => t.name).join(', ')].filter(Boolean).join(' · ')}
-            </p>
-          </div>
-        ))
+        <div className="list">
+          {state.courses.map((c) => (
+            <Row key={c.id} title={c.name} sub={c.place} onClick={() => setOpen({ k: 'course', id: c.id })} />
+          ))}
+        </div>
       )}
 
-      <h2>While you play</h2>
-      <div className="card">
-        <div className="round-head">
-          <span className="k" style={{ fontSize: 14 }}>
-            Hide score and bleed on the Track screen
-          </span>
-          <button
-            className={state.quietTrack ? 'chip chip-sel' : 'chip'}
-            style={{ minHeight: 32, padding: '0 12px', fontSize: 13 }}
-            aria-pressed={!!state.quietTrack}
-            onClick={() => dispatch({ t: 'setQuietTrack', on: !state.quietTrack })}
-          >
-            {state.quietTrack ? 'Hidden' : 'Shown'}
-          </button>
-        </div>
-        <p className="small muted" style={{ margin: '8px 0 0' }}>
-          For competitive rounds. Putts still log exactly the same and every stat is still worked out
-          afterwards, you just do not see the running score or the drop while you are out there.
-        </p>
+      <h2 id="imports">Imports</h2>
+      <div className="list">
+        <Row title="Team practice file" sub="PDF or pasted text" onClick={() => setOpen({ k: 'practice' })} />
+        <Row title="Load an old round" sub="Typed out hole by hole" onClick={() => setOpen({ k: 'oldRound' })} />
+        <Row title="Expected putts baseline" sub="What strokes gained is measured against" onClick={() => setOpen({ k: 'baseline' })} />
       </div>
 
-      <h2>Under the hood</h2>
-      <details>
-        <summary>Expected putts baseline</summary>
-      <p className="small muted">
-        Strokes gained compares your hole to these numbers. Edit them if you want a different bar than scratch.
-      </p>
-      <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Feet</th>
-            <th>Expected putts</th>
-          </tr>
-        </thead>
-        <tbody>
-          {state.baseline.map(([feet, exp], i) => (
-            <tr key={feet}>
-              <td>{feet}</td>
-              <td>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={exp}
-                  className="baseline-input"
-                  onChange={(e) => {
-                    const next = state.baseline.map(
-                      (row, j) => (j === i ? [row[0], Number(e.target.value)] : row) as [number, number],
-                    );
-                    dispatch({ t: 'setBaseline', baseline: next });
-                  }}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h2>Backup</h2>
+      <div className="list">
+        <Row
+          title="Back up"
+          sub={`${state.rounds.length} ${state.rounds.length === 1 ? 'round' : 'rounds'}${newest ? `, newest ${fmtDate(newest)}` : ''}`}
+          onClick={backUp}
+        />
+        <Row title="Restore from a backup" onClick={() => fileRef.current?.click()} />
       </div>
-      <button
-        className="btn btn-ghost btn-wide"
-        style={{ marginTop: 10 }}
-        onClick={() => dispatch({ t: 'setBaseline', baseline: DEFAULT_BASELINE })}
-      >
-        Reset baseline
-      </button>
-      </details>
-
-      <details>
-        <summary>Bulk-load an old round</summary>
-      <p className="small muted">
-        Write it the way you write it on your phone. Hole number, then one entry per putt in order, commas
-        between them. Words in an entry become tags: high, low, on line, short, long, past, lip, push,
-        pull. Whatever follows the pipe is your running score, which is how the app works out greens in
-        regulation.
-      </p>
-      <pre className="small card" style={{ margin: '0 0 10px', overflowX: 'auto' }}>{`1: 8 feet (lip) (high), 1 foot | E
-2: 22 feet (high&short), 2 feet (high and pushed), 1 foot | +1
-3: 34 feet (high), 1 foot | +3`}</pre>
-      <p className="small muted">
-        A tagged last putt from more than 2 feet means the tap-in went unwritten, so one gets added. A tagged
-        tap-in inside 2 feet reads as a note on the putt before it. Either way the import tells you which holes
-        it did that to.
-      </p>
-      <div style={{ display: 'flex', gap: 10 }}>
-        <div style={{ flex: 1 }}>
-          <div className="field-label" style={{ marginTop: 0 }}>Date</div>
-          <input type="date" value={pDate} onChange={(e) => setPDate(e.target.value)} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div className="field-label" style={{ marginTop: 0 }}>Holes</div>
-          <div className="seg">
-            {[18, 9].map((n) => (
-              <button key={n} type="button" aria-pressed={pHoles === n} onClick={() => setPHoles(n)}>
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="field-label">Greens, by stimp</div>
-      <GreenSpeedPick value={pGreens} onPick={setPGreens} />
-      <div className="field-label">Playing</div>
-      <div className="seg">
-        {[false, true].map((t) => (
-          <button key={String(t)} type="button" aria-pressed={pComp === t} onClick={() => setPComp(t)}>
-            {t ? 'Competitive' : 'Casual'}
-          </button>
-        ))}
-      </div>
-      <div className="field-label">Course</div>
-      <input type="text" value={pCourse} onChange={(e) => setPCourse(e.target.value)} placeholder="Optional" />
-      <div className="field-label">Putter</div>
-      <div className="chips">
-        {state.putters
-          .filter((p) => !p.retired)
-          .map((p) => (
-            <button
-              key={p.id}
-              className={pPutter === p.id ? 'chip chip-sel' : 'chip'}
-              onClick={() => setPPutter(p.id)}
-            >
-              {p.name}
-            </button>
-          ))}
-      </div>
-      <div className="field-label">Holes</div>
-      <textarea value={paste} onChange={(e) => setPaste(e.target.value)} placeholder={'1: 30 3\n2: 12'} />
-      <div style={{ display: 'flex', gap: 10 }}>
-        <div style={{ flex: 1 }}>
-          <div className="field-label">Score</div>
-          <input type="number" inputMode="numeric" value={pScore} onChange={(e) => setPScore(e.target.value)} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div className="field-label">Putts on the card</div>
-          <input type="number" inputMode="numeric" value={pCard} onChange={(e) => setPCard(e.target.value)} />
-        </div>
-      </div>
-      {added && (
-        <div className="card card-good" style={{ marginTop: 12 }}>
-          <h3>
-            Added {fmtDate(added.date)} · {added.putts} putts
-          </h3>
-          <button className="btn btn-ghost btn-wide" style={{ marginTop: 8 }} onClick={() => go(`/round/${added.id}`)}>
-            Open the round
-          </button>
-        </div>
-      )}
-      {pasteErrors.length > 0 && (
-        <ul className="small neg">
-          {pasteErrors.map((e) => (
-            <li key={e}>{e}</li>
-          ))}
-        </ul>
-      )}
-      {pasteNotes.length > 0 && (
-        <ul className="small muted">
-          {pasteNotes.map((n) => (
-            <li key={n}>{n}</li>
-          ))}
-        </ul>
-      )}
-      <button className="btn btn-wide" style={{ marginTop: 10 }} disabled={!paste.trim()} onClick={runPaste}>
-        Add as a finished round
-      </button>
-      </details>
-
-      <h2 id="practice-import">Practice files</h2>
-      <PracticeImport />
-
-      <h2>Data</h2>
-      <div className="btn-row">
-        <button className="btn" onClick={exportJson}>
-          Export JSON
-        </button>
-        <button className="btn" onClick={() => fileRef.current?.click()}>
-          Import JSON
-        </button>
-      </div>
+      <p className="small muted">This phone can lose its storage without warning. Back up after rounds you care about.</p>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/json"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) readBackup(f);
+          e.target.value = '';
+        }}
+      />
       {pending && (
         <div className="card card-live" style={{ marginTop: 10 }}>
           <h3>
             That file holds {pending.rounds} {pending.rounds === 1 ? 'round' : 'rounds'}
           </h3>
           <p className="small muted" style={{ margin: '2px 0 12px' }}>
-            {pending.fresh} new to this device, {pending.rounds - pending.fresh} covering rounds you
-            already have. {pending.kept} here {pending.kept === 1 ? 'is' : 'are'} not in the file.
+            {pending.fresh} new to this device, {pending.rounds - pending.fresh} covering rounds you already have.{' '}
+            {pending.kept} here {pending.kept === 1 ? 'is' : 'are'} not in the file.
           </p>
           {pending.fresh > 0 && (
             <button
@@ -491,43 +395,47 @@ export function Settings() {
                 setRestoreNote('Replaced everything on this device.');
               }}
             />
-            <button
-              className="btn btn-ghost"
-              style={{ flex: '0 0 auto' }}
-              onClick={() => setPending(null)}
-            >
+            <button className="btn btn-ghost" style={{ flex: '0 0 auto' }} onClick={() => setPending(null)}>
               Cancel
             </button>
           </div>
         </div>
       )}
       {restoreNote && <p className="small muted">{restoreNote}</p>}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/json"
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) importJson(f);
-          e.target.value = '';
-        }}
-      />
-      <p className="small muted">
-        {state.rounds.length} {state.rounds.length === 1 ? 'round' : 'rounds'} on this device
-        {state.rounds.length
-          ? `, newest ${fmtDate(state.rounds.reduce((a, b) => (a.date > b.date ? a : b)).date)}`
-          : ''}. A browser can wipe local
-        storage without warning, so export after rounds you care about.
-      </p>
 
-      <h2>Danger</h2>
-      <ConfirmButton
-        className="btn btn-danger btn-wide"
-        label="Clear all data"
-        confirmLabel="Tap again to wipe everything"
-        onConfirm={() => dispatch({ t: 'clearAll' })}
-      />
+      <div className="settings-foot">
+        <ConfirmButton
+          className="text-btn text-danger"
+          label="Clear all data"
+          confirmLabel="Tap again to wipe everything on this phone"
+          onConfirm={() => dispatch({ t: 'clearAll' })}
+        />
+      </div>
+
+      {open?.k === 'name' && (
+        <Sheet title="Your name" onClose={close}>
+          <NameField first onSaved={close} />
+        </Sheet>
+      )}
+      {open?.k === 'account' && (
+        <Sheet title={session ? 'Account' : 'Sign in'} onClose={close}>
+          <Account />
+        </Sheet>
+      )}
+      {open?.k === 'putter' && <PutterSheet id={open.id} onClose={close} />}
+      {open?.k === 'addPutter' && <AddPutterSheet onClose={close} />}
+      {open?.k === 'course' && <CourseSheet id={open.id} onClose={close} />}
+      {open?.k === 'practice' && (
+        <Sheet title="Team practice file" onClose={close}>
+          <PracticeImport />
+        </Sheet>
+      )}
+      {open?.k === 'oldRound' && (
+        <Sheet title="Load an old round" onClose={close}>
+          <OldRoundImport />
+        </Sheet>
+      )}
+      {open?.k === 'baseline' && <BaselineSheet onClose={close} />}
     </>
   );
 }

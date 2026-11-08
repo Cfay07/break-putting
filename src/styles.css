@@ -66,12 +66,15 @@ body { overscroll-behavior-y: none; }
   color: var(--ink-3);
 }
 
+/* One heading level that reads as a heading. The small spaced caps are left to group labels
+   (.act, .field-label), so the two never look alike. */
 h2 {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--ink-2);
-  margin: 26px 0 10px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 28px 0 10px;
+  text-wrap: balance;
 }
 h3 { font-size: 16px; margin: 0 0 6px; }
 p { line-height: 1.45; }
@@ -259,7 +262,15 @@ p { line-height: 1.45; }
   cursor: pointer;
 }
 .seg > button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: #f7f5ee; }
-.seg-quiet > button { min-height: 40px; font-size: 13px; font-weight: 600; }
+/* A switch between views, so it reads as one control rather than two big buttons. */
+.seg-quiet { gap: 0; padding: 3px; background: rgba(20, 57, 43, 0.07); border-radius: 11px; }
+.seg-quiet > button, .seg-quiet > .seg-link {
+  min-height: 36px; font-size: 14px; font-weight: 600; border: 0; border-radius: 8px;
+  background: transparent; color: var(--ink-2);
+}
+.seg-quiet > button[aria-pressed='true'], .seg-quiet > .seg-link[aria-current='true'] {
+  background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(20, 57, 43, 0.16);
+}
 .field-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin: 14px 0 6px; }
 
 /* track */
@@ -1569,3 +1580,48 @@ div.nav-row[aria-disabled='true'] { opacity: 0.6; }
 .inline-link { color: var(--ink); font-weight: 600; text-decoration: none; white-space: nowrap; }
 .payoff { display: grid; gap: 8px; }
 .payoff p { margin: 0; font-size: 14px; line-height: 1.4; }
+
+/* Settings lists: rows you tap, grouped in one card per section. */
+.list { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.list-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+  min-height: 52px; padding: 10px 14px; background: none; border: 0; font: inherit; color: var(--ink);
+  text-align: left;
+}
+button.list-row { cursor: pointer; }
+button.list-row:active { background: rgba(20, 57, 43, 0.05); }
+.list-row + .list-row { border-top: 1px solid var(--line); }
+.list-main { display: grid; gap: 2px; min-width: 0; }
+.list-title { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.list-sub { font-size: 13px; color: var(--ink-2); }
+.list-chev { color: var(--ink-3); font-size: 22px; line-height: 1; flex: none; }
+.list-add { color: var(--ink); }
+.list-pill {
+  flex: none; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--accent); color: #fff; padding: 4px 8px; border-radius: 99px;
+}
+.list-pill.off { background: transparent; color: var(--ink-3); border: 1px solid var(--line); }
+.switch {
+  flex: none; width: 46px; height: 28px; border-radius: 99px; border: 0; padding: 0; cursor: pointer;
+  background: rgba(20, 57, 43, 0.18); position: relative; transition: background 0.15s;
+}
+.switch::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--card); transition: transform 0.15s;
+}
+.switch[aria-checked='true'] { background: var(--ink); }
+.switch[aria-checked='true']::after { transform: translateX(18px); }
+.text-btn { background: none; border: 0; padding: 8px 0; font: inherit; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.text-danger { color: var(--red); }
+.text-btn.armed { color: var(--red); text-decoration: underline; }
+.settings-foot { margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--line); text-align: center; }
+
+/* Facts about a round you can change, drawn as tags so they never pass for actions. */
+.status-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.status-tag {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px;
+  border-radius: 99px; border: 1px solid var(--line); background: transparent; font: inherit;
+  font-size: 13px; font-weight: 600; color: var(--ink-2); cursor: pointer;
+}
+.status-tag.on { border-color: var(--ink); color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .switch, .switch::after { transition: none; } }

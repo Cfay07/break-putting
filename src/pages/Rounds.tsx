@@ -47,6 +47,7 @@ export function Rounds() {
     return rows;
   }, [state.rounds, state.baseline, sort]);
   const usable = state.putters.filter((p) => !p.retired);
+  const bagPutter = state.putters.find((p) => p.active)?.id;
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [date, setDate] = useState(today);
@@ -227,7 +228,8 @@ export function Rounds() {
                 🩸{bled > 0 ? bled : ''}
               </span>
             )}
-            <PutterTag putterId={r.putterId} />
+            {/* Only the odd one out gets a tag. The bag putter on every card said nothing. */}
+            {r.putterId !== bagPutter && <PutterTag putterId={r.putterId} />}
           </div>
           {r.course && (
             <span className="small muted" style={{ display: 'block', marginTop: 2 }}>

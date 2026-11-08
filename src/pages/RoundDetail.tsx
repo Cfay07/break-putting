@@ -160,6 +160,15 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     running.set(h.hole, carried);
   }
 
+  // A nine logged on an eighteen-hole card used to draw nine rows of dashes under it.
+  // Trimmed to the first and last hole with anything on it, so a skipped hole in the middle
+  // stays tappable.
+  const played = (h: (typeof round.holes)[number]) =>
+    h.putts.length > 0 || h.strokes !== undefined || h.vsPar !== undefined || !!h.holedOut;
+  const firstPlayed = round.holes.findIndex(played);
+  const lastPlayed = round.holes.length - 1 - [...round.holes].reverse().findIndex(played);
+  const playedHoles = firstPlayed < 0 ? round.holes : round.holes.slice(firstPlayed, lastPlayed + 1);
+
   return (
     <>
       <div style={{ marginBottom: 6 }}>
@@ -183,10 +192,10 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             .join(' · ')}
         </p>
       )}
-      {!practice && (
-      <div className="chips" style={{ marginTop: 8 }}>
+      <div className="btn-row" style={{ marginTop: 12 }}>
+        {!practice && (
         <button
-          className="chip"
+          className="btn btn-primary"
           disabled={sharing}
           onClick={() => {
             if (!currentSession()) {
@@ -231,11 +240,18 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         >
           {sharing ? 'Sharing…' : 'Share'}
         </button>
-        <button className="chip" onClick={() => setSpeedSheet(true)}>
+        )}
+        <button className="btn" onClick={() => setEditing(true)}>
+          Edit round
+        </button>
+      </div>
+      {!practice && (
+      <div className="status-tags">
+        <button className="status-tag" onClick={() => setSpeedSheet(true)}>
           {round.greenSpeed ? <SpeedBars speed={round.greenSpeed} label /> : 'Set green speed'}
         </button>
         <button
-          className={round.competitive ? 'chip chip-sel' : 'chip'}
+          className={round.competitive ? 'status-tag on' : 'status-tag'}
           aria-pressed={!!round.competitive}
           onClick={() =>
             dispatch({ t: 'updateRound', id: round.id, patch: { competitive: !round.competitive } })
@@ -245,20 +261,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         </button>
       </div>
       )}
-      <div className="btn-row" style={{ marginTop: 10 }}>
-        <button className="btn btn-ghost" onClick={() => setEditing(true)}>
-          Edit round
-        </button>
-        <ConfirmButton
-          className="btn btn-ghost btn-danger"
-          label="Delete"
-          confirmLabel="Tap again to delete"
-          onConfirm={() => {
-            dispatch({ t: 'deleteRound', id: round.id });
-            replaceRoute(practice ? '/stats/practice' : '/');
-          }}
-        />
-      </div>
 
       {speedSheet && (
         <Sheet title="Greens, by stimp" onClose={() => setSpeedSheet(false)}>
@@ -293,7 +295,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       <h2>The numbers</h2>
       <div className="card">
         <div className="stat-row">
-          <span className="k">Putts (tallied)</span>
+          <span className="k">Putts</span>
           <span className="v num">{s.totalPutts}</span>
         </div>
         {mismatch && (
@@ -467,7 +469,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       )}
       <div className="sc-wrap">
 
-        {round.holes.map((h) => (
+        {playedHoles.map((h) => (
           <button
             key={h.hole}
             className={h.putts.length >= 3 ? 'sc-row three' : 'sc-row'}
@@ -868,6 +870,16 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           <p className="small muted">
             Only fill this in if the card disagrees with what you logged. The tally is what every stat uses.
           </p>
+          <ConfirmButton
+            className="btn btn-danger btn-wide"
+            style={{ marginTop: 16 }}
+            label="Delete round"
+            confirmLabel="Tap again to delete"
+            onConfirm={() => {
+              dispatch({ t: 'deleteRound', id: round.id });
+              replaceRoute(practice ? '/stats/practice' : '/');
+            }}
+          />
         </Sheet>
       )}
       {courseOpen && (
