@@ -30,6 +30,8 @@ import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { ReadPanel } from '../components/ReadPanel';
 import { RoundPayoff } from '../components/RoundPayoff';
+import { RoundMoments } from '../components/RoundMoments';
+import { momentsOf } from '../lib/moments';
 import { readError } from '../lib/readError';
 import { formOf } from '../lib/form';
 import { FormPanel } from '../components/FormPanel';
@@ -108,6 +110,10 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     [state.baseline, round],
   );
   const cup = useMemo(() => (round ? cupCounts(round.holes) : null), [round]);
+  const moments = useMemo(
+    () => (round ? momentsOf(round, state.rounds, state.baseline, (p) => makeChanceOf(makeModel, p)) : []),
+    [round, state.rounds, state.baseline, makeModel],
+  );
   const sgAdjusted = useMemo(
     () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
     [makeModel, state.baseline, round],
@@ -491,7 +497,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           </button>
         ))}
 
-        {(round.holeCount > 9
+        {(playedHoles.some((h) => h.hole <= 9) && playedHoles.some((h) => h.hole >= 10)
           ? [
               { label: 'Out', from: 1, to: 9 },
               { label: 'In', from: 10, to: 18 },
@@ -541,6 +547,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           {bleeds.map((b) => `Hole ${b.triggerHole}, ${b.why}, ${b.shots} shot${b.shots === 1 ? '' : 's'}`).join('. ')}.
         </p>
       )}
+
+      <RoundMoments moments={moments} round={round} baseline={state.baseline} />
 
       {hole && (
         <Sheet

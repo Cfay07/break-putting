@@ -1625,3 +1625,156 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 }
 .status-tag.on { border-color: var(--ink); color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { .switch, .switch::after { transition: none; } }
+
+/* Moments: the round's rarest putts as cards. Big numbers carry the card, one accent per card. */
+.moments-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.moments-head a, .rounds-moments { color: var(--ink); font-weight: 700; text-decoration: none; }
+.rounds-moments { margin-left: auto; margin-right: 6px; }
+.moments-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin: 0 -16px;
+  padding: 2px 16px 8px;
+  scroll-padding-left: 16px;
+  scrollbar-width: none;
+}
+.moments-row::-webkit-scrollbar { display: none; }
+.moments-row > .moment { flex: 0 0 min(300px, 82vw); scroll-snap-align: start; min-height: 400px; }
+.moments-reel { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.moments-reel .moment { max-width: 420px; }
+.moment-when {
+  display: block;
+  border: 0;
+  background: none;
+  padding: 12px 0 4px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.moment {
+  --m-bg: var(--card);
+  --m-ink: var(--ink);
+  --m-muted: #5f7268;
+  --m-accent: #b5603a;
+  --m-accent-ink: #9c4f2c;
+  --m-rule: var(--line);
+  box-sizing: border-box;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--m-bg);
+  color: var(--m-ink);
+  padding: 18px 18px 14px;
+  display: flex;
+  flex-direction: column;
+}
+.moment.dark {
+  --m-bg: var(--ink);
+  --m-ink: var(--paper);
+  --m-muted: #a9c2b5;
+  --m-accent: #e8935f;
+  --m-accent-ink: #e8935f;
+  --m-rule: rgba(242, 239, 230, 0.18);
+  border-color: transparent;
+}
+.moment.low { --m-accent-ink: var(--red); }
+.moment-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.moment-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--m-accent-ink);
+}
+.moment-tag {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--m-muted);
+  white-space: nowrap;
+}
+.moment.dark .moment-tag { background: var(--m-accent); color: var(--ink); padding: 5px 9px; border-radius: 99px; }
+.moment-big { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 8px; margin-top: 10px; }
+.moment-num {
+  font-size: 96px;
+  font-weight: 900;
+  line-height: 0.86;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+.moment-unit { font-size: 26px; font-weight: 900; letter-spacing: -0.01em; color: var(--m-muted); }
+.moment-line { margin: 10px 0 16px; font-size: 15px; line-height: 1.35; font-weight: 600; }
+.moment-fill { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 10px 0; min-height: 90px; }
+.moment-viz { width: 100%; height: auto; max-height: 120px; }
+.mv-green { fill: rgba(20, 57, 43, 0.06); }
+.moment.dark .mv-green { fill: #1d4a38; }
+.mv-line { fill: none; stroke: var(--m-ink); stroke-width: 2.5; stroke-linecap: round; }
+.mv-ball { fill: var(--m-bg); stroke: var(--m-ink); stroke-width: 2; }
+.moment.dark .mv-ball { fill: var(--m-ink); }
+.mv-ball-start { fill: none; stroke: var(--m-ink); stroke-width: 1.5; }
+.mv-cup { fill: #0d2a1f; }
+.mv-pin { fill: var(--m-accent); }
+.mv-track { stroke: var(--m-rule); stroke-width: 2; }
+.mv-zone { fill: var(--m-accent); opacity: 0.16; }
+.mv-text { font-size: 10.5px; fill: var(--m-muted); }
+.mv-bars { display: flex; align-items: flex-end; gap: 10px; width: 100%; }
+.mv-bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.mv-bar i { display: block; width: 100%; border-radius: 6px 6px 2px 2px; background: var(--m-rule); }
+.mv-bar.me i { background: var(--m-accent); }
+.mv-bar-v { font-size: 13px; font-weight: 800; color: var(--m-muted); }
+.mv-bar.me .mv-bar-v { color: var(--m-accent-ink); }
+.mv-bar-l { font-size: 10.5px; color: var(--m-muted); white-space: nowrap; }
+.mv-dots { display: grid; gap: 4px; width: 100%; }
+.mv-dot { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10px; color: var(--m-muted); }
+.mv-dot i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--m-rule); box-sizing: border-box; }
+.mv-dot.made i { background: var(--m-accent); border-color: var(--m-accent); }
+.mv-dot b { font-size: 10.5px; font-weight: 600; }
+.mv-dot.made b { color: var(--m-ink); font-weight: 800; }
+.mv-streak { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+.mv-streak span {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--m-muted);
+  border: 1px solid var(--m-rule);
+}
+.mv-streak span.on { background: var(--m-accent); border-color: var(--m-accent); color: var(--m-bg); }
+.moment-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) 44px;
+  gap: 8px;
+  align-items: end;
+  border-top: 1px solid var(--m-rule);
+  padding-top: 12px;
+  margin-top: auto;
+}
+.moment-stats b { display: block; font-size: 26px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
+.moment-stats span { display: block; font-size: 11px; color: var(--m-muted); margin-top: 3px; }
+.moment-stats .t-accent { color: var(--m-accent-ink); }
+.moment-stats .t-good { color: var(--good); }
+.moment.dark .moment-stats .t-good { color: var(--m-ink); }
+.moment-stats .t-bad { color: var(--red); }
+.moment-share {
+  grid-column: 3;
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  border: 1px solid var(--m-rule);
+  background: transparent;
+  color: var(--m-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}

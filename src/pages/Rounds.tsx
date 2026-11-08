@@ -145,6 +145,11 @@ export function Rounds() {
       <div className="list-head">
         <h2>Rounds</h2>
         {finished.length >= 3 && (
+          <a href="#/moments" className="small rounds-moments">
+            Moments
+          </a>
+        )}
+        {finished.length >= 3 && (
           <div className="sort-pick">
             {SORTS.map((o) => (
               <button key={o} type="button" aria-pressed={sort === o} onClick={() => setSort(o)}>

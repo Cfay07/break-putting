@@ -9,6 +9,7 @@ import { SessionList } from './pages/SessionList';
 import { Hands } from './pages/Hands';
 import { PracticeLogPage } from './components/PracticeLog';
 import { PracticeWhy } from './pages/PracticeWhy';
+import { MomentsPage } from './pages/MomentsPage';
 import { Rounds } from './pages/Rounds';
 import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
@@ -260,6 +261,8 @@ export default function App() {
     <Team />
   ) : route === '/settings' ? (
     <Settings />
+  ) : route === '/moments' ? (
+    <MomentsPage />
   ) : (
     <Rounds />
   );
@@ -280,6 +283,8 @@ export default function App() {
           ? 'Team'
           : route === '/settings'
             ? 'Settings'
+            : route === '/moments'
+              ? 'Moments'
             : 'Putting';
 
   return (
@@ -296,7 +301,7 @@ export default function App() {
             : route.startsWith('/stats')
               ? '/stats'
               : (PARENT[route] ?? route);
-          const on = t.path === '/' ? here === '/' || here.startsWith('/round/') : here === t.path;
+          const on = t.path === '/' ? here === '/' || here === '/moments' || here.startsWith('/round/') : here === t.path;
           return (
             <a key={t.path} href={`#${t.path}`} className={on ? 'on' : undefined}>
               {t.label}
