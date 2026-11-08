@@ -26,20 +26,25 @@ export function SessionPage({ id }: { id: string }) {
 
   const blocks = session.blocks.map((b) => {
     const drill = resolveDrill(state, b.drill);
-    const usable = !!drill && (!drill.putting || fits(drill, run?.surface ?? surface));
+    const shown = drill?.putting !== false;
+    const usable = !!drill && shown && fits(drill, run?.surface ?? surface);
     const minutes = b.minutes ?? drill?.minutes;
     const setId = run?.done[session.blocks.indexOf(b)];
     const set = setId ? state.practice.find((s) => s.id === setId) : undefined;
-    return { b, drill, usable, minutes, set };
+    return { b, drill, shown, usable, minutes, set };
   });
-  const total = blocks.reduce((n, x) => n + (x.minutes ?? 0), 0);
+  const total = blocks.reduce((n, x) => n + (x.shown ? (x.minutes ?? 0) : 0), 0);
   const elapsed = run ? (now - Date.parse(run.startedAt)) / 1000 : 0;
   const cur = run ? blocks[run.block] : undefined;
   const blockLeft = run && cur?.minutes ? cur.minutes * 60 - (now - Date.parse(run.blockStartedAt)) / 1000 : null;
   const finished = run && run.block >= blocks.length;
   const nextIndex = (from: number) => blocks.findIndex((x, i) => i > from && !run?.done[i] && x.usable);
 
-  const start = () => dispatch({ t: 'startRun', session: id, surface });
+  const start = () => {
+    dispatch({ t: 'startRun', session: id, surface });
+    const first = nextIndex(-1);
+    if (first > 0) dispatch({ t: 'goToBlock', block: first });
+  };
 
   return (
     <div>
@@ -51,7 +56,7 @@ export function SessionPage({ id }: { id: string }) {
       </div>
       <h1 className="page-title">{session.name}</h1>
       <p className="small muted" style={{ margin: '2px 0 0' }}>
-        {blocks.length} blocks{total ? ` · ${total} min` : ''} · {SURFACE_LABELS[run?.surface ?? surface]}, up to {room} ft
+        {blocks.filter((x) => x.shown).length} blocks{total ? ` · ${total} min` : ''} · {SURFACE_LABELS[run?.surface ?? surface]}, up to {room} ft
       </p>
 
       {run && (
@@ -59,7 +64,7 @@ export function SessionPage({ id }: { id: string }) {
           <span className="run-big num">{clock(elapsed)}</span>
           {total > 0 && <span className="muted">of {clock(total * 60)}</span>}
           <div className="run-bar" role="img" aria-label="Session progress by block">
-            {blocks.map((x, i) => (
+            {blocks.map((x, i) => x.shown && (
               <i
                 key={i}
                 style={{ flex: x.minutes || 5 }}
@@ -72,6 +77,7 @@ export function SessionPage({ id }: { id: string }) {
 
       <ol className="blocks">
         {blocks.map((x, i) => {
+          if (!x.shown) return null;
           const isNow = run && i === run.block;
           const done = !!x.set;
           return (

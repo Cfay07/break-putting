@@ -28,17 +28,19 @@ export function SessionRow({ id }: { id: string }) {
   const { state, surface } = usePractice();
   const x = state.sessions.find((s) => s.id === id);
   if (!x) return null;
-  const mins = x.blocks.reduce((n, b) => n + (b.minutes ?? 0), 0);
-  const off = x.blocks.filter((b) => {
+  const blocks = x.blocks.filter((b) => resolveDrill(state, b.drill)?.putting !== false);
+  if (!blocks.length) return null;
+  const mins = blocks.reduce((n, b) => n + (b.minutes ?? 0), 0);
+  const off = blocks.filter((b) => {
     const d = resolveDrill(state, b.drill);
-    return d?.putting && !fits(d, surface);
+    return d && !fits(d, surface);
   }).length;
   return (
     <a className="nav-row" href={`#/practice/session/${x.id}`}>
       <span className="nav-main">
         <strong>{x.name}</strong>
         <span className="small muted">
-          {x.blocks.length} {x.blocks.length === 1 ? 'block' : 'blocks'}
+          {blocks.length} {blocks.length === 1 ? 'block' : 'blocks'}
           {mins ? ` · ${mins} min` : ''}
           {off ? ` · ${off} need a green` : ''}
         </span>

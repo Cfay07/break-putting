@@ -183,9 +183,10 @@ export const APP_DRILLS: DrillDef[] = [
  * Every drill this player can roll: their own and imported ones, then the app's. An original
  * that has your edited copy is left out, because the copy is the one you roll.
  */
+/** Putting only. Chipping and range blocks from older imports stay saved but never show. */
 export function allDrills(state: Pick<AppState, 'drills'>): DrillDef[] {
   const copied = new Set(state.drills.map((d) => d.from).filter(Boolean));
-  return [...state.drills, ...APP_DRILLS].filter((d) => !copied.has(d.id));
+  return [...state.drills, ...APP_DRILLS].filter((d) => !copied.has(d.id) && d.putting);
 }
 
 /**

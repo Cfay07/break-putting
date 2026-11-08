@@ -53,13 +53,18 @@ Six ways the sheet scores a drill, and each gets one input:
 - Inside a zone: counted out of N (Speed drill box, Earn the C, DECADE Speed Drill 3).
 - Win, tie or loss: head to head games.
 
-Open questions on the sheet, not to be guessed:
-- Lucky 13: does a miss end the attempt, or restart that station?
-- DECADE Speed Drill 1 labels its rows Try 1, Try 2, Try 2, Try 2. Read as four tries of six?
-- DECADE Speed Drill 3 labels four rows "20 ft". The setup says 15, 20, 25, 30, 35.
-- Spiral Out and Two Putt Knock Out point to a Competitive Putting Drills tab that is not in the PDF.
-- Chipping and range blocks: show them as timed blocks with a score, or leave them out?
-- There is no Day 9.
+Questions on the sheet, settled 2026-11-07. Conor did not know the coach's intent, so each one
+takes the reading that works for any team's file, and every drill stays editable:
+- Lucky 13: a miss ends the attempt and the score is how far you got. A player who wants a restart
+  changes "On a miss" in the drill editor.
+- DECADE Speed Drill 1: read as eight balls at each of 10, 15 and 20 ft, scored inside the zone.
+  The Try labels are repeats, not separate stations.
+- DECADE Speed Drill 3: the setup wins (15, 20, 25, 30, 35). The repeated "20 ft" rows are a typo.
+- Spiral Out and Two Putt Knock Out: logged as head to head games, win, tie or loss. The rules
+  come from whoever runs the game, so the app does not need the missing tab.
+- Chipping and range blocks: left out of Practice until full game. The importer skips them, and
+  ones already imported stay saved but never show in a session or drill list.
+- No Day 9: nothing to do. Sessions keep the sheet's own names.
 
 ### P3 · Build your own
 A drill is a name, one of the six scoring types, distances, balls, an optional pass mark, a time

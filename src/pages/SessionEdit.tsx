@@ -17,7 +17,9 @@ export function SessionEdit({ id }: { id: string }) {
   const { state, dispatch } = useApp();
   const original = id === 'new' ? undefined : state.sessions.find((x) => x.id === id);
   const [s, setS] = useState<SessionDef>(() =>
-    original ? structuredClone(original) : { id: newId(), name: '', blocks: [], source: 'mine' },
+    original
+      ? { ...structuredClone(original), blocks: original.blocks.filter((b) => resolveDrill(state, b.drill)?.putting !== false) }
+      : { id: newId(), name: '', blocks: [], source: 'mine' },
   );
   const [adding, setAdding] = useState(false);
 

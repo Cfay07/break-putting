@@ -198,6 +198,20 @@ Make 10 putts in a row from 3 feet`),
     expect(r.sessions[0].blocks[0].drill.id).toBe(r.sessions[1].blocks[0].drill.id);
     expect(r.drills).toHaveLength(2);
   });
+  it('leaves chipping and range blocks out, and drops a session left with nothing', () => {
+    let n = 0;
+    const r = readSheet(
+      textLines(`Monday Putting Practice
+Make 10 putts in a row from 3 feet
+Range work
+Tuesday Putting Practice
+Range work`),
+      () => `d${++n}`,
+    );
+    expect(r.sessions.map((s) => s.name)).toEqual(['Monday Putting Practice']);
+    expect(r.sessions[0].blocks.map((b) => b.drill.name)).not.toContain('Range work');
+    expect(r.drills.every((d) => d.putting)).toBe(true);
+  });
 });
 
 describe('practice in the store', () => {

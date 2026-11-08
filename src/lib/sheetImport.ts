@@ -568,9 +568,11 @@ export function readSheet(lines: Line[], newId: () => string): ImportResult {
   let unread = 0;
   const sessions = blocksOf(rowsOf(lines)).map((s) => ({
     name: s.name,
-    blocks: s.blocks.map((b) => {
+    blocks: s.blocks.flatMap((b) => {
       const text = b.desc.join(' ');
       const { read, def } = readBlock(text, b.answers.join(' '));
+      // Practice is putting. Chipping and range blocks are left out until full game.
+      if (read && def.putting === false) return [];
       if (!read) unread++;
       const sig = signature(def);
       let drill = read ? bySig.get(sig) : undefined;
@@ -586,9 +588,9 @@ export function readSheet(lines: Line[], newId: () => string): ImportResult {
         };
         if (read) bySig.set(sig, drill);
       }
-      return { minutes: b.minutes, text, drill, read };
+      return [{ minutes: b.minutes, text, drill, read }];
     }),
-  }));
+  })).filter((s) => s.blocks.length);
   const drills = [...new Map(sessions.flatMap((s) => s.blocks.map((b) => [b.drill.id, b.drill] as const))).values()];
   return { sessions, drills, unread };
 }
