@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { CompareRounds } from '../components/CompareRounds';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
 import { PutterTag } from '../components/PutterTag';
@@ -271,6 +272,11 @@ export function Rounds() {
           Show all {finished.length} rounds
         </button>
       )}
+
+      <CompareRounds
+        rounds={finished.map((x) => x.round).sort((a, b) => b.date.localeCompare(a.date))}
+        baseline={state.baseline}
+      />
 
       {open && (
         <Sheet title="New round" onClose={() => setOpen(false)}>

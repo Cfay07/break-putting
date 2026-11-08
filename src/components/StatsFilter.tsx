@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { fmtDate, today } from '../lib/format';
+import { courseKey } from '../lib/stats';
 import { applyFilter, daysBefore, NO_FILTER, type RoundFilter } from '../lib/roundFilter';
 import type { GreenSpeed, Putter, Round } from '../lib/types';
 import { Sheet } from './Sheet';
@@ -18,7 +19,7 @@ const GREENS: { k: GreenSpeed; label: string }[] = [
 ];
 
 /**
- * One sheet, four groups, everything combining. Each option shows how many rounds it would
+ * One sheet, five groups, everything combining. Each option shows how many rounds it would
  * leave given the rest of the filter, so a choice that empties the page is visible before
  * it is tapped.
  */
@@ -47,6 +48,15 @@ export function StatsFilter({
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
     .sort((a, b) => b.to.localeCompare(a.to));
+  const courseRows = [...finished.reduce((m, r) => {
+    const name = r.course?.trim();
+    if (!name) return m;
+    const key = courseKey(name);
+    const row = m.get(key) ?? { key, label: name, n: 0 };
+    row.n += 1;
+    if (name.length > row.label.length) row.label = name;
+    return m.set(key, row);
+  }, new Map<string, { key: string; label: string; n: number }>()).values()].sort((a, b) => b.n - a.n);
   const greens = GREENS.filter((g) => finished.some((r) => r.greenSpeed === g.k));
 
   const quick = [
@@ -88,6 +98,28 @@ export function StatsFilter({
                   </span>
                 </span>
                 <span className="filter-n">{count({ putterId: p.id })}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {courseRows.length > 1 && (
+        <div className="filter-group">
+          <span className="filter-h">Course</span>
+          <div className="filter-list">
+            <button aria-pressed={!f.course} onClick={() => setF({ ...f, course: undefined })}>
+              <span>Any course</span>
+              <span className="filter-n">{count({ course: undefined })}</span>
+            </button>
+            {courseRows.map((c) => (
+              <button
+                key={c.key}
+                aria-pressed={f.course?.key === c.key}
+                onClick={() => setF({ ...f, course: { key: c.key, label: c.label } })}
+              >
+                <span>{c.label}</span>
+                <span className="filter-n">{count({ course: { key: c.key, label: c.label } })}</span>
               </button>
             ))}
           </div>

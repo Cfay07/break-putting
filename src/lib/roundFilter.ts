@@ -1,4 +1,5 @@
 import { fmtDate } from './format';
+import { courseKey } from './stats';
 import type { GreenSpeed, Putter, Round } from './types';
 
 /** Every way Stats can narrow the rounds. Each part is optional and they all apply together. */
@@ -6,6 +7,8 @@ export interface RoundFilter {
   kind: 'all' | 'competitive' | 'casual';
   putterId?: string;
   greens?: GreenSpeed;
+  /** Matched on courseKey, so spellings of one course count as one. The label is for the button. */
+  course?: { key: string; label: string };
   /** Inclusive ISO dates. */
   from?: string;
   to?: string;
@@ -20,13 +23,14 @@ export function applyFilter(rounds: Round[], f: RoundFilter): Round[] {
       (f.kind === 'all' || !!r.competitive === (f.kind === 'competitive')) &&
       (!f.putterId || r.putterId === f.putterId) &&
       (!f.greens || r.greenSpeed === f.greens) &&
+      (!f.course || courseKey(r.course ?? '') === f.course.key) &&
       (!f.from || r.date >= f.from) &&
       (!f.to || r.date <= f.to),
   );
 }
 
 export function isFiltered(f: RoundFilter): boolean {
-  return f.kind !== 'all' || !!f.putterId || !!f.greens || !!f.from || !!f.to;
+  return f.kind !== 'all' || !!f.putterId || !!f.greens || !!f.course || !!f.from || !!f.to;
 }
 
 const GREEN_WORD: Record<GreenSpeed, string> = { slow: 'Slow', medium: 'Medium', fast: 'Fast', glass: 'Glass' };
@@ -41,6 +45,7 @@ export function dateRangeText(f: Pick<RoundFilter, 'from' | 'to'>): string | nul
 /** The button's words: what is on, in the order it narrows. */
 export function filterLabel(f: RoundFilter, putters: Putter[]): string {
   const parts = [
+    f.course ? f.course.label : null,
     f.putterId ? (putters.find((p) => p.id === f.putterId)?.name ?? 'One putter') : null,
     f.kind === 'competitive' ? 'Competitive' : f.kind === 'casual' ? 'Casual' : null,
     f.greens ? `${GREEN_WORD[f.greens]} greens` : null,
