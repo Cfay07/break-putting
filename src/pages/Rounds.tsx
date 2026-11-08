@@ -213,8 +213,8 @@ export function Rounds() {
               )}
             </span>
             {/* Drawn whenever a putting mistake happened, same as the drop on the scorecard,
-                so no drop means no mistake. The number is what it went on to cost, and a zero
-                sits quiet because getting away with one is not damage. */}
+                so no drop means no mistake. The number is what it went on to cost, and a mistake
+                that cost nothing shows the drop alone. */}
             {mistakes > 0 && (
               <span
                 className={bled > 0 ? 'bleed-tag' : 'bleed-tag clean'}
@@ -224,7 +224,7 @@ export function Rounds() {
                     : 'a putting mistake that cost nothing'
                 }
               >
-                🩸{bled}
+                🩸{bled > 0 ? bled : ''}
               </span>
             )}
             <PutterTag putterId={r.putterId} />
