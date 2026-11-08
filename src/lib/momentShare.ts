@@ -60,6 +60,11 @@ export function drawMoment(m: Moment, round: Round, baseline: [number, number][]
   c.fill();
   c.fillStyle = GREEN;
   c.fillText(chip, PAD + 28, y - 4);
+  c.fillStyle = MUTED;
+  c.font = font(800, 36);
+  c.textAlign = 'right';
+  c.fillText(m.odds.toUpperCase(), W - PAD, y - 4);
+  c.textAlign = 'left';
 
   y += 80;
   c.font = font(900, 420);

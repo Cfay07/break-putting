@@ -1632,16 +1632,17 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .rounds-moments { margin-left: auto; margin-right: 6px; }
 .moments-row {
   display: flex;
-  gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  margin: 0 -16px;
-  padding: 2px 16px 8px;
-  scroll-padding-left: 16px;
   scrollbar-width: none;
+  overscroll-behavior-x: contain;
 }
 .moments-row::-webkit-scrollbar { display: none; }
-.moments-row > .moment { flex: 0 0 min(300px, 82vw); scroll-snap-align: start; min-height: 400px; }
+.moments-row > .moment { flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; min-height: 350px; }
+.moments-dots { display: flex; justify-content: center; gap: 2px; margin-top: 4px; }
+.moments-dots button { width: 24px; height: 24px; border: 0; background: none; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.moments-dots i { width: 7px; height: 7px; border-radius: 4px; background: rgba(20, 57, 43, 0.22); transition: width 0.2s; }
+.moments-dots button[aria-current='true'] i { width: 20px; background: var(--ink); }
 .moments-reel { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .moments-reel .moment { max-width: 420px; }
 .moment-when {
@@ -1658,31 +1659,21 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 }
 
 .moment {
-  --m-bg: var(--card);
-  --m-ink: var(--ink);
-  --m-muted: #5f7268;
-  --m-accent: #b5603a;
-  --m-accent-ink: #9c4f2c;
-  --m-rule: var(--line);
-  box-sizing: border-box;
-  border-radius: 20px;
-  border: 1px solid var(--line);
-  background: var(--m-bg);
-  color: var(--m-ink);
-  padding: 18px 18px 14px;
-  display: flex;
-  flex-direction: column;
-}
-.moment.dark {
   --m-bg: var(--ink);
   --m-ink: var(--paper);
   --m-muted: #a9c2b5;
   --m-accent: #e8935f;
   --m-accent-ink: #e8935f;
   --m-rule: rgba(242, 239, 230, 0.18);
-  border-color: transparent;
+  box-sizing: border-box;
+  border-radius: 20px;
+  background: var(--m-bg);
+  color: var(--m-ink);
+  padding: 16px 16px 12px;
+  display: flex;
+  flex-direction: column;
 }
-.moment.low { --m-accent-ink: var(--red); }
+.moment.low { --m-accent-ink: #f0998d; }
 .moment-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .moment-label {
   font-size: 11px;
@@ -1691,32 +1682,42 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
   text-transform: uppercase;
   color: var(--m-accent-ink);
 }
+.moment-odds {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: 5px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--m-rule);
+  color: var(--m-ink);
+}
+.moment .moment-odds { background: var(--m-accent); border-color: var(--m-accent); color: var(--ink); }
 .moment-tag {
+  display: block;
+  margin-top: 8px;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--m-muted);
-  white-space: nowrap;
 }
-.moment.dark .moment-tag { background: var(--m-accent); color: var(--ink); padding: 5px 9px; border-radius: 99px; }
 .moment-big { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 8px; margin-top: 10px; }
 .moment-num {
-  font-size: 96px;
+  font-size: 80px;
   font-weight: 900;
   line-height: 0.86;
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
 }
-.moment-unit { font-size: 26px; font-weight: 900; letter-spacing: -0.01em; color: var(--m-muted); }
-.moment-line { margin: 10px 0 16px; font-size: 15px; line-height: 1.35; font-weight: 600; }
-.moment-fill { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 10px 0; min-height: 90px; }
-.moment-viz { width: 100%; height: auto; max-height: 120px; }
-.mv-green { fill: rgba(20, 57, 43, 0.06); }
-.moment.dark .mv-green { fill: #1d4a38; }
+.moment-unit { font-size: 22px; font-weight: 900; letter-spacing: -0.01em; color: var(--m-muted); }
+.moment-line { margin: 6px 0 12px; font-size: 14.5px; line-height: 1.35; font-weight: 600; }
+.moment-fill { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 4px 0 10px; min-height: 80px; }
+.moment-viz { width: 100%; height: auto; max-height: 104px; }
+.mv-green { fill: #1d4a38; }
 .mv-line { fill: none; stroke: var(--m-ink); stroke-width: 2.5; stroke-linecap: round; }
-.mv-ball { fill: var(--m-bg); stroke: var(--m-ink); stroke-width: 2; }
-.moment.dark .mv-ball { fill: var(--m-ink); }
+.mv-ball { fill: var(--m-ink); }
 .mv-ball-start { fill: none; stroke: var(--m-ink); stroke-width: 1.5; }
 .mv-cup { fill: #0d2a1f; }
 .mv-pin { fill: var(--m-accent); }
@@ -1759,12 +1760,11 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
   padding-top: 12px;
   margin-top: auto;
 }
-.moment-stats b { display: block; font-size: 26px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
+.moment-stats b { display: block; font-size: 22px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
 .moment-stats span { display: block; font-size: 11px; color: var(--m-muted); margin-top: 3px; }
 .moment-stats .t-accent { color: var(--m-accent-ink); }
-.moment-stats .t-good { color: var(--good); }
-.moment.dark .moment-stats .t-good { color: var(--m-ink); }
-.moment-stats .t-bad { color: var(--red); }
+.moment-stats .t-good { color: var(--m-ink); }
+.moment-stats .t-bad { color: #f0998d; }
 .moment-share {
   grid-column: 3;
   width: 44px;

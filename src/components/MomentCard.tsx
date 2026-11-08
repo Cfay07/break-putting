@@ -5,17 +5,17 @@ function PuttLine({ dirs }: { dirs: string[] }) {
   const r = dirs.includes('R→L');
   const [d, ball, cup]: [string, number, number[]] =
     l && r
-      ? ['M60 100 C 20 64, 160 86, 130 58 S 196 20, 214 30', 60, [214, 30]]
+      ? ['M70 92 C 34 62, 160 82, 132 58 S 192 26, 208 34', 70, [208, 34]]
       : l
-        ? ['M70 100 C 50 52, 140 24, 210 30', 70, [210, 30]]
+        ? ['M80 92 C 60 52, 140 28, 204 34', 80, [204, 34]]
         : r
-          ? ['M210 100 C 230 52, 140 24, 70 30', 210, [70, 30]]
-          : ['M140 100 L 140 34', 140, [140, 28]];
+          ? ['M200 92 C 220 52, 140 28, 76 34', 200, [76, 34]]
+          : ['M140 94 L 140 36', 140, [140, 30]];
   return (
     <svg viewBox="0 0 280 110" className="moment-viz" aria-hidden="true">
-      <ellipse cx="140" cy="62" rx="150" ry="58" className="mv-green" />
+      <ellipse cx="140" cy="60" rx="136" ry="48" className="mv-green" />
       <path d={d} className="mv-line" />
-      <circle cx={ball} cy="100" r="5" className="mv-ball" />
+      <circle cx={ball} cy={d.startsWith('M140') ? 94 : 92} r="5" className="mv-ball" />
       <circle cx={cup[0]} cy={cup[1]} r="8" className="mv-cup" />
       <circle cx={cup[0]} cy={cup[1]} r="3.5" className="mv-pin" />
     </svg>
@@ -92,17 +92,18 @@ function Viz({ v }: { v: MomentViz }) {
   return <Streak holes={v.holes} />;
 }
 
-export function MomentCard({ m, dark, onShare }: { m: Moment; dark?: boolean; onShare?: () => void }) {
+export function MomentCard({ m, onShare }: { m: Moment; onShare?: () => void }) {
   return (
-    <article className={`moment${dark ? ' dark' : ''}${m.low ? ' low' : ''}`}>
+    <article className={m.low ? 'moment low' : 'moment'}>
       <header className="moment-head">
         <span className="moment-label">{m.label}</span>
-        {m.tag && <span className="moment-tag">{m.tag}</span>}
+        <span className="moment-odds">{m.odds}</span>
       </header>
       <div className="moment-big">
         <span className="moment-num">{m.big}</span>
         {m.unit && <span className="moment-unit">{m.unit}</span>}
       </div>
+      {m.tag && <span className="moment-tag">{m.tag}</span>}
       <p className="moment-line">{m.line}</p>
       {m.viz && (
         <div className="moment-fill">

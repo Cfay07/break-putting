@@ -9,7 +9,7 @@ import { useApp } from '../lib/store';
 import type { Round } from '../lib/types';
 import { makeChanceOf } from '../lib/xp';
 
-const SORTS = { recent: 'Recent', rarest: 'Rarest' } as const;
+const SORTS = { recent: 'Recent', biggest: 'Biggest' } as const;
 
 /** Every moment from every round. The solo version of the feed. */
 export function MomentsPage() {
@@ -20,7 +20,7 @@ export function MomentsPage() {
     const model = fitMakeModel(state.rounds);
     return allMoments(state.rounds, state.baseline, (p) => makeChanceOf(model, p));
   }, [state.rounds, state.baseline]);
-  const list = sort === 'recent' ? all : [...all].sort((a, b) => b.m.rarity - a.m.rarity);
+  const list = sort === 'recent' ? all : [...all].sort((a, b) => a.m.p - b.m.p);
   const share = (m: Moment, round: Round) =>
     void shareMoment(m, round, state.baseline).catch((e) => setNote((e as Error).message));
 
@@ -43,20 +43,20 @@ export function MomentsPage() {
       </div>
       <p className="small muted" style={{ margin: '4px 0 0' }}>
         {all.length
-          ? `${all.length} from ${new Set(all.map((x) => x.round.id)).size} rounds. Each round keeps its three rarest, measured against the rounds before it.`
+          ? `${all.length} from ${new Set(all.map((x) => x.round.id)).size} rounds. The odds are how often you would do it in a round with the same putts, by your own make chances.`
           : 'Log a few rounds and the putts worth remembering show up here.'}
       </p>
       {note && <p className="small neg">{note}</p>}
       <div className="moments-reel">
         {list.map(({ round, m }, i) => (
           <div key={`${round.id}-${m.kind}`}>
-            {(sort === 'rarest' || list[i - 1]?.round.id !== round.id) && (
+            {(sort === 'biggest' || list[i - 1]?.round.id !== round.id) && (
               <button className="moment-when" onClick={() => go(`/round/${round.id}`)}>
                 {fmtDate(round.date)}
                 {round.course ? ` · ${round.course}` : ''} ›
               </button>
             )}
-            <MomentCard m={m} dark={m.rarity >= 0.95 && !m.low} onShare={() => share(m, round)} />
+            <MomentCard m={m} onShare={() => share(m, round)} />
           </div>
         ))}
       </div>
