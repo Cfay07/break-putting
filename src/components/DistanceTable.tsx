@@ -6,8 +6,11 @@ export function DistanceTable({
   stats,
   rounds,
   sgPerRound,
+  countsOnly,
 }: {
   stats: Stats;
+  /** One round: 1 of 2 printed as 50% reads like a finding, so the rate column goes. */
+  countsOnly?: boolean;
   rounds?: number;
   /** Per-round strokes gained with nine-hole rounds doubled, matching the Averages card. */
   sgPerRound?: Record<string, number | null>;
@@ -20,7 +23,7 @@ export function DistanceTable({
           <tr>
             <th>Distance</th>
             <th>Made</th>
-            <th>%</th>
+            {!countsOnly && <th>%</th>}
             <th title="Typical expected putts for a putt in this band">xP</th>
             <th>SG</th>
             {perRound && <th>SG/rd</th>}
@@ -34,7 +37,7 @@ export function DistanceTable({
               <tr key={b.key}>
                 <td>{b.label}</td>
                 <td>{t.attempts ? `${t.makes}/${t.attempts}` : '--'}</td>
-                <td>{p === null ? '--' : `${p.toFixed(0)}%`}</td>
+                {!countsOnly && <td>{p === null ? '--' : `${p.toFixed(0)}%`}</td>}
                 <td className="dim">
                   {t.attempts ? (t.xpSum / t.attempts).toFixed(2) : '--'}
                 </td>
@@ -58,7 +61,7 @@ export function DistanceTable({
                 ? `${BUCKETS.reduce((n, b) => n + stats.buckets[b.key].makes, 0)}/${stats.totalPutts}`
                 : '--'}
             </td>
-            <td />
+            {!countsOnly && <td />}
             {/* No total. Summing xP double counts, because every putt's figure already carries
                 the putt it leaves, and averaging across bands only describes which distances you
                 happened to face. The per-row number is context for its own row and nothing more. */}

@@ -26,7 +26,6 @@ import { SURFACE_LABELS } from '../lib/types';
 import { ScoreMark } from '../components/ScoreMark';
 import { DistanceTable } from '../components/DistanceTable';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
-import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { ReadPanel } from '../components/ReadPanel';
@@ -419,7 +418,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       </div>
 
       <h2>By distance</h2>
-      <DistanceTable stats={s} />
+      <DistanceTable stats={s} countsOnly />
 
       <h2>Lag control</h2>
       <LagPanel stats={s} lag={lagSaves([round])} />
@@ -431,18 +430,9 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         </>
       )}
 
-      {read.judged > 0 && (
-        <>
-          <h2>The read</h2>
-          <ReadPanel read={read} />
-        </>
-      )}
-
-      <h2>Miss patterns</h2>
+      <h2>Misses this round</h2>
+      {read.judged > 0 && <ReadPanel read={read} />}
       <PatternPanel stats={s} />
-
-      <h2>What to work on</h2>
-      <InsightList stats={s} />
 
       {beats && beats.n >= 6 && (
         <>
