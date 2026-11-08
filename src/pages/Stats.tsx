@@ -496,6 +496,7 @@ function RoundStats() {
           <div className="field-label">Your most common miss</div>
           <MissShapesPanel shapes={shapes} />
 
+          <div className="field-label">Where they finish</div>
           <PatternPanel stats={o.pooled} taggedRounds={taggedRounds} />
 
           {(read.judged > 0 || bias.n >= 10 || cup.n + cup.unsure > 0) && <h2>Reads</h2>}
