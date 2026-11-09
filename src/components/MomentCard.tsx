@@ -1,4 +1,5 @@
 import type { Moment, MomentViz } from '../lib/moments';
+import { toneOf } from '../lib/momentTone';
 
 function PuttLine({ dirs }: { dirs: string[] }) {
   const l = dirs.includes('L→R');
@@ -94,7 +95,7 @@ function Viz({ v }: { v: MomentViz }) {
 
 export function MomentCard({ m, onShare }: { m: Moment; onShare?: () => void }) {
   return (
-    <article className={m.low ? 'moment low' : 'moment'}>
+    <article className={`moment tone-${toneOf(m.kind)}${m.low ? ' low' : ''}`}>
       <header className="moment-head">
         <span className="moment-label">{m.label}</span>
         <span className="moment-odds">{m.odds}</span>

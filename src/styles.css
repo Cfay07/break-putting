@@ -1673,7 +1673,39 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
   display: flex;
   flex-direction: column;
 }
-.moment.low { --m-accent-ink: #f0998d; }
+.moment { --m-pill-ink: var(--ink); --m-surface: #1d4a38; --m-cup: #0d2a1f; }
+.moment.tone-clay {
+  --m-bg: #8f4523;
+  --m-ink: #f7ece4;
+  --m-muted: #f1c9b0;
+  --m-accent: #f7ece4;
+  --m-accent-ink: #f7ece4;
+  --m-pill-ink: #8f4523;
+  --m-rule: rgba(247, 236, 228, 0.24);
+  --m-surface: #9e522e;
+  --m-cup: #5e2a12;
+}
+.moment.tone-paper {
+  --m-bg: var(--card);
+  --m-ink: var(--ink);
+  --m-muted: #5f7268;
+  --m-accent: #b5603a;
+  --m-accent-ink: #9c4f2c;
+  --m-pill-ink: #fff;
+  --m-rule: rgba(20, 57, 43, 0.14);
+  --m-surface: #eeebe1;
+  --m-cup: var(--ink);
+  border: 1px solid var(--line);
+}
+.moment.tone-slate {
+  --m-bg: #24363f;
+  --m-ink: #eef1ef;
+  --m-muted: #a8b9c0;
+  --m-rule: rgba(238, 241, 239, 0.18);
+  --m-surface: #2e4550;
+  --m-cup: #141f25;
+}
+.moment.low { --m-accent-ink: var(--red); --m-accent: var(--red); }
 .moment-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .moment-label {
   font-size: 11px;
@@ -1693,7 +1725,7 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
   border: 1px solid var(--m-rule);
   color: var(--m-ink);
 }
-.moment .moment-odds { background: var(--m-accent); border-color: var(--m-accent); color: var(--ink); }
+.moment .moment-odds { background: var(--m-accent); border-color: var(--m-accent); color: var(--m-pill-ink); }
 .moment-tag {
   display: block;
   margin-top: 8px;
@@ -1715,11 +1747,11 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .moment-line { margin: 6px 0 12px; font-size: 14.5px; line-height: 1.35; font-weight: 600; }
 .moment-fill { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 4px 0 10px; min-height: 80px; }
 .moment-viz { width: 100%; height: auto; max-height: 104px; }
-.mv-green { fill: #1d4a38; }
+.mv-green { fill: var(--m-surface); }
 .mv-line { fill: none; stroke: var(--m-ink); stroke-width: 2.5; stroke-linecap: round; }
 .mv-ball { fill: var(--m-ink); }
 .mv-ball-start { fill: none; stroke: var(--m-ink); stroke-width: 1.5; }
-.mv-cup { fill: #0d2a1f; }
+.mv-cup { fill: var(--m-cup); }
 .mv-pin { fill: var(--m-accent); }
 .mv-track { stroke: var(--m-rule); stroke-width: 2; }
 .mv-zone { fill: var(--m-accent); opacity: 0.16; }
@@ -1750,7 +1782,7 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
   color: var(--m-muted);
   border: 1px solid var(--m-rule);
 }
-.mv-streak span.on { background: var(--m-accent); border-color: var(--m-accent); color: var(--m-bg); }
+.mv-streak span.on { background: var(--m-accent); border-color: var(--m-accent); color: var(--m-pill-ink); }
 .moment-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)) 44px;
@@ -1764,7 +1796,7 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .moment-stats span { display: block; font-size: 11px; color: var(--m-muted); margin-top: 3px; }
 .moment-stats .t-accent { color: var(--m-accent-ink); }
 .moment-stats .t-good { color: var(--m-ink); }
-.moment-stats .t-bad { color: #f0998d; }
+.moment-stats .t-bad { color: var(--red); }
 .moment-share {
   grid-column: 3;
   width: 44px;

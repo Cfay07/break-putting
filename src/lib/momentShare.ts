@@ -1,5 +1,6 @@
 import { fmtDateLong, signed } from './format';
 import type { Moment } from './moments';
+import { TONE_COLORS, toneOf } from './momentTone';
 import { pngFile } from './shareCard';
 import { roundSG } from './sg';
 import type { Round } from './types';
@@ -8,11 +9,6 @@ import type { Round } from './types';
 const W = 1080;
 const H = 1920;
 const PAD = 84;
-const GREEN = '#14392b';
-const FAINT = '#1d4a38';
-const PAPER = '#f2efe6';
-const MUTED = '#a9c2b5';
-const ORANGE = '#e8935f';
 
 const font = (w: number, s: number) => `${w} ${s}px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
 
@@ -31,6 +27,12 @@ function wrap(c: CanvasRenderingContext2D, s: string, maxW: number): string[] {
 }
 
 export function drawMoment(m: Moment, round: Round, baseline: [number, number][]): HTMLCanvasElement {
+  const tone = TONE_COLORS[toneOf(m.kind)];
+  const GREEN = tone.bg;
+  const FAINT = tone.surface;
+  const PAPER = tone.ink;
+  const MUTED = tone.muted;
+  const ORANGE = m.low ? '#a52a1f' : tone.accent;
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -54,11 +56,11 @@ export function drawMoment(m: Moment, round: Round, baseline: [number, number][]
   const chip = (m.tag ?? m.label).toUpperCase();
   c.font = font(800, 36);
   const cw = c.measureText(chip).width + 56;
-  c.fillStyle = m.low ? PAPER : ORANGE;
+  c.fillStyle = ORANGE;
   c.beginPath();
   c.roundRect(PAD, y - 56, cw, 80, 40);
   c.fill();
-  c.fillStyle = GREEN;
+  c.fillStyle = m.low ? '#ffffff' : tone.pillInk;
   c.fillText(chip, PAD + 28, y - 4);
   c.fillStyle = MUTED;
   c.font = font(800, 36);
@@ -120,7 +122,7 @@ export function drawMoment(m: Moment, round: Round, baseline: [number, number][]
     c.beginPath();
     c.arc(sx, top + 320, 18, 0, Math.PI * 2);
     c.fill();
-    c.fillStyle = '#0d2a1f';
+    c.fillStyle = tone.cup;
     c.beginPath();
     c.arc(ex, top + 80, 30, 0, Math.PI * 2);
     c.fill();
@@ -137,8 +139,10 @@ export function drawMoment(m: Moment, round: Round, baseline: [number, number][]
     [signed(roundSG(round, baseline)), 'strokes gained putting', ORANGE],
   ];
   const fy = H - 300;
-  c.fillStyle = 'rgba(242,239,230,.22)';
+  c.globalAlpha = 0.22;
+  c.fillStyle = PAPER;
   c.fillRect(PAD, fy - 30, W - PAD * 2, 3);
+  c.globalAlpha = 1;
   const colW = (W - PAD * 2) / 3;
   foot.forEach(([v, l, col], i) => {
     c.fillStyle = col;
