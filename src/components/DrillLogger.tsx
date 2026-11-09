@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { loadTempo, startTempo } from '../lib/tempo';
+import { loadTempo, saveTempo, startTempo } from '../lib/tempo';
+import { candidates, pickStroke, TUNE_DRILL, tuneArms, tuneVerdict } from '../lib/tempoTune';
 import { distanceText, familyOf, scoringLabel, type Fitted } from '../lib/drills';
 import { today } from '../lib/format';
 import { historyOf, type DrillHistory } from '../lib/practice';
@@ -74,10 +75,15 @@ export function DrillLogger({
   // The metronome can run under any drill. A tempo drill starts with it on.
   const [beat, setBeat] = useState(() => !!drill.beat);
   const [tempo] = useState(loadTempo);
+  // The tempo drill tunes itself blind: each set plays your speed or one either side, unseen.
+  const tuning = family(drill.id) === TUNE_DRILL;
+  const pick = (sets = state.practice) => (tuning ? pickStroke(tuneArms(sets, tempo.stroke, family)) : tempo.stroke);
+  const [stroke, setStroke] = useState(() => pick());
+  const [moved, setMoved] = useState<number | null>(null);
   useEffect(() => {
     if (!beat || saved) return;
-    return startTempo({ ...tempo, sound: tempo.sound || !tempo.buzz }, () => {});
-  }, [beat, saved, tempo]);
+    return startTempo({ ...tempo, stroke, sound: tempo.sound || !tempo.buzz }, () => {});
+  }, [beat, saved, tempo, stroke]);
 
   const save = (r: SetResult, balls?: boolean[]) => {
     const set: PracticeSet = {
@@ -87,10 +93,18 @@ export function DrillLogger({
       surface,
       putterId: state.putters.find((p) => p.active)?.id,
       ...(session ? { session } : {}),
-      ...(beat ? { tempo: tempo.stroke } : {}),
+      ...(beat ? { tempo: stroke } : {}),
       ...r,
     };
     dispatch({ t: 'addPracticeSet', set });
+    if (tuning && beat) {
+      const { winner } = tuneVerdict(tuneArms([...state.practice, set], tempo.stroke, family));
+      const center = candidates(tempo.stroke)[1] ?? tempo.stroke;
+      if (winner !== null && Math.abs(winner - center) > 0.001) {
+        saveTempo({ ...loadTempo(), stroke: winner });
+        setMoved(winner);
+      }
+    }
     setSaved({ set, balls });
     onSaved?.(set);
   };
@@ -103,6 +117,8 @@ export function DrillLogger({
       });
     }
     setSaved(null);
+    setMoved(null);
+    setStroke(pick(saved ? [...state.practice.filter((s) => s.id !== saved.set.id), saved.set] : state.practice));
     setRound((n) => n + 1);
   };
 
@@ -118,7 +134,7 @@ export function DrillLogger({
         <span className="runner-top-end">
           {!saved && drill.scoring !== 'game' && drill.scoring !== 'done' && (
             <button className={beat ? 'beat-chip on' : 'beat-chip'} aria-pressed={beat} onClick={() => setBeat(!beat)}>
-              {beat ? `Beat ${tempo.stroke.toFixed(2)} s` : 'Beat'}
+              {beat ? (tuning ? 'Beat on' : `Beat ${tempo.stroke.toFixed(2)} s`) : 'Beat'}
             </button>
           )}
           <button className="linkish tiny" onClick={onClose}>
@@ -132,6 +148,12 @@ export function DrillLogger({
           <div className="runner-result">{setScore(drill, saved.set)}</div>
           {drill.scoring !== 'game' && drill.scoring !== 'done' && (
             <p className="runner-verdict">{verdict(drill, saved.set, before)}</p>
+          )}
+          {moved !== null && (
+            <p className="runner-verdict">
+              Your tempo moved to {moved.toFixed(2)} s. Across your tempo sets, balls finished inside 3 ft more often at
+              that speed. The next sets test around it.
+            </p>
           )}
           {saved.balls && (
             <div className="runner-dots" aria-hidden="true">

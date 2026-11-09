@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { BackLink } from '../components/BackLink';
+import { familyOf } from '../lib/drills';
+import { useApp } from '../lib/store';
+import { tuneArms, tuneVerdict, TUNE_MIN_BALLS } from '../lib/tempoTune';
 import {
   beatTimes,
   canBuzz,
@@ -143,6 +146,42 @@ function Finder({ base, onDone, onCancel }: { base: TempoSettings; onDone: (stro
   );
 }
 
+/** What the blind tempo sets have said so far, in plain counts. */
+function Tuned({ center }: { center: number }) {
+  const { state } = useApp();
+  const arms = tuneArms(state.practice, center, (id) => familyOf(state, id));
+  if (!arms.some((a) => a.attempts)) return null;
+  const v = tuneVerdict(arms);
+  const short = arms.filter((a) => a.attempts < TUNE_MIN_BALLS).length;
+  return (
+    <>
+      <h2>Tuned by your results</h2>
+      <div className="list">
+        {arms.map((a) => (
+          <div key={a.stroke} className="list-row">
+            <span className="list-main">
+              <span className="list-title">
+                {a.stroke.toFixed(2)} s{Math.abs(a.stroke - center) < 0.03 ? ' · yours' : ''}
+              </span>
+              <span className="list-sub">
+                {a.attempts ? `${a.made} of ${a.attempts} inside 3 ft` : 'Not played yet'}
+              </span>
+            </span>
+            <span className="list-sub num">{a.attempts ? `${Math.round((a.made / a.attempts) * 100)}%` : ''}</span>
+          </div>
+        ))}
+      </div>
+      <p className="small muted" style={{ margin: '8px 0 0' }}>
+        {v.winner !== null
+          ? `${v.winner.toFixed(2)} s is clearly best so far.`
+          : short
+            ? `The Same time, every length drill plays these blind. ${short === arms.length ? 'Each speed needs' : 'Some speeds need'} ${TUNE_MIN_BALLS} balls before any can win.`
+            : 'Too close to call. Your tempo stays where it is until one speed pulls clear.'}
+      </p>
+    </>
+  );
+}
+
 export function Tempo() {
   const [t, setT] = useState<TempoSettings>(loadTempo);
   const [running, setRunning] = useState(false);
@@ -253,6 +292,8 @@ export function Tempo() {
           <Stepper value={`${t.every} s`} label="time between putts" onChange={(d) => update({ every: Math.min(15, Math.max(3, t.every + d)) })} />
         </div>
       </div>
+
+      <Tuned center={t.stroke} />
 
       <h2>How you hear it</h2>
       <div className="list">

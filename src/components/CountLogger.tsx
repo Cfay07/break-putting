@@ -42,11 +42,8 @@ export function stationName(s: { d: number; label?: string; hand?: Hand; movedFr
 export function CountLogger({ drill, onSave }: LoggerProps) {
   const rows = useMemo(() => rowsOf(drill.stations), [drill]);
   const queue = useMemo(() => drill.stations.flatMap((s) => Array.from({ length: s.balls }, () => s)), [drill]);
-  // Lag and speed balls are counted one at a time: which balls finished inside is the point.
-  // Steppers only lead for several distances of plain makes, five or more each.
-  const [steppers, setSteppers] = useState(
-    () => rows.length > 1 && drill.stations.every((st) => st.balls >= 5 && (st.mode ?? 'make') === 'make'),
-  );
+  // Several distances: a counter per distance, tapped at the end. Ball by ball stays one tap away.
+  const [steppers, setSteppers] = useState(() => rows.length > 1 && drill.id !== TEST_ID);
   const isTest = drill.id === TEST_ID;
   // One distance: putt them all with the phone down, then tap the score. Ball by ball is the option.
   const [atEnd, setAtEnd] = useState(() => !isTest && rows.length === 1 && rows[0].balls > 1);
