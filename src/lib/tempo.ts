@@ -108,3 +108,36 @@ export function startTempo(settings: TempoSettings, onBeat: (beat: Beat, stroke:
     void ctx.close();
   };
 }
+
+/**
+ * Finding your tempo by feel: play a speed for five strokes, ask how it felt, move toward the
+ * answer, and take smaller steps each time the answers switch sides. Two "right" answers in a row
+ * settle it. No sensors: the player's own sense of rhythm is the measurement.
+ */
+export type FindAnswer = 'fast' | 'right' | 'slow';
+
+export interface FindState {
+  stroke: number;
+  step: number;
+  last?: Exclude<FindAnswer, 'right'>;
+  rights: number;
+  rounds: number;
+  done: boolean;
+}
+
+export const FIND_START: FindState = { stroke: 1.05, step: 0.1, rights: 0, rounds: 0, done: false };
+export const FIND_STROKES = 5;
+const FIND_MAX_ROUNDS = 8;
+
+export function nextFind(s: FindState, answer: FindAnswer): FindState {
+  const rounds = s.rounds + 1;
+  if (answer === 'right') {
+    const rights = s.rights + 1;
+    return { ...s, rights, rounds, done: rights >= 2 || rounds >= FIND_MAX_ROUNDS };
+  }
+  // A beat that felt too fast means you want a longer stroke time.
+  const dir = answer === 'fast' ? 1 : -1;
+  const step = s.last && s.last !== answer ? Math.max(0.05, s.step / 2) : s.step;
+  const stroke = Math.round(Math.min(1.6, Math.max(0.6, s.stroke + dir * step)) * 100) / 100;
+  return { stroke, step, last: answer, rights: 0, rounds, done: rounds >= FIND_MAX_ROUNDS };
+}

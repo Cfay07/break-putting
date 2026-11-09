@@ -35,6 +35,12 @@ export function DrillPage({ id }: { id: string }) {
   const latest = h?.last.surface;
   const trend = h ? trendOf(h.sets.filter((s) => s.surface === latest)) : null;
   const counted = trend && trend.earlier.attempts + trend.later.attempts;
+  // Same drill, same surface, with and without the metronome, once each side has enough sets.
+  const sameSurface = h ? h.sets.filter((s) => s.surface === latest && s.attempts > 0) : [];
+  const sum = (sets: typeof sameSurface) => sets.reduce((a, s) => ({ made: a.made + s.made, attempts: a.attempts + s.attempts, n: a.n + 1 }), { made: 0, attempts: 0, n: 0 });
+  const withBeat = sum(sameSurface.filter((s) => s.tempo));
+  const without = sum(sameSurface.filter((s) => !s.tempo));
+  const beatRead = withBeat.n >= 3 && without.n >= 3 ? { withBeat, without } : null;
 
   return (
     <div>
@@ -76,6 +82,14 @@ export function DrillPage({ id }: { id: string }) {
             {h.sets.length} {h.sets.length === 1 ? 'set' : 'sets'} · best {setScore(drill, h.best)} · last{' '}
             {setScore(drill, h.last)}
           </p>
+          {beatRead && (
+            <p className="small" style={{ margin: '8px 0 0' }}>
+              With the beat: {beatRead.withBeat.made} of {beatRead.withBeat.attempts} over {beatRead.withBeat.n} sets (
+              {Math.round((beatRead.withBeat.made / beatRead.withBeat.attempts) * 100)}%). Without:{' '}
+              {beatRead.without.made} of {beatRead.without.attempts} over {beatRead.without.n} sets (
+              {Math.round((beatRead.without.made / beatRead.without.attempts) * 100)}%).
+            </p>
+          )}
           {trend && trend.verdict !== 'waiting' && (
             <div className={`card trend-read ${trend.verdict}`}>
               <strong>

@@ -372,6 +372,8 @@ export interface DrillDef {
   /** Needs a partner or a group, so it is never suggested as something to go do alone. */
   partner?: boolean;
   fixes?: Lean[];
+  /** Rolled with the metronome on, so the stroke time stays put while the length changes. */
+  beat?: boolean;
   updated?: string;
   kind?: 'drill';
 }
@@ -429,6 +431,8 @@ export interface PracticeSet {
   game?: { opponent: string; result: 'win' | 'loss' | 'tie'; mine?: number; theirs?: number };
   /** The session this was rolled inside, if any. */
   session?: string;
+  /** Stroke time of the metronome, when it was playing during the set. */
+  tempo?: number;
   updated?: string;
   kind?: 'set';
 }

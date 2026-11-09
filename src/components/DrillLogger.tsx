@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { loadTempo, startTempo } from '../lib/tempo';
 import { distanceText, familyOf, scoringLabel, type Fitted } from '../lib/drills';
 import { today } from '../lib/format';
 import { historyOf, type DrillHistory } from '../lib/practice';
@@ -70,6 +71,13 @@ export function DrillLogger({
   const [saved, setSaved] = useState<{ set: PracticeSet; balls?: boolean[] } | null>(null);
   const [round, setRound] = useState(0);
   const Logger = LOGGERS[drill.scoring];
+  // The metronome can run under any drill. A tempo drill starts with it on.
+  const [beat, setBeat] = useState(() => !!drill.beat);
+  const [tempo] = useState(loadTempo);
+  useEffect(() => {
+    if (!beat || saved) return;
+    return startTempo({ ...tempo, sound: tempo.sound || !tempo.buzz }, () => {});
+  }, [beat, saved, tempo]);
 
   const save = (r: SetResult, balls?: boolean[]) => {
     const set: PracticeSet = {
@@ -79,6 +87,7 @@ export function DrillLogger({
       surface,
       putterId: state.putters.find((p) => p.active)?.id,
       ...(session ? { session } : {}),
+      ...(beat ? { tempo: tempo.stroke } : {}),
       ...r,
     };
     dispatch({ t: 'addPracticeSet', set });
@@ -106,9 +115,16 @@ export function DrillLogger({
             {[distanceText(drill), scoringLabel(drill)].filter(Boolean).join(' · ')}
           </span>
         </div>
-        <button className="linkish tiny" onClick={onClose}>
-          {saved ? 'Done' : 'Close'}
-        </button>
+        <span className="runner-top-end">
+          {!saved && drill.scoring !== 'game' && drill.scoring !== 'done' && (
+            <button className={beat ? 'beat-chip on' : 'beat-chip'} aria-pressed={beat} onClick={() => setBeat(!beat)}>
+              {beat ? `Beat ${tempo.stroke.toFixed(2)} s` : 'Beat'}
+            </button>
+          )}
+          <button className="linkish tiny" onClick={onClose}>
+            {saved ? 'Done' : 'Close'}
+          </button>
+        </span>
       </div>
 
       {saved ? (

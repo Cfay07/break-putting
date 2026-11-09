@@ -136,8 +136,12 @@ export function Practice() {
   const lastTest = test.weeks.filter((s) => s !== test.thisWeek).at(-1) ?? null;
   const testGoing = loadTestRun(testRun.stations);
 
-  const { title, lines, picks, check, testIsTarget, hasWhy, setOn, progress, markFixed } = target;
-  const plan = testIsTarget ? [] : [...picks, ...(check ? [check] : [])];
+  const { title, lines, picks, check, beat, testIsTarget, hasWhy, setOn, progress, markFixed } = target;
+  const plan = testIsTarget
+    ? []
+    : beat
+      ? [picks[0], beat, check ?? picks[1]].filter((d, i, all): d is Fitted => !!d && all.findIndex((x) => x?.id === d.id) === i)
+      : [...picks, ...(check ? [check] : [])];
   const startPlan = () => {
     if (state.run?.session !== TARGET_SESSION) {
       const session: SessionDef = {
@@ -235,7 +239,7 @@ export function Practice() {
                 <button className="plan-main" onClick={() => setPreview({ drill: d })}>
                   <strong>{d.name}</strong>
                   <span className="small muted">
-                    {[distanceText(d), lastOf(d.id)].filter(Boolean).join(' · ')}
+                    {[distanceText(d), d.beat ? 'with the beat' : '', lastOf(d.id)].filter(Boolean).join(' · ')}
                   </span>
                 </button>
                 <span className="small muted">{BLOCK_MIN} min</span>

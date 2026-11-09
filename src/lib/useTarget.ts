@@ -222,6 +222,13 @@ export function useTarget() {
     lines,
     picks,
     check: pick.kind === 'slice' || pick.kind === 'zone' ? check : null,
+    // Lag and speed targets get the metronome drill: same stroke time, different length.
+    beat:
+      !!tz &&
+      (pick.kind === 'slice' || pick.kind === 'zone') &&
+      (isLagZone(tz.zone) || ['short', 'long'].includes((pick.item?.slice.lean ?? tz.lean)?.lean ?? ''))
+        ? fitted('same-time')
+        : null,
     setOn: key ? setOn : null,
     progress,
     markFixed,

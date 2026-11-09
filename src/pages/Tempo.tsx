@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { BackLink } from '../components/BackLink';
-import { beatTimes, canBuzz, loadTempo, saveTempo, startTempo, type Beat, type TempoSettings } from '../lib/tempo';
+import {
+  beatTimes,
+  canBuzz,
+  FIND_START,
+  FIND_STROKES,
+  loadTempo,
+  nextFind,
+  saveTempo,
+  startTempo,
+  type Beat,
+  type FindAnswer,
+  type FindState,
+  type TempoSettings,
+} from '../lib/tempo';
 
 const RATIOS = [1.5, 2, 2.5];
 const BEAT_WORD: Record<Beat, string> = { start: 'Back', top: 'Top', impact: 'Hit' };
@@ -56,9 +69,84 @@ function HoldToStop({ onStop }: { onStop: () => void }) {
   );
 }
 
+/** Five strokes at a speed, then how did it feel. A minute of this replaces guessing on the stepper. */
+function Finder({ base, onDone, onCancel }: { base: TempoSettings; onDone: (stroke: number) => void; onCancel: () => void }) {
+  const [find, setFind] = useState<FindState>(() => ({ ...FIND_START }));
+  const [asking, setAsking] = useState(false);
+  const [stroke, setStroke] = useState(0);
+
+  useEffect(() => {
+    if (asking || find.done) return;
+    let timer = 0;
+    const stop = startTempo({ ...base, stroke: find.stroke, fade: false, every: find.stroke + 3, sound: base.sound || !base.buzz }, (b, n) => {
+      setStroke(n);
+      if (b === 'impact' && n === FIND_STROKES - 1) timer = window.setTimeout(() => setAsking(true), 700);
+    });
+    return () => {
+      stop();
+      window.clearTimeout(timer);
+    };
+  }, [asking, find, base]);
+
+  const answer = (a: FindAnswer) => {
+    setFind(nextFind(find, a));
+    setAsking(false);
+    setStroke(0);
+  };
+
+  if (find.done) {
+    return (
+      <div className="tempo-run">
+        <span className="tempo-count">Your tempo</span>
+        <span className="tempo-found num">{find.stroke.toFixed(2)} s</span>
+        <p className="small muted tempo-run-note">
+          The speed that felt right to you, {find.rounds} tries in. Make a few putts with it before you trust it.
+        </p>
+        <button className="btn btn-primary" style={{ minWidth: 220 }} onClick={() => onDone(find.stroke)}>
+          Use {find.stroke.toFixed(2)} s
+        </button>
+        <button className="linkish small muted" onClick={onCancel}>
+          Keep my old one
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="tempo-run">
+      <span className="tempo-count num">
+        Try {find.rounds + 1} · {find.stroke.toFixed(2)} s
+      </span>
+      {asking ? (
+        <>
+          <span className="tempo-beat">How did that feel?</span>
+          <div className="find-answers">
+            <button onClick={() => answer('fast')}>Too fast</button>
+            <button className="right" onClick={() => answer('right')}>
+              Right
+            </button>
+            <button onClick={() => answer('slow')}>Too slow</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <span className="tempo-beat">
+            Stroke {Math.min(stroke + 1, FIND_STROKES)} of {FIND_STROKES}
+          </span>
+          <p className="small muted tempo-run-note">Putt to the beat like you normally would.</p>
+        </>
+      )}
+      <button className="linkish small muted" onClick={onCancel}>
+        Stop
+      </button>
+    </div>
+  );
+}
+
 export function Tempo() {
   const [t, setT] = useState<TempoSettings>(loadTempo);
   const [running, setRunning] = useState(false);
+  const [finding, setFinding] = useState(false);
   const [beat, setBeat] = useState<{ beat: Beat; stroke: number; silent: boolean } | null>(null);
   const buzzable = canBuzz();
   const update = (patch: Partial<TempoSettings>) => {
@@ -84,6 +172,19 @@ export function Tempo() {
   const backS = back;
   const throughS = through - back;
 
+  if (finding) {
+    return (
+      <Finder
+        base={t}
+        onDone={(stroke) => {
+          update({ stroke });
+          setFinding(false);
+        }}
+        onCancel={() => setFinding(false)}
+      />
+    );
+  }
+
   if (running) {
     return (
       <div className="tempo-run">
@@ -108,6 +209,13 @@ export function Tempo() {
         Three beats a stroke: back, top, hit. Keep the same time at every length and let the stroke get longer. Use
         headphones if you can, so nobody around you hears it.
       </p>
+
+      <button className="nav-row tempo-find" onClick={() => setFinding(true)}>
+        <span className="nav-main">
+          <strong>Find my tempo</strong>
+          <span className="small muted">Putt to a few speeds and say which felt right. About a minute.</span>
+        </span>
+      </button>
 
       <h2>Your rhythm</h2>
       <div className="list">

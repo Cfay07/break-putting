@@ -76,6 +76,16 @@ export const APP_DRILLS: DrillDef[] = [
     surfaces: BOTH,
   },
   {
+    id: 'same-time',
+    name: 'Same time, every length',
+    scoring: 'count',
+    stations: [10, 20, 30, 40].map((d) => at(d, 3, { mode: 'zone', zoneFt: 3 })),
+    how: 'Metronome on. Three balls each from 10, 20, 30 and 40 feet on the same beat: only the length of the stroke changes. Count the ones that finish inside 3 feet.',
+    surfaces: BOTH,
+    fixes: ['short', 'long'],
+    beat: true,
+  },
+  {
     id: 'past-it',
     name: 'Past the hole',
     scoring: 'count',
