@@ -1810,3 +1810,53 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
   justify-content: center;
   cursor: pointer;
 }
+
+/* The target leads Practice: small, so the plan under it is what fills the screen. */
+.target-card {
+  display: grid;
+  gap: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-top: 16px;
+}
+.target-card h3 { margin: 0; font-size: 20px; font-weight: 900; letter-spacing: -0.01em; line-height: 1.2; }
+.target-card p { margin: 0; font-size: 13.5px; line-height: 1.4; color: #cfdcd4; }
+.target-card .target-progress { color: #a9c2b5; font-size: 12.5px; }
+.target-card .target-why { color: var(--paper); font-weight: 700; padding-top: 2px; }
+.target-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #e8935f; }
+.target-next {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 22px;
+  background: #e8935f;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.plan-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--card); overflow: hidden; }
+.plan-list li { display: flex; align-items: center; gap: 12px; padding: 4px 14px 4px 12px; min-height: 60px; }
+.plan-list li + li { border-top: 1px solid var(--line); }
+.plan-n {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.plan-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; border: 0; background: none; padding: 8px 0; font: inherit; color: inherit; cursor: pointer; }
+
+.payoff-target { display: grid; gap: 4px; padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+.payoff-target strong { font-size: 16px; }
+.payoff-target .muted { font-size: 14px; line-height: 1.45; }
+.payoff-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }

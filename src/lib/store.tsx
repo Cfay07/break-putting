@@ -11,6 +11,7 @@ import type {
   Round,
   SavedCourse,
   SessionDef,
+  PinnedTarget,
   Surface,
   TrackUI,
 } from './types';
@@ -56,6 +57,8 @@ export type Action =
   | { t: 'deleteSession'; id: string }
   | { t: 'importPractice'; drills: DrillDef[]; sessions: SessionDef[] }
   | { t: 'setRoom'; surface: Surface; feet: number }
+  | { t: 'setTarget'; target: PinnedTarget | undefined }
+  | { t: 'closeTarget'; target: PinnedTarget }
   | { t: 'startRun'; session: string; surface: Surface }
   | { t: 'finishBlock'; block: number; setId: string }
   | { t: 'goToBlock'; block: number }
@@ -415,6 +418,17 @@ export function reducer(state: AppState, a: Action): AppState {
       };
     }
 
+    case 'setTarget':
+      return { ...state, target: a.target, settingsUpdated: now() };
+
+    case 'closeTarget':
+      return {
+        ...state,
+        target: undefined,
+        targetsDone: [...(state.targetsDone ?? []).filter((t) => t.key !== a.target.key), a.target],
+        settingsUpdated: now(),
+      };
+
     case 'setRoom':
       return {
         ...state,
@@ -552,6 +566,8 @@ export function reducer(state: AppState, a: Action): AppState {
         baseline: takeSettings && settings.baseline.length ? settings.baseline : state.baseline,
         courses: takeSettings ? settings.courses : state.courses,
         room: takeSettings && settings.room ? { ...DEFAULT_ROOM, ...settings.room } : state.room,
+        target: takeSettings ? settings.target : state.target,
+        targetsDone: takeSettings ? (settings.targetsDone ?? state.targetsDone) : state.targetsDone,
         settingsUpdated: takeSettings ? settings.updated : state.settingsUpdated,
       };
     }

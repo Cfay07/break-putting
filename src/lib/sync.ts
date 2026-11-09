@@ -7,6 +7,7 @@ import type {
   Round,
   SavedCourse,
   SessionDef,
+  PinnedTarget,
   Surface,
   Tombstone,
 } from './types';
@@ -32,6 +33,8 @@ export interface Incoming {
     baseline: [number, number][];
     courses: SavedCourse[];
     room?: Record<Surface, number>;
+    target?: PinnedTarget;
+    targetsDone?: PinnedTarget[];
     updated: string;
   };
   practice?: PracticeSet[];
@@ -168,7 +171,7 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
       [
         {
           user_id: session.userId,
-          payload: { baseline: state.baseline, courses: state.courses, room: state.room },
+          payload: { baseline: state.baseline, courses: state.courses, room: state.room, target: state.target, targetsDone: state.targetsDone },
           updated_at: state.settingsUpdated,
         },
       ],
@@ -201,6 +204,8 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
           baseline: settingsRows[0].payload?.baseline ?? [],
           courses: settingsRows[0].payload?.courses ?? [],
           room: settingsRows[0].payload?.room,
+          target: settingsRows[0].payload?.target,
+          targetsDone: settingsRows[0].payload?.targetsDone,
           updated: settingsRows[0].updated_at,
         }
       : undefined,

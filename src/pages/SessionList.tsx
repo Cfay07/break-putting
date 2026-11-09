@@ -1,3 +1,4 @@
+import { TARGET_SESSION } from './Practice';
 import { BackLink } from '../components/BackLink';
 import { SessionRow } from './Practice';
 import { usePractice } from '../lib/usePractice';
@@ -18,7 +19,7 @@ export function SessionList() {
         {SURFACE_LABELS[surface]}, up to {room} ft.
       </p>
       <div className="row-list">
-        {state.sessions.map((x) => (
+        {state.sessions.filter((x) => x.id !== TARGET_SESSION).map((x) => (
           <SessionRow key={x.id} id={x.id} />
         ))}
       </div>

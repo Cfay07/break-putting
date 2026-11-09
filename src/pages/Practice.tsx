@@ -4,20 +4,20 @@ import { DrillLogger } from '../components/DrillLogger';
 import { DrillPreview } from '../components/DrillPreview';
 import { Sheet } from '../components/Sheet';
 import { useNow } from '../components/useNow';
-import { drillsNear, fits, fitToRoom, resolveDrill, type Fitted } from '../lib/drills';
+import { distanceText, fits, fitToRoom, resolveDrill, type Fitted } from '../lib/drills';
 import { fmtDate, today } from '../lib/format';
-import { COND_LABEL } from '../lib/pinpoint';
-import { histories, LEAN_TEXT } from '../lib/practice';
+import { histories } from '../lib/practice';
 import { clock, setScoreShort } from '../lib/practiceView';
 import { go } from '../lib/router';
-import { digitsFor } from '../lib/sample';
 import { liveRound, makeRound } from '../lib/store';
-import { daysBetween, STALE_DAYS, targetKind } from '../lib/target';
-import { usePlan } from '../lib/usePlan';
+import { CHECK_AFTER, useTarget } from '../lib/useTarget';
 import { usePractice } from '../lib/usePractice';
-import { isLagZone, SURFACE_LABELS, type Surface } from '../lib/types';
-import { loadTestRun, nextTestDay, testDrill, testParts, testStatus } from '../lib/weeklyTest';
-import { DIR_MEANS } from './PracticeWhy';
+import { SURFACE_LABELS, type SessionDef, type Surface } from '../lib/types';
+import { loadTestRun, nextTestDay, testDrill } from '../lib/weeklyTest';
+
+/** The session the target builds, kept under one id so starting it again replaces it. */
+export const TARGET_SESSION = 'target-session';
+const BLOCK_MIN = 4;
 
 const SURFACES: Surface[] = ['indoor', 'green'];
 
@@ -114,15 +114,9 @@ function RoundSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-const unique = (ds: (Fitted | null | undefined)[]): Fitted[] => {
-  const seen = new Set<string>();
-  return ds.filter((d): d is Fitted => !!d && !seen.has(d.id) && !!seen.add(d.id));
-};
-
 export function Practice() {
-  const plan = usePlan();
-  const { state, dispatch, surface, room, drills, fitted, family, focus, worst, whyOf, zoneTrack, habits, pattern, patternFix, scope, lastRound } =
-    plan;
+  const target = useTarget();
+  const { state, dispatch, surface, room, family } = target.plan;
   const [rolling, setRolling] = useState<{ drill: Fitted; once?: boolean } | null>(null);
   // A tap shows what the drill is; only Start opens the counter.
   const [preview, setPreview] = useState<{ drill: Fitted; once?: boolean } | null>(null);
@@ -139,102 +133,33 @@ export function Practice() {
   };
   const live = liveRound(state);
 
-  const test = testStatus(sets, surface, room, date);
+  const test = target.test;
   const testRun = fitToRoom(testDrill(room, surface, date), room);
   const lastTest = test.weeks.filter((s) => s !== test.thisWeek).at(-1) ?? null;
   const testGoing = loadTestRun(testRun.stations);
 
-  const why = worst ? whyOf(worst) : [];
-  const slice = why[0] ?? null;
-  const kind = targetKind({ zone: worst, slice: slice?.slice ?? null, habit: habits[0] ?? null, pattern, lastRound, today: date });
-  const stale = !lastRound || daysBetween(lastRound, date) > STALE_DAYS;
-  const zoneDrills = worst ? drillsNear(drills, worst.zone, worst.lean?.lean ?? null, surface, room) : [];
-  const pct = (n: number, of: number) => Math.round((n / of) * 100);
-  const fromPractice =
-    pattern && kind !== 'practice'
-      ? `In practice, ${pattern.n} of your last ${pattern.of} tagged misses from ${pattern.band} went ${pattern.dir}.`
-      : null;
-
-  let title: string;
-  const lines: string[] = [];
-  let picks: Fitted[] = [];
-  if (kind === 'slice' && worst && slice) {
-    const s = slice.slice;
-    const lag = isLagZone(worst.zone);
-    title = `${COND_LABEL[s.cond]}, ${lag ? '16 ft and out' : worst.label}`;
-    lines.push(
-      `${s.made} of ${s.attempts} ${lag ? 'finished within 3 ft' : 'holed'} in ${scope}, against ${pct(s.restMade, s.restAttempts)}% on your other tagged putts from there.`,
-    );
-    if (s.lean) lines.push(`${s.lean.n} of ${s.lean.of} tagged misses ${LEAN_TEXT[s.lean.lean]}.`);
-    if (slice.track) lines.push(slice.track);
-    picks = unique([slice.fix, fromPractice ? patternFix : null, ...zoneDrills]);
-  } else if (kind === 'zone' && worst) {
-    title = worst.label;
-    const costs = Math.abs(worst.sgPerRound).toFixed(digitsFor(worst.sample));
-    const cost = Number(costs) ? `It costs ${costs} strokes a round.` : '';
-    lines.push(
-      isLagZone(worst.zone)
-        ? `${worst.leave !== null ? `You leave it ${worst.leave.toFixed(1)} ft away on average, with` : 'You have'} ${worst.threePutts} three-putts in ${worst.firstPutts}, in ${scope}. ${cost}`
-        : `${worst.makes} of ${worst.attempts} holed in ${scope}, where a scratch golfer makes ${pct(worst.scratchMakes, worst.attempts)}%. ${cost}`,
-    );
-    if (worst.lean) {
-      const read = worst.lean.lean === 'high' || worst.lean.lean === 'low';
-      lines.push(
-        `${worst.lean.n} of ${worst.lean.of} tagged misses from there ${LEAN_TEXT[worst.lean.lean]}.` +
-          (read && surface === 'indoor' ? ' A flat spot cannot train the read. On a putt with real slope, switch to Green.' : ''),
-      );
+  const { title, lines, picks, check, testIsTarget, hasWhy, setOn, progress, markFixed } = target;
+  const plan = testIsTarget ? [] : [...picks, ...(check ? [check] : [])];
+  const startPlan = () => {
+    if (state.run?.session !== TARGET_SESSION) {
+      const session: SessionDef = {
+        id: TARGET_SESSION,
+        name: title,
+        source: 'mine',
+        blocks: plan.map((d) => ({ drill: d.id, minutes: BLOCK_MIN })),
+      };
+      dispatch({ t: 'saveSession', session });
+      dispatch({ t: 'startRun', session: TARGET_SESSION, surface });
     }
-    const track = zoneTrack(worst);
-    if (track) lines.push(track);
-    picks = unique([zoneDrills[0], fromPractice ? patternFix : null, ...zoneDrills.slice(1)]);
-  } else if (kind === 'habit') {
-    const h = habits[0];
-    title = h.title;
-    lines.push(h.detail);
-    picks = unique([fitted(h.fix), fromPractice ? patternFix : null]);
-  } else if (kind === 'practice' && pattern) {
-    title = `${pattern.band}, ${SURFACE_LABELS[pattern.surface].toLowerCase()}`;
-    lines.push(`${pattern.n} of your last ${pattern.of} tagged misses went ${pattern.dir}. ${DIR_MEANS[pattern.dir]}`);
-    if (lastRound && stale) {
-      lines.push(`Your last round was ${fmtDate(lastRound)}, so this comes from your practice. New rounds take it back.`);
-    }
-    picks = unique([patternFix]);
-  } else if (test.thisWeek) {
-    const t = testParts(test.thisWeek, state.baseline);
-    title = `This week's test: ${test.thisWeek.made} of ${test.thisWeek.attempts}`;
-    lines.push(
-      `Holed ${t.holed} of ${t.of}, where a scratch golfer averages ${t.scratch.toFixed(1)}. ${t.inside} of ${t.lags} lag putts finished close.`,
-    );
-    lines.push(`The next one opens ${fmtDate(nextTestDay(date))}. Until then, mix these in.`);
-    const short = drillsNear(drills, 'mid', null, surface, room)[0];
-    const long = drillsNear(drills, 'far', null, surface, room)[0];
-    picks = unique(t.holed < t.scratch ? [short, long] : [long, short]);
-  } else {
-    title = 'Take the weekly test';
-    lines.push(
-      !focus.rounds
-        ? 'Eighteen putts, about six minutes, no rounds needed. Your rounds name a target once there are enough of them, and until then this is the number that shows you getting better.'
-        : worst && worst.sgPerRound >= 0
-          ? `You beat scratch from every distance in ${scope}. The test is how you keep it that way week to week.`
-          : `${focus.rounds} ${focus.rounds === 1 ? 'round' : 'rounds'} in, too few putts from any one distance to name a target yet. Eighteen putts, about six minutes, and it is the number to beat every week.`,
-    );
-  }
-  if (fromPractice && kind !== 'test') lines.push(fromPractice);
-  // A leak with one drill gets your strongest stroke habit as the second, said out loud.
-  const habitFix = habits[0] ? fitted(habits[0].fix) : null;
-  if ((kind === 'zone' || kind === 'slice') && picks.length < 2 && habitFix && !picks.some((d) => d.id === habitFix.id)) {
-    lines.push(habits[0].detail);
-    picks.push(habitFix);
-  }
-  picks = picks.slice(0, 2);
-  const testIsTarget = kind === 'test';
-  const hasWhy = focus.rounds > 0 || habits.length > 0 || !!pattern;
+    go(`/practice/session/${TARGET_SESSION}`);
+  };
 
   const runSession = state.run ? state.sessions.find((x) => x.id === state.run!.session) : undefined;
   // Sessions you have rolled lately first, then the rest in the order they came in.
   const lastRolled = new Map<string, string>();
   for (const x of sets) if (x.session && (lastRolled.get(x.session) ?? '') < x.date) lastRolled.set(x.session, x.date);
-  const recentSessions = [...state.sessions].sort((a, b) =>
+  const mySessions = state.sessions.filter((x) => x.id !== TARGET_SESSION);
+  const recentSessions = [...mySessions].sort((a, b) =>
     (lastRolled.get(b.id) ?? '').localeCompare(lastRolled.get(a.id) ?? ''),
   );
 
@@ -264,31 +189,71 @@ export function Practice() {
         </a>
       )}
 
-      <h2>Your target</h2>
-      <div className="card target">
+      <div className="target-card">
+        <span className="target-eyebrow">Your target{setOn ? ` · since ${fmtDate(setOn)}` : ''}</span>
         <h3>{title}</h3>
-        {lines.map((l) => (
-          <p key={l} className="small muted">
-            {l}
-          </p>
-        ))}
-        {picks.map((d) => (
-          <button key={d.id} className="target-drill" onClick={() => setPreview({ drill: d })}>
-            <strong>{d.name}</strong>
-            <span className="small muted num">{lastOf(d.id) ?? 'Start'}</span>
-          </button>
-        ))}
+        {progress?.fixed ? (
+          <>
+            <p>
+              Fixed. Since {fmtDate(setOn!)}: {progress.after.made} of {progress.after.attempts} on the course, against{' '}
+              {progress.before.made} of {progress.before.attempts} before. That gap is past chance. It does not prove the
+              drills did it.
+            </p>
+            <button className="target-next" onClick={markFixed}>
+              Next target
+            </button>
+          </>
+        ) : (
+          <>
+            {lines[0] && <p>{lines[0]}</p>}
+            {progress && (
+              <p className="target-progress">
+                {progress.after.attempts < CHECK_AFTER
+                  ? `${progress.after.attempts} of ${CHECK_AFTER} course putts toward a check.`
+                  : `Since ${fmtDate(setOn!)}: ${progress.after.made} of ${progress.after.attempts} on the course, ${progress.before.made} of ${progress.before.attempts} before. Not past chance yet.`}
+              </p>
+            )}
+          </>
+        )}
         {testIsTarget && !test.thisWeek && (
-          <button className="btn btn-primary btn-wide" onClick={() => setPreview({ drill: testRun, once: true })}>
+          <button className="target-next" onClick={() => setPreview({ drill: testRun, once: true })}>
             {testGoing ? `Pick up at ball ${testGoing.balls.length + 1}` : 'Start the test'}
           </button>
         )}
         {hasWhy && (
           <a className="target-why" href="#/practice/why">
-            Why this, and where the strokes go ›
+            Why this ›
           </a>
         )}
       </div>
+
+      {plan.length > 0 && (
+        <>
+          <h2>Today's {plan.length * BLOCK_MIN} minutes</h2>
+          <ol className="plan-list">
+            {plan.map((d, i) => (
+              <li key={d.id}>
+                <span className="plan-n">{i + 1}</span>
+                <button className="plan-main" onClick={() => setPreview({ drill: d })}>
+                  <strong>{d.name}</strong>
+                  <span className="small muted">
+                    {[distanceText(d), lastOf(d.id)].filter(Boolean).join(' · ')}
+                  </span>
+                </button>
+                <span className="small muted">{BLOCK_MIN} min</span>
+              </li>
+            ))}
+          </ol>
+          {surface === 'indoor' && target.kind === 'slice' && (
+            <p className="small muted" style={{ margin: '8px 0 0' }}>
+              A flat mat trains start line and speed. The read needs real slope, so on a sloped green switch to Green.
+            </p>
+          )}
+          <button className="btn btn-primary btn-wide" style={{ marginTop: 12 }} onClick={startPlan}>
+            {runSession?.id === TARGET_SESSION ? 'Back to it' : `Start · ${plan.length * BLOCK_MIN} min`}
+          </button>
+        </>
+      )}
 
       {!testIsTarget && (
         <>
@@ -328,10 +293,10 @@ export function Practice() {
         {recentSessions.slice(0, SESSIONS_SHOWN).map((x) => (
           <SessionRow key={x.id} id={x.id} />
         ))}
-        {state.sessions.length > SESSIONS_SHOWN ? (
+        {mySessions.length > SESSIONS_SHOWN ? (
           <a className="nav-row" href="#/practice/sessions">
             <span className="nav-main">
-              <strong>All {state.sessions.length} sessions</strong>
+              <strong>All {mySessions.length} sessions</strong>
               <span className="small muted">Or build one</span>
             </span>
             <Chevron />
@@ -342,7 +307,7 @@ export function Practice() {
           </a>
         )}
       </div>
-      {!state.sessions.length && (
+      {!mySessions.length && (
         <p className="small muted" style={{ margin: '8px 0 0' }}>
           Your team's practice file comes in from Settings, under Imports.
         </p>

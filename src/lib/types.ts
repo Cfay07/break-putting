@@ -282,6 +282,23 @@ export interface AppState {
   run?: SessionRun;
   /** Where you are putting today, on this phone. */
   surface?: Surface;
+  /** What you are working on. Pinned so it stays put until the course says it is fixed. */
+  target?: PinnedTarget;
+  /** Targets the course said were fixed, kept with their dates so the next pick skips them. */
+  targetsDone?: PinnedTarget[];
+}
+
+/**
+ * The one thing you are working on, pinned on the day it was set. Kept as its own record, so the
+ * round page, Practice and later a coach or a teammate all read the same target in the same words.
+ */
+export interface PinnedTarget {
+  /** slice:<zone>:<cond>, zone:<zone> or habit:<title>. */
+  key: string;
+  title: string;
+  setOn: string;
+  /** Set when the course said it was fixed, so the next one can take over. */
+  fixedOn?: string;
 }
 
 /** Indoor is a mat or a facility green: true, with little break. Green is real grass with real break. */
