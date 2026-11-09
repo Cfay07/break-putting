@@ -336,6 +336,13 @@ export function Practice() {
             <Chevron />
           </button>
         )}
+        <a className="nav-row" href="#/practice/tempo">
+          <span className="nav-main">
+            <strong>Metronome</strong>
+            <span className="small muted">Back, top, hit. Quiet, and it buzzes on Android</span>
+          </span>
+          <Chevron />
+        </a>
         <a className="nav-row" href="#/practice/drills">
           <span className="nav-main">
             <strong>Every drill</strong>

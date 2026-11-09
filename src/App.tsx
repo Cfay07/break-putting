@@ -9,6 +9,7 @@ import { SessionList } from './pages/SessionList';
 import { Hands } from './pages/Hands';
 import { PracticeLogPage } from './components/PracticeLog';
 import { PracticeWhy } from './pages/PracticeWhy';
+import { Tempo } from './pages/Tempo';
 import { MomentsPage } from './pages/MomentsPage';
 import { Rounds } from './pages/Rounds';
 import { RoundDetail } from './pages/RoundDetail';
@@ -247,6 +248,8 @@ export default function App() {
     <PracticeLogPage />
   ) : route === '/practice/why' ? (
     <PracticeWhy />
+  ) : route === '/practice/tempo' ? (
+    <Tempo />
   ) : roundMatch ? (
     <RoundDetail id={roundMatch[1]} openHole={roundMatch[2] ? Number(roundMatch[2]) : undefined} />
   ) : staleTrack ? (

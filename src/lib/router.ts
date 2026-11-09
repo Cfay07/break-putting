@@ -46,6 +46,7 @@ export function backLabel(route: string): string {
   if (route === '/practice/sessions') return 'Sessions';
   if (route === '/practice/drills') return 'Every drill';
   if (route === '/practice/why') return 'Why this';
+  if (route === '/practice/tempo') return 'Metronome';
   if (route === '/practice/hands') return 'Hands';
   if (route === '/practice/distances') return 'Distances';
   if (route === '/practice/log') return 'Every practice';

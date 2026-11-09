@@ -1,0 +1,178 @@
+import { useEffect, useRef, useState } from 'react';
+import { BackLink } from '../components/BackLink';
+import { beatTimes, canBuzz, loadTempo, saveTempo, startTempo, type Beat, type TempoSettings } from '../lib/tempo';
+
+const RATIOS = [1.5, 2, 2.5];
+const BEAT_WORD: Record<Beat, string> = { start: 'Back', top: 'Top', impact: 'Hit' };
+
+function Stepper({ value, label, onChange }: { value: string; label: string; onChange: (dir: -1 | 1) => void }) {
+  return (
+    <span className="mini-step">
+      <button aria-label={`Less ${label}`} onClick={() => onChange(-1)}>
+        −
+      </button>
+      <span className="num">{value}</span>
+      <button aria-label={`More ${label}`} onClick={() => onChange(1)}>
+        +
+      </button>
+    </span>
+  );
+}
+
+function Toggle({ on, label, sub, onFlip }: { on: boolean; label: string; sub: string; onFlip: () => void }) {
+  return (
+    <div className="list-row">
+      <span className="list-main">
+        <span className="list-title">{label}</span>
+        <span className="list-sub">{sub}</span>
+      </span>
+      <button type="button" role="switch" className="switch" aria-checked={on} aria-label={label} onClick={onFlip} />
+    </div>
+  );
+}
+
+/** Hold to stop, so a phone in a pocket cannot end the set by brushing the screen. */
+function HoldToStop({ onStop }: { onStop: () => void }) {
+  const timer = useRef<number | null>(null);
+  const [holding, setHolding] = useState(false);
+  const begin = () => {
+    setHolding(true);
+    timer.current = window.setTimeout(onStop, 900);
+  };
+  const cancel = () => {
+    setHolding(false);
+    if (timer.current) window.clearTimeout(timer.current);
+  };
+  return (
+    <button
+      className={holding ? 'tempo-stop holding' : 'tempo-stop'}
+      onPointerDown={begin}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      Hold to stop
+    </button>
+  );
+}
+
+export function Tempo() {
+  const [t, setT] = useState<TempoSettings>(loadTempo);
+  const [running, setRunning] = useState(false);
+  const [beat, setBeat] = useState<{ beat: Beat; stroke: number; silent: boolean } | null>(null);
+  const buzzable = canBuzz();
+  const update = (patch: Partial<TempoSettings>) => {
+    const next = { ...t, ...patch };
+    setT(next);
+    saveTempo(next);
+  };
+
+  useEffect(() => {
+    if (!running) return;
+    const stop = startTempo(t, (b, stroke, silent) => setBeat({ beat: b, stroke, silent }));
+    // Keep the screen awake: a locked phone pauses the sound.
+    let lock: WakeLockSentinel | null = null;
+    navigator.wakeLock?.request('screen').then((l) => (lock = l)).catch(() => {});
+    return () => {
+      stop();
+      void lock?.release();
+      setBeat(null);
+    };
+  }, [running, t]);
+
+  const [, back, through] = beatTimes(t);
+  const backS = back;
+  const throughS = through - back;
+
+  if (running) {
+    return (
+      <div className="tempo-run">
+        <span className="tempo-count num">Stroke {beat ? beat.stroke + 1 : 1}</span>
+        <i className={beat && !beat.silent ? `tempo-dot on ${beat.beat}` : 'tempo-dot'} aria-hidden="true" />
+        <span className="tempo-beat">{beat ? (beat.silent ? 'Silent. Keep the rhythm.' : BEAT_WORD[beat.beat]) : 'Get set'}</span>
+        <p className="small muted tempo-run-note">
+          {t.stroke.toFixed(2)} s · {t.ratio} to 1 · every {t.every} s. Taps do nothing until you hold the button.
+        </p>
+        <HoldToStop onStop={() => setRunning(false)} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="page-top">
+        <BackLink />
+      </div>
+      <h1 className="page-title">Metronome</h1>
+      <p className="small muted" style={{ margin: '4px 0 0' }}>
+        Three beats a stroke: back, top, hit. Keep the same time at every length and let the stroke get longer. Use
+        headphones if you can, so nobody around you hears it.
+      </p>
+
+      <h2>Your rhythm</h2>
+      <div className="list">
+        <div className="list-row">
+          <span className="list-main">
+            <span className="list-title">Stroke time</span>
+            <span className="list-sub">
+              {backS.toFixed(2)} s back, {throughS.toFixed(2)} s through
+            </span>
+          </span>
+          <Stepper
+            value={`${t.stroke.toFixed(2)} s`}
+            label="stroke time"
+            onChange={(d) => update({ stroke: Math.round(Math.min(1.6, Math.max(0.6, t.stroke + d * 0.05)) * 100) / 100 })}
+          />
+        </div>
+        <div className="list-row">
+          <span className="list-main">
+            <span className="list-title">Back to through</span>
+            <span className="list-sub">How much longer the backstroke takes</span>
+          </span>
+          <div className="seg seg-quiet tempo-ratio" role="group" aria-label="Back to through">
+            {RATIOS.map((r) => (
+              <button key={r} aria-pressed={t.ratio === r} onClick={() => update({ ratio: r })}>
+                {r}:1
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="list-row">
+          <span className="list-main">
+            <span className="list-title">Time between putts</span>
+            <span className="list-sub">Room to set up the next ball</span>
+          </span>
+          <Stepper value={`${t.every} s`} label="time between putts" onChange={(d) => update({ every: Math.min(15, Math.max(3, t.every + d)) })} />
+        </div>
+      </div>
+
+      <h2>How you hear it</h2>
+      <div className="list">
+        <Toggle on={t.sound} label="Sound" sub="A soft tick. Headphones are best." onFlip={() => update({ sound: !t.sound })} />
+        {buzzable && (
+          <Toggle
+            on={t.buzz}
+            label="Buzz"
+            sub="The phone buzzes each beat. Turn sound off and it works from your pocket."
+            onFlip={() => update({ buzz: !t.buzz })}
+          />
+        )}
+        <Toggle
+          on={t.fade}
+          label="Fade out"
+          sub="Every third stroke is silent, so the rhythm has to come from you."
+          onFlip={() => update({ fade: !t.fade })}
+        />
+      </div>
+      {!buzzable && (
+        <p className="small muted" style={{ margin: '8px 0 0' }}>
+          iPhones do not let a web app buzz, so on an iPhone it is sound only.
+        </p>
+      )}
+
+      <button className="btn btn-primary btn-wide" style={{ marginTop: 20 }} disabled={!t.sound && !t.buzz} onClick={() => setRunning(true)}>
+        {!t.sound && !t.buzz ? 'Turn on sound or buzz' : 'Start'}
+      </button>
+    </div>
+  );
+}

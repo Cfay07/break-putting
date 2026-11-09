@@ -1904,3 +1904,43 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .next-round p { margin: 6px 0 0; font-size: 15px; line-height: 1.4; font-weight: 600; }
 
 .target-flag { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(232, 147, 95, 0.16); font-size: 13.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }
+
+/* Metronome: quiet by design. A small dot, no flashing, nothing a teammate would notice. */
+.tempo-ratio { flex: none; }
+.tempo-ratio > button { padding: 0 9px; font-size: 13px; white-space: nowrap; }
+.tempo-run {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+.tempo-count { font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.tempo-dot { width: 18px; height: 18px; border-radius: 50%; background: rgba(20, 57, 43, 0.15); transition: background 0.08s; }
+.tempo-dot.on { background: var(--ink); }
+.tempo-dot.on.impact { background: var(--accent); }
+.tempo-beat { font-size: 28px; font-weight: 900; min-height: 34px; }
+.tempo-run-note { max-width: 280px; margin: 0; }
+.tempo-stop {
+  margin-top: 24px;
+  min-height: 56px;
+  min-width: 220px;
+  border-radius: 28px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  transition: background 0.9s linear, color 0.9s linear;
+}
+.tempo-stop.holding { background: var(--ink); color: var(--paper); }
