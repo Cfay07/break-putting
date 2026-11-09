@@ -205,7 +205,13 @@ export function useTarget() {
   }
   picks = picks.slice(0, 2);
   // The scored check at the end of a session: a plain count drill from the target's distance.
-  const check = zoneDrills.find((d) => d.scoring === 'count' && !picks.some((p) => p.id === d.id)) ?? null;
+  // A mixed-order set from the target's distances is the check: the same twelve putts every time,
+  // in a new order, so it is comparable week to week and plays like a round.
+  const mix = tz && (tz.zone === 'short' || tz.zone === 'mid' || tz.zone === 'long') ? fitted(`mix-${tz.zone}`) : null;
+  const check =
+    mix && !picks.some((p) => p.id === mix.id)
+      ? mix
+      : (zoneDrills.find((d) => d.scoring === 'count' && !picks.some((p) => p.id === d.id)) ?? null);
 
   const markFixed = () => {
     if (!state.target) return;

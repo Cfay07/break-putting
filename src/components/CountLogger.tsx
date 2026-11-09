@@ -41,7 +41,16 @@ export function stationName(s: { d: number; label?: string; hand?: Hand; movedFr
  */
 export function CountLogger({ drill, onSave }: LoggerProps) {
   const rows = useMemo(() => rowsOf(drill.stations), [drill]);
-  const queue = useMemo(() => drill.stations.flatMap((s) => Array.from({ length: s.balls }, () => s)), [drill]);
+  // A mixed drill hands out its distances in a new order each set, the way a round does.
+  const queue = useMemo(() => {
+    const q = drill.stations.flatMap((s) => Array.from({ length: s.balls }, () => s));
+    if (!drill.shuffle) return q;
+    for (let i = q.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [q[i], q[j]] = [q[j], q[i]];
+    }
+    return q;
+  }, [drill]);
   // Several distances: a counter per distance, tapped at the end. Ball by ball stays one tap away.
   const [steppers, setSteppers] = useState(() => rows.length > 1 && drill.id !== TEST_ID);
   const isTest = drill.id === TEST_ID;
@@ -160,6 +169,18 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
     return (
       <div className="runner-body">
         <p className="small muted">{drill.how}</p>
+        {drill.shuffle && (
+          <div className="mix-order" aria-label="Putt them in this order">
+            <span className="tiny">Putt them in this order, one ball each</span>
+            <ol>
+              {queue.map((s, i) => (
+                <li key={i} className="num">
+                  {s.d}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
         <div className="step-rows">
           {rows.map((r, i) => (
             <div key={i} className="step-row">
@@ -211,8 +232,7 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
   const station = queue[Math.min(balls.length, queue.length - 1)];
   const mode = station.mode ?? 'make';
   const atStation = queue.map((s, i) => ({ s, i })).filter((x) => x.s === station);
-  const first = atStation[0].i;
-  const here = balls.slice(first, first + atStation.length);
+  const here = atStation.filter((x) => x.i < balls.length).map((x) => balls[x.i]);
   const made = balls.filter(Boolean).length;
   // A drill that mixes holing out with lag, like the weekly test, counts both in one number.
   const mixed = new Set(queue.map((s) => s.mode ?? 'make')).size > 1;

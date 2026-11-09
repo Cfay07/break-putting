@@ -374,6 +374,8 @@ export interface DrillDef {
   fixes?: Lean[];
   /** Rolled with the metronome on, so the stroke time stays put while the length changes. */
   beat?: boolean;
+  /** The distances come in a new random order every set, the way a round hands them to you. */
+  shuffle?: boolean;
   updated?: string;
   kind?: 'drill';
 }
