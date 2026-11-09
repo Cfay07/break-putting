@@ -48,6 +48,10 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
     () => rows.length > 1 && drill.stations.every((st) => st.balls >= 5 && (st.mode ?? 'make') === 'make'),
   );
   const isTest = drill.id === TEST_ID;
+  // One distance: putt them all with the phone down, then tap the score. Ball by ball is the option.
+  const [atEnd, setAtEnd] = useState(() => !isTest && rows.length === 1 && rows[0].balls > 1);
+  const [score, setScore] = useState<number | null>(null);
+  const [missDirs, setMissDirs] = useState<Partial<Record<MissDir, number>>>({});
   const [resumed] = useState(() => (isTest ? loadTestRun(queue) : null));
   const [balls, setBalls] = useState<boolean[]>(resumed?.balls ?? []);
   const [dirs, setDirs] = useState<(MissDir | undefined)[]>(resumed?.dirs ?? []);
@@ -58,6 +62,83 @@ export function CountLogger({ drill, onSave }: LoggerProps) {
     if (balls.length && balls.length < queue.length) saveTestRun(queue, balls, dirs);
     else clearTestRun();
   }, [isTest, queue, balls, dirs]);
+
+  if (atEnd) {
+    const r = rows[0];
+    const words = MODE_WORDS[r.mode];
+    const missed = score === null ? 0 : r.balls - score;
+    const tagged = Object.values(missDirs).reduce((n, v) => n + (v ?? 0), 0);
+    const save = () => {
+      if (score === null) return;
+      const misses = Object.fromEntries(Object.entries(missDirs).filter(([, v]) => v));
+      onSave({
+        made: score,
+        attempts: r.balls,
+        stations: [
+          {
+            d: r.d,
+            mode: r.mode,
+            ...(r.zoneFt ? { zoneFt: r.zoneFt } : {}),
+            ...(r.hand ? { hand: r.hand } : {}),
+            made: score,
+            attempts: r.balls,
+            ...(Object.keys(misses).length ? { misses } : {}),
+          },
+        ],
+      });
+    };
+    return (
+      <div className="runner-body">
+        <p className="small muted">{drill.how}</p>
+        <p className="score-ask">
+          Putt all {r.balls}, then tap how many {r.mode === 'make' ? 'went in' : words.noun}.
+        </p>
+        <div className="score-grid">
+          {Array.from({ length: r.balls + 1 }, (_, v) => (
+            <button
+              key={v}
+              aria-pressed={score === v}
+              onClick={() => {
+                setScore(v);
+                setMissDirs({});
+              }}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+        {missed > 0 && (
+          <div className="score-dirs" role="group" aria-label="Where the misses went, optional">
+            <span className="tiny">Where did the misses go? Optional</span>
+            {(['left', 'right', 'short', 'long'] as MissDir[]).map((d) => (
+              <button
+                key={d}
+                aria-pressed={!!missDirs[d]}
+                disabled={!missDirs[d] && tagged >= missed}
+                onClick={() => setMissDirs({ ...missDirs, [d]: tagged < missed ? (missDirs[d] ?? 0) + 1 : 0 })}
+              >
+                {d[0].toUpperCase() + d.slice(1)}
+                {missDirs[d] ? ` ${missDirs[d]}` : ''}
+              </button>
+            ))}
+            {tagged > 0 && (
+              <button className="linkish small muted" onClick={() => setMissDirs({})}>
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+        <div className="runner-actions">
+          <button className="btn btn-primary btn-wide" disabled={score === null} onClick={save}>
+            {score === null ? 'Tap your score' : `Save ${score} of ${r.balls}`}
+          </button>
+          <button className="linkish small muted" onClick={() => setAtEnd(false)}>
+            Count ball by ball instead
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (steppers) {
     const made = counts.reduce((a, b) => a + b, 0);

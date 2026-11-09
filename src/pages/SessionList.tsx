@@ -1,4 +1,4 @@
-import { TARGET_SESSION } from './Practice';
+import { TARGET_SESSION } from '../lib/useTarget';
 import { BackLink } from '../components/BackLink';
 import { SessionRow } from './Practice';
 import { usePractice } from '../lib/usePractice';

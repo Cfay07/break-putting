@@ -10,13 +10,11 @@ import { histories } from '../lib/practice';
 import { clock, setScoreShort } from '../lib/practiceView';
 import { go } from '../lib/router';
 import { liveRound, makeRound } from '../lib/store';
-import { CHECK_AFTER, useTarget } from '../lib/useTarget';
+import { CHECK_AFTER, TARGET_SESSION, useTarget } from '../lib/useTarget';
 import { usePractice } from '../lib/usePractice';
 import { SURFACE_LABELS, type SessionDef, type Surface } from '../lib/types';
 import { loadTestRun, nextTestDay, testDrill } from '../lib/weeklyTest';
 
-/** The session the target builds, kept under one id so starting it again replaces it. */
-export const TARGET_SESSION = 'target-session';
 const BLOCK_MIN = 4;
 
 const SURFACES: Surface[] = ['indoor', 'green'];

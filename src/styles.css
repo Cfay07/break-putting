@@ -1860,3 +1860,47 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .payoff-target strong { font-size: 16px; }
 .payoff-target .muted { font-size: 14px; line-height: 1.45; }
 .payoff-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+
+.score-ask { margin: 14px 0 10px; font-size: 17px; font-weight: 800; }
+.score-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.score-grid button {
+  min-height: 52px;
+  border-radius: 12px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.score-grid button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.score-dirs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
+.score-dirs .tiny { flex-basis: 100%; }
+.score-dirs > button:not(.linkish) {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(20, 57, 43, 0.25);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.score-dirs > button[aria-pressed='true'] { background: #e8935f; border-color: #e8935f; }
+.score-dirs > button:disabled { opacity: 0.4; }
+
+.session-done ul { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.session-done li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; }
+.session-done li + li { border-top: 1px solid var(--line); }
+.session-done li > span { display: flex; flex-direction: column; align-items: flex-end; font-size: 12px; }
+.session-done li b { font-size: 20px; font-weight: 900; }
+.session-done .good { color: var(--good); font-weight: 700; }
+.next-round { margin-top: 12px; background: #24363f; color: #eef1ef; border-radius: 14px; padding: 14px 16px; }
+.next-round .payoff-eyebrow { color: #e8935f; }
+.next-round p { margin: 6px 0 0; font-size: 15px; line-height: 1.4; font-weight: 600; }
+
+.target-flag { margin: 14px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(232, 147, 95, 0.16); font-size: 13.5px; line-height: 1.4; font-weight: 600; color: var(--ink); }

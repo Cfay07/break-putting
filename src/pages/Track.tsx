@@ -12,6 +12,7 @@ import { go, replaceRoute } from '../lib/router';
 import { bleedMarks, liveBleed } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
 import { makeChanceOf, xpOf } from '../lib/xp';
+import { ZONE_RANGE } from '../lib/pinpoint';
 import { liveRound, useApp } from '../lib/store';
 import { syncQuietly } from '../lib/sync';
 import {
@@ -101,6 +102,10 @@ export function Track() {
   const draft = track.draft ?? {};
   const draftPutt = draft.d ? ({ ...draft, d: draft.d, made: !!draft.made } as Putt) : null;
   const draftXp = draftPutt ? xpOf(makeModel, state.baseline, draftPutt) : null;
+  // A putt from your target's distance is the one that answers whether practice is working.
+  const [targetType, targetZone] = (state.target && !state.target.fixedOn ? state.target.key : '').split(':');
+  const targetRange = targetType === 'slice' || targetType === 'zone' ? ZONE_RANGE[targetZone as keyof typeof ZONE_RANGE] : null;
+  const onTarget = !!draft.d && !!targetRange && !round?.practice && draft.d >= targetRange[0] && draft.d <= targetRange[1];
   const draftChance = draftPutt ? makeChanceOf(makeModel, draftPutt) : null;
   // A toe or heel strike is a fault, so it can never sit beside "Nothing wrong".
   const offCentre = draft.strike === 'toe' || draft.strike === 'heel';
@@ -349,6 +354,12 @@ export function Track() {
             </>
           )}
 
+          {onTarget && (
+            <p className="target-flag">
+              Your target distance. Tag how it broke{targetType === 'slice' ? ' and the read' : ''}, and this putt counts
+              toward the check.
+            </p>
+          )}
           <div className="field-label">
             How it broke
             {breakLabel(draft.breakDirs ?? []) ? (

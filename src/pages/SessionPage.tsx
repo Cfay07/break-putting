@@ -3,17 +3,23 @@ import { useState } from 'react';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { DrillLogger } from '../components/DrillLogger';
 import { useNow } from '../components/useNow';
-import { distanceText, fits, fitToRoom, resolveDrill } from '../lib/drills';
+import { distanceText, familyOf, fits, fitToRoom, resolveDrill } from '../lib/drills';
+import { historyOf } from '../lib/practice';
 import { clock, setScore } from '../lib/practiceView';
 import { go } from '../lib/router';
 import { usePractice } from '../lib/usePractice';
 import { SURFACE_LABELS } from '../lib/types';
+import { CHECK_AFTER, TARGET_SESSION, useTarget } from '../lib/useTarget';
 
 export function SessionPage({ id }: { id: string }) {
   const { state, dispatch, surface, room } = usePractice();
-  const [open, setOpen] = useState<number | null>(null);
+  const target = useTarget();
   const session = state.sessions.find((x) => x.id === id);
   const run = state.run?.session === id ? state.run : undefined;
+  // The target's session opens straight onto the drill you are on: Start means start.
+  const [open, setOpen] = useState<number | null>(() =>
+    id === TARGET_SESSION && run && session && run.block < session.blocks.length && !run.done[run.block] ? run.block : null,
+  );
   const now = useNow(!!run, 1000);
 
   if (!session) {
@@ -72,6 +78,40 @@ export function SessionPage({ id }: { id: string }) {
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {finished && id === TARGET_SESSION && (
+        <div className="session-done">
+          <h2>Done</h2>
+          <ul>
+            {blocks
+              .filter((x) => x.set && x.drill)
+              .map((x) => {
+                const fam = familyOf(state, x.drill!.id);
+                const h = historyOf(state.practice, fam, (f) => familyOf(state, f));
+                const note = !h || h.sets.length < 2 ? 'First time' : h.best.id === x.set!.id ? 'Your best' : `Best ${setScore(x.drill, h.best)}`;
+                return (
+                  <li key={x.set!.id}>
+                    <strong>{x.drill!.name}</strong>
+                    <span>
+                      <b className="num">{setScore(x.drill, x.set!)}</b>
+                      <span className={note === 'Your best' ? 'good' : 'muted'}>{note}</span>
+                    </span>
+                  </li>
+                );
+              })}
+          </ul>
+          {target.progress && (
+            <div className="next-round">
+              <span className="payoff-eyebrow">Next round</span>
+              <p>
+                Tag the break on putts like these: {session.name.toLowerCase()}.{' '}
+                {Math.max(0, CHECK_AFTER - target.progress.after.attempts)} more on the course and the round page can say
+                whether it is working.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

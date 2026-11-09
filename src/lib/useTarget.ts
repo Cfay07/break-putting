@@ -10,6 +10,9 @@ import { usePlan, type WhyItem } from './usePlan';
 import { nextTestDay, testParts, testStatus } from './weeklyTest';
 import { DIR_MEANS } from '../pages/PracticeWhy';
 
+/** The session the target builds, kept under one id so starting it again replaces it. */
+export const TARGET_SESSION = 'target-session';
+
 /** Course putts on the target since it was set, before it can say whether you are holing more. */
 export const CHECK_AFTER = 10;
 
@@ -34,7 +37,7 @@ export interface TargetProgress {
 }
 
 /** One-sided two-proportion test at 95%: the after rate beats the before rate past chance. */
-function beatsBefore(b: { made: number; attempts: number }, a: { made: number; attempts: number }): boolean {
+export function beatsBefore(b: { made: number; attempts: number }, a: { made: number; attempts: number }): boolean {
   if (a.attempts < CHECK_AFTER || b.attempts < CHECK_AFTER) return false;
   const p1 = b.made / b.attempts;
   const p2 = a.made / a.attempts;
