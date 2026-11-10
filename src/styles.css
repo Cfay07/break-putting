@@ -2040,3 +2040,17 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
   font-size: 13.5px;
 }
 .pay-course-go { flex: none; font-weight: 700; }
+
+.pay-course-card { margin-top: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); display: grid; gap: 6px; }
+.pay-course-card .pay-split-head strong { font-size: 15px; }
+.pay-course-card .pay-course-go { color: var(--ink); text-decoration: none; font-size: 13.5px; }
+.pay-course-line { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+.pay-course-card .pay-split { border-top-color: var(--line); }
+.pay-course-card .pay-split-head strong { font-size: 14px; }
+.pay-course-card .pay-split-label { color: var(--ink-2); }
+.pay-course-card .pay-zero { background: rgba(20, 57, 43, 0.3); }
+.pay-course-card .pay-fill { background: rgba(20, 57, 43, 0.22); }
+.pay-course-card .pay-fill.me { background: var(--accent); }
+.pay-course-card .pay-split-track b { color: var(--ink); }
+.pay-course-card .pay-note { color: #5f7268; }
+.pay-quiet.light { margin: 4px 0 0 !important; padding-top: 0; border-top: 0; color: #5f7268 !important; }

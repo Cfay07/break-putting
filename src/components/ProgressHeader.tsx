@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
 import { fmtDate, signed, today as todayIso } from '../lib/format';
+import { resolveDrill } from '../lib/drills';
+import { trendOf } from '../lib/practice';
 import { putterName } from '../lib/store';
 import {
+  BEFORE_DAYS,
   compare,
   per18,
   practiceSplit,
@@ -26,7 +29,8 @@ const PILL: Record<Exclude<Verdict, 'early'>, string> = {
 };
 
 function pillText(c: Compare, unit: string): string {
-  return c.verdict === 'early' ? `Too early · ${c.need} more ${c.need === 1 ? unit : `${unit}s`}` : PILL[c.verdict];
+  if (c.verdict !== 'early') return PILL[c.verdict];
+  return c.need > 0 ? `Too early · ${c.need} more ${c.need === 1 ? unit : `${unit}s`}` : 'Too early';
 }
 
 const pillClass = (v: Verdict) =>
@@ -105,12 +109,38 @@ export function ProgressHeader() {
   const lastRound = rounds.at(-1)?.date ?? null;
   const roundsQuiet = !lastRound || (Date.parse(today) - Date.parse(lastRound)) / 864e5 > 42;
 
-  const outcome = test.verdict !== 'early' ? test : check.verdict !== 'early' ? check : null;
-  const status = statusOf(recentWeeks >= 2, outcome?.verdict ?? null);
+  // Every other drill against its own earlier sets, from the last twelve weeks only.
+  const recentSets = sets.filter((x) => {
+    const age = (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${x.date}T12:00:00Z`)) / 864e5;
+    return age >= 0 && age < BEFORE_DAYS && x.drill !== TEST_ID && family(x.drill) !== checkId;
+  });
+  const byDrill = new Map<string, PracticeSet[]>();
+  for (const x of recentSets) byDrill.set(family(x.drill), [...(byDrill.get(family(x.drill)) ?? []), x]);
+  const drillReads = [...byDrill.entries()].map(([id, xs]) => {
+    const surface = xs.at(-1)!.surface;
+    return { id, name: resolveDrill(state, id)?.name ?? 'A drill', trend: trendOf(xs.filter((x) => x.surface === surface)) };
+  });
+  const counts = { up: 0, flat: 0, down: 0, waiting: 0 };
+  for (const d of drillReads) counts[d.trend.verdict]++;
+  const drillsVerdict: Verdict =
+    counts.up + counts.flat + counts.down === 0
+      ? 'early'
+      : counts.up > counts.down
+        ? counts.down === 0 && counts.up >= 2 ? 'better' : 'probably-better'
+        : counts.down > counts.up
+          ? counts.up === 0 && counts.down >= 2 ? 'worse' : 'probably-worse'
+          : 'holding';
+
+  // The status reads practice against your own earlier practice. Rounds are a check below it.
+  const outcome =
+    test.verdict !== 'early' ? test.verdict : check.verdict !== 'early' ? check.verdict : drillsVerdict !== 'early' ? drillsVerdict : null;
+  const status = statusOf(recentWeeks >= 2, outcome);
   const firstNeed = test.verdict === 'early' ? test : check;
   const sentence =
     status === 'baseline'
-      ? `Your weekly test needs ${firstNeed.need} more ${firstNeed.need === 1 ? 'test' : 'tests'} before it can tell a good week from a better you.`
+      ? weekly.length || checks.length
+        ? `${firstNeed.need} more ${firstNeed === test ? (firstNeed.need === 1 ? 'test' : 'tests') : firstNeed.need === 1 ? 'set' : 'sets'} and it can tell a good day from a better you.`
+        : 'Take the weekly test or roll a drill a few times, and this starts comparing you with yourself.'
       : status === 'paying'
         ? 'You are practicing and your scores are above your normal.'
         : status === 'steady'
@@ -142,17 +172,75 @@ export function ProgressHeader() {
           </span>
         </div>
 
+      </div>
+
+      <div className="pay-rows">
+        <Row
+          title="Weekly test"
+          c={test}
+          unit="test"
+          bars={<Bars values={weekly.slice(-12).map((t) => t.made)} max={weekly[0]?.attempts ?? 18} band={testBand} />}
+          text={
+            !weekly.length
+              ? 'Eighteen putts, about six minutes. The first one sets your line.'
+              : test.verdict === 'early'
+                ? `${weekly.at(-1)!.made} of ${weekly.at(-1)!.attempts} on ${fmtDate(weekly.at(-1)!.date)}. ${test.need} more and it knows your normal week from a good one.`
+                : `${test.recent!.toFixed(1)} a test over the last four weeks, ${test.before!.toFixed(1)} the eight before. Your normal swing is about ${test.swing!.toFixed(1)}.`
+          }
+        />
+        {checkId && (
+          <Row
+            title="Target check"
+            c={check}
+            unit="set"
+            bars={<Bars values={checks.slice(-12).map((s) => s.made)} max={checks[0]?.attempts ?? 12} />}
+            text={
+              !checks.length
+                ? `${checkId === 'mix-short' ? 'Mixed 3 to 5' : checkId === 'mix-mid' ? 'Mixed 6 to 8' : 'Mixed 9 to 15'}, the same 12 putts each time. Roll it once to set your line.`
+                : check.verdict === 'early'
+                  ? `${checks.at(-1)!.made} of ${checks.at(-1)!.attempts} last time. ${check.need} more ${check.need === 1 ? 'set' : 'sets'} and it can compare.`
+                  : `${Math.round(check.recent! * 100)}% over the last four weeks, ${Math.round(check.before! * 100)}% the eight before.`
+            }
+          />
+        )}
+        <Row
+          title="Your drills"
+          c={{ verdict: drillsVerdict, recent: null, before: null, swing: null, need: 0 }}
+          unit="drill"
+          text={
+            drillsVerdict === 'early'
+              ? counts.waiting
+                ? `${counts.waiting} ${counts.waiting === 1 ? 'drill needs' : 'drills need'} a few more sets before each can be compared with itself.`
+                : 'Roll any drill a few times and it gets compared with its own earlier sets.'
+              : `Each drill against its own earlier sets: ${counts.up} up, ${counts.flat} holding, ${counts.down} down${counts.waiting ? `, ${counts.waiting} still building` : ''}.`
+          }
+        />
+      </div>
+
+      {rounds.length > 0 && (
+        <div className="pay-course-card">
+          <div className="pay-split-head">
+            <strong>On the course</strong>
+            <a href="#/stats" className="pay-course-go">
+              Rounds ›
+            </a>
+          </div>
+          <p className="pay-course-line">
+            {course.verdict === 'early'
+              ? `${course.need} more ${course.need === 1 ? 'round' : 'rounds'} before it can compare.`
+              : `${PILL[course.verdict]}, your last 10 rounds against the ${earlier.length} before.`}
+          </p>
         {roundsQuiet ? (
-          <p className="pay-quiet">
-            Practice and the course: {lastRound ? `last round ${fmtDate(lastRound)}.` : 'no rounds yet.'} This picks back up with your next
-            round, and every round within a week of practice counts toward it.
+          <p className="pay-quiet light">
+            {lastRound ? `Last round ${fmtDate(lastRound)}.` : 'No rounds yet.'} This picks back up with your next round, and every round
+            within a week of practice counts toward it.
           </p>
         ) : (
           (split.after.length > 0 || split.without.length > 0) && (
             <div className="pay-split">
               <div className="pay-split-head">
-                <strong>Practice and the course</strong>
-                <span className={`${pillClass(split.compare.verdict)} on-dark`}>{pillText(split.compare, 'round')}</span>
+                <strong>Rounds after a practice week</strong>
+                <span className={`${pillClass(split.compare.verdict)}`}>{pillText(split.compare, 'round')}</span>
               </div>
               {[
                 { label: 'Within a week after practice', v: split.compare.recent, n: split.after.length, me: true },
@@ -186,49 +274,7 @@ export function ProgressHeader() {
             </div>
           )
         )}
-      </div>
-
-      <div className="pay-rows">
-        <Row
-          title="Weekly test"
-          c={test}
-          unit="test"
-          bars={<Bars values={weekly.slice(-12).map((t) => t.made)} max={weekly[0]?.attempts ?? 18} band={testBand} />}
-          text={
-            !weekly.length
-              ? 'Eighteen putts, about six minutes. The first one sets your line.'
-              : test.verdict === 'early'
-                ? `${weekly.at(-1)!.made} of ${weekly.at(-1)!.attempts} on ${fmtDate(weekly.at(-1)!.date)}. ${test.need} more and it knows your normal week from a good one.`
-                : `${test.recent!.toFixed(1)} a test over the last four weeks, ${test.before!.toFixed(1)} the eight before. Your normal swing is about ${test.swing!.toFixed(1)}.`
-          }
-        />
-        {checkId && (
-          <Row
-            title="Target check"
-            c={check}
-            unit="set"
-            bars={<Bars values={checks.slice(-12).map((s) => s.made)} max={checks[0]?.attempts ?? 12} />}
-            text={
-              !checks.length
-                ? `${checkId === 'mix-short' ? 'Mixed 3 to 5' : checkId === 'mix-mid' ? 'Mixed 6 to 8' : 'Mixed 9 to 15'}, the same 12 putts each time. Roll it once to set your line.`
-                : check.verdict === 'early'
-                  ? `${checks.at(-1)!.made} of ${checks.at(-1)!.attempts} last time. ${check.need} more ${check.need === 1 ? 'set' : 'sets'} and it can compare.`
-                  : `${Math.round(check.recent! * 100)}% over the last four weeks, ${Math.round(check.before! * 100)}% the eight before.`
-            }
-          />
-        )}
-      </div>
-
-      {rounds.length > 0 && (
-        <a className="pay-course" href="#/stats">
-          <span>
-            <strong>On the course:</strong>{' '}
-            {course.verdict === 'early'
-              ? `${course.need} more ${course.need === 1 ? 'round' : 'rounds'} to compare`
-              : `${PILL[course.verdict].toLowerCase()}, last 10 rounds against the ${earlier.length} before`}
-          </span>
-          <span className="pay-course-go">Rounds ›</span>
-        </a>
+        </div>
       )}
     </>
   );
