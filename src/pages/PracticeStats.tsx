@@ -1,7 +1,8 @@
 import { Chevron } from '../components/Chevron';
 import { PracticeDays } from '../components/PracticeDays';
 import { PracticeLog } from '../components/PracticeLog';
-import { CarryList, MissBandsCard, PressureCard, SpotVsMixed, TargetCarry, TestTrendCard } from '../components/PracticeReview';
+import { MissBandsCard, PressureCard, SpotVsMixed } from '../components/PracticeReview';
+import { ProgressHeader } from '../components/ProgressHeader';
 import { SetColumns } from '../components/SetColumns';
 import { VsPlay } from '../components/VsPlay';
 import { resolveDrill } from '../lib/drills';
@@ -95,7 +96,7 @@ export function PracticeStats() {
   if (!sets.length && !played.length) {
     return (
       <div>
-        <TargetCarry />
+        <ProgressHeader />
         <p className="small muted" style={{ marginTop: 14 }}>
           Your weekly test, drills and practice rounds land here once you have rolled some.
         </p>
@@ -105,9 +106,7 @@ export function PracticeStats() {
 
   return (
     <div>
-      <TargetCarry />
-      <TestTrendCard />
-      <CarryList />
+      <ProgressHeader />
 
       {prac && (
         <>
