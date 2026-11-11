@@ -286,6 +286,8 @@ export interface AppState {
   target?: PinnedTarget;
   /** Targets the course said were fixed, kept with their dates so the next pick skips them. */
   targetsDone?: PinnedTarget[];
+  /** Feet each drill has moved back, by the drill's family, each one a move you agreed to. */
+  levels?: Record<string, { ft: number; askAfter?: number }>;
 }
 
 /**

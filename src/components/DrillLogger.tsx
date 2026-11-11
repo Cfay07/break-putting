@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { loadTempo, saveTempo, startTempo } from '../lib/tempo';
+import { ASK_AGAIN_AFTER, LEVEL_STEP, levels, markOf, readyToMove, setsAt, withLevel } from '../lib/levels';
 import { candidates, pickStroke, TUNE_DRILL, tuneArms, tuneVerdict } from '../lib/tempoTune';
 import { distanceText, familyOf, scoringLabel, type Fitted } from '../lib/drills';
 import { today } from '../lib/format';
@@ -7,7 +8,7 @@ import { historyOf, type DrillHistory } from '../lib/practice';
 import { setScore, verdict } from '../lib/practiceView';
 import { newId } from '../lib/storage';
 import { useApp } from '../lib/store';
-import type { PracticeSet, Surface } from '../lib/types';
+import { DEFAULT_ROOM, type PracticeSet, type Surface } from '../lib/types';
 import { CountLogger } from './CountLogger';
 import { GameLogger } from './GameLogger';
 import { LadderLogger } from './LadderLogger';
@@ -45,7 +46,7 @@ const LOGGERS = { count: CountLogger, ladder: LadderLogger, streak: StreakLogger
  * a ball, so it takes the whole screen and the two buttons that matter take the bottom of it.
  */
 export function DrillLogger({
-  drill,
+  drill: given,
   surface,
   session,
   next,
@@ -67,6 +68,15 @@ export function DrillLogger({
 }) {
   const { state, dispatch } = useApp();
   const family = (id: string) => familyOf(state, id);
+  // Rolled at the distance you agreed to move back to, never past your room.
+  const room = { ...DEFAULT_ROOM, ...state.room }[surface];
+  const level = state.levels?.[family(given.id)];
+  const drill = withLevel(given, level, room);
+  const levelled = levels(drill);
+  const here = levelled ? drill.stations[0].d : 0;
+  const scoresHere = (sets: PracticeSet[]) => (levelled ? setsAt(sets, family(drill.id), family, here).map((s) => s.made) : []);
+  const mark = levelled ? markOf(scoresHere(state.practice)) : null;
+  const [ask, setAsk] = useState(false);
   // Taken when the set starts, so the comparison is with what came before it.
   const [before, setBefore] = useState(() => historyOf(state.practice, family(drill.id), family));
   const [saved, setSaved] = useState<{ set: PracticeSet; balls?: boolean[] } | null>(null);
@@ -105,8 +115,20 @@ export function DrillLogger({
         setMoved(winner);
       }
     }
+    setAsk(levelled && here + LEVEL_STEP <= room && readyToMove(scoresHere([...state.practice, set]), level));
     setSaved({ set, balls });
     onSaved?.(set);
+  };
+
+  const answer = (moveBack: boolean) => {
+    const done = scoresHere(state.practice).length;
+    dispatch({
+      t: 'setLevel',
+      drill: family(drill.id),
+      ft: (level?.ft ?? 0) + (moveBack ? LEVEL_STEP : 0),
+      ...(moveBack ? {} : { askAfter: done + ASK_AGAIN_AFTER }),
+    });
+    setAsk(false);
   };
 
   const again = () => {
@@ -118,6 +140,7 @@ export function DrillLogger({
     }
     setSaved(null);
     setMoved(null);
+    setAsk(false);
     setStroke(pick(saved ? [...state.practice.filter((s) => s.id !== saved.set.id), saved.set] : state.practice));
     setRound((n) => n + 1);
   };
@@ -143,11 +166,37 @@ export function DrillLogger({
         </span>
       </div>
 
+      {levelled && !saved && (
+        <p className="runner-mark">
+          {mark !== null
+            ? `Your mark here: ${mark} of ${drill.stations.reduce((n, st) => n + st.balls, 0)}. You reach it about two sets in three.`
+            : 'Three sets from here and you get a mark you reach about two sets in three.'}
+        </p>
+      )}
       {saved ? (
         <div className="runner-body">
           <div className="runner-result">{setScore(drill, saved.set)}</div>
           {drill.scoring !== 'game' && drill.scoring !== 'done' && (
             <p className="runner-verdict">{verdict(drill, saved.set, before)}</p>
+          )}
+          {levelled && mark !== null && (
+            <p className="runner-mark-result">{saved.set.made >= mark ? `Cleared your mark of ${mark}.` : `Your mark is ${mark}. Next one.`}</p>
+          )}
+          {ask && (
+            <div className="level-ask">
+              <p>
+                Two in a row at or above your mark from {here} ft. Want to move back to {here + LEVEL_STEP} ft next time? Your mark starts
+                fresh from there.
+              </p>
+              <div className="level-ask-btns">
+                <button className="btn btn-primary" onClick={() => answer(true)}>
+                  Move to {here + LEVEL_STEP} ft
+                </button>
+                <button className="btn" onClick={() => answer(false)}>
+                  Stay at {here} ft
+                </button>
+              </div>
+            </div>
           )}
           {moved !== null && (
             <p className="runner-verdict">

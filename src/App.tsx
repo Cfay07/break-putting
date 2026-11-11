@@ -260,6 +260,8 @@ export default function App() {
     <Stats key={route} practice={route === '/stats/practice'} />
   ) : route === '/practice' ? (
     <Practice />
+  ) : route === '/practice/test' ? (
+    <Practice openTest />
   ) : route === '/team' ? (
     <Team />
   ) : route === '/settings' ? (

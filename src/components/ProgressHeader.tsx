@@ -98,7 +98,11 @@ export function ProgressHeader() {
 
   // Rounds after a practice week against the rest, and the course overall, with the putter you use now.
   const rounds = [...scoped.rounds].filter((r) => r.holes.some((h) => h.putts.length)).sort((a, b) => a.date.localeCompare(b.date));
-  const split = practiceSplit(rounds, practiceDates, state.baseline);
+  const practiceDays = [
+    ...sets.map((x) => ({ date: x.date, balls: x.attempts })),
+    ...(state.practiceRounds ?? []).map((r) => ({ date: r.date, balls: r.holes.reduce((n, h) => n + h.putts.length, 0) })),
+  ];
+  const split = practiceSplit(rounds, practiceDays, state.baseline);
   const earlier = rounds.slice(-20, -10);
   const course = compare(
     rounds.slice(-10).map((r) => per18(r, state.baseline)),
@@ -162,15 +166,21 @@ export function ProgressHeader() {
       <div className="pay-card">
         <span className="pay-eyebrow">Practice status</span>
         <strong className="pay-status">{STATUS_WORD[status]}</strong>
-        <p>{sentence}</p>
-        <div className="pay-weeks" aria-label={`Practiced ${weeks.filter(Boolean).length} of the last ${weeks.length} weeks`}>
-          {weeks.map((on, i) => (
-            <i key={i} className={on ? 'on' : undefined} />
-          ))}
-          <span>
-            Practiced {weeks.filter(Boolean).length} of the last {weeks.length} weeks
-          </span>
-        </div>
+        <p>
+          {sentence}
+          {status === 'baseline' && test.verdict === 'early' && (
+            <>
+              {' '}
+              <a className="pay-go" href="#/practice/test">
+                Take the test ›
+              </a>
+            </>
+          )}
+        </p>
+        <p className="pay-weeks-line">
+          Practiced {weeks.filter(Boolean).length} of the last {weeks.length} weeks
+          {practiceDates.length ? `, last on ${fmtDate([...practiceDates].sort().at(-1)!)}` : ''}.
+        </p>
 
       </div>
 
@@ -239,12 +249,22 @@ export function ProgressHeader() {
           (split.after.length > 0 || split.without.length > 0) && (
             <div className="pay-split">
               <div className="pay-split-head">
-                <strong>Rounds after a practice week</strong>
+                <strong>{split.mode === 'amount' ? 'More practice or less' : 'Rounds after a practice week'}</strong>
                 <span className={`${pillClass(split.compare.verdict)}`}>{pillText(split.compare, 'round')}</span>
               </div>
               {[
-                { label: 'Within a week after practice', v: split.compare.recent, n: split.after.length, me: true },
-                { label: 'Weeks you did not', v: split.compare.before, n: split.without.length, me: false },
+                {
+                  label: split.mode === 'amount' ? `${split.line}+ practice putts that week` : 'Within a week after practice',
+                  v: split.compare.recent,
+                  n: split.after.length,
+                  me: true,
+                },
+                {
+                  label: split.mode === 'amount' ? `Fewer than ${split.line}` : 'Weeks you did not',
+                  v: split.compare.before,
+                  n: split.without.length,
+                  me: false,
+                },
               ].map((x) => (
                 <div key={x.label} className="pay-split-row">
                   <div className="pay-split-label">

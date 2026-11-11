@@ -77,17 +77,35 @@ export const per18 = (r: Round, baseline: [number, number][]) => {
 };
 
 /** Rounds played within a week after practising, against the rest. What happened, not why. */
-export function practiceSplit(rounds: Round[], practiceDates: string[], baseline: [number, number][]) {
-  const after: number[] = [];
-  const without: number[] = [];
-  for (const r of rounds) {
-    const near = practiceDates.some((d) => {
-      const gap = daysBetween(d, r.date);
-      return gap > 0 && gap <= 7;
-    });
-    (near ? after : without).push(per18(r, baseline));
+export interface PracticeDay {
+  date: string;
+  balls: number;
+}
+
+/**
+ * Rounds read against the practice in the week before them. Most players who use this practice
+ * most weeks, so once fewer than three rounds came with no practice at all, it compares a bigger
+ * practice week with a lighter one instead, split at the player's own usual amount.
+ */
+export function practiceSplit(rounds: Round[], practice: PracticeDay[], baseline: [number, number][]) {
+  const ballsBefore = (date: string) =>
+    practice.reduce((n, p) => {
+      const gap = daysBetween(p.date, date);
+      return gap > 0 && gap <= 7 ? n + p.balls : n;
+    }, 0);
+  const read = rounds.map((r) => ({ balls: ballsBefore(r.date), sg: per18(r, baseline) }));
+  const none = read.filter((x) => x.balls === 0);
+  const some = read.filter((x) => x.balls > 0);
+  if (none.length < 3 && some.length >= 6) {
+    const sorted = [...some].map((x) => x.balls).sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const more = some.filter((x) => x.balls >= median).map((x) => x.sg);
+    const less = some.filter((x) => x.balls < median).map((x) => x.sg);
+    return { mode: 'amount' as const, line: median, after: more, without: less, compare: compare(more, less, 3, 3) };
   }
-  return { after, without, compare: compare(after, without, 3, 3) };
+  const after = some.map((x) => x.sg);
+  const without = none.map((x) => x.sg);
+  return { mode: 'any' as const, line: 0, after, without, compare: compare(after, without, 3, 3) };
 }
 
 export type Status = 'paying' | 'steady' | 'not-yet' | 'slipping' | 'baseline';

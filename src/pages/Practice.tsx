@@ -8,7 +8,7 @@ import { distanceText, fits, fitToRoom, resolveDrill, type Fitted } from '../lib
 import { fmtDate, today } from '../lib/format';
 import { histories } from '../lib/practice';
 import { clock, setScoreShort } from '../lib/practiceView';
-import { go } from '../lib/router';
+import { go, replaceRoute } from '../lib/router';
 import { liveRound, makeRound } from '../lib/store';
 import { CHECK_AFTER, TARGET_SESSION, useTarget } from '../lib/useTarget';
 import { usePractice } from '../lib/usePractice';
@@ -112,7 +112,8 @@ function RoundSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function Practice() {
+/** `openTest` opens straight onto the weekly test, for links that say "take the test". */
+export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
   const target = useTarget();
   const { state, dispatch, surface, room, family } = target.plan;
   const [rolling, setRolling] = useState<{ drill: Fitted; once?: boolean } | null>(null);
@@ -135,13 +136,36 @@ export function Practice() {
   const testRun = fitToRoom(testDrill(room, surface, date), room);
   const lastTest = test.weeks.filter((s) => s !== test.thisWeek).at(-1) ?? null;
   const testGoing = loadTestRun(testRun.stations);
+  const [opened, setOpened] = useState(false);
+  if (openTest && !opened) {
+    setOpened(true);
+    setPreview({ drill: testRun, once: true });
+    queueMicrotask(() => replaceRoute('/practice'));
+  }
 
-  const { title, lines, picks, check, beat, testIsTarget, hasWhy, setOn, progress, markFixed } = target;
-  const plan = testIsTarget
-    ? []
-    : beat
-      ? [picks[0], beat, check ?? picks[1]].filter((d, i, all): d is Fitted => !!d && all.findIndex((x) => x?.id === d.id) === i)
-      : [...picks, ...(check ? [check] : [])];
+  const { title, lines, picks, check, beat, variety, testIsTarget, hasWhy, setOn, progress, markFixed } = target;
+  const dedupe = (ds: (Fitted | null | undefined)[]) =>
+    ds.filter((d, i, all): d is Fitted => !!d && all.findIndex((x) => x?.id === d.id) === i);
+  const reps = testIsTarget ? [] : beat ? dedupe([picks[0], beat, check ?? picks[1]]) : dedupe([...picks, check]);
+  // The same target, played like a round: mixed distances and a ladder instead of one spot.
+  const roundStyle = testIsTarget ? [] : dedupe([check?.shuffle ? check : null, variety, beat, picks[0]]).slice(0, 3);
+  const canChoose = roundStyle.length >= 2 && roundStyle.map((d) => d.id).join() !== reps.map((d) => d.id).join();
+  const [style, setStyle] = useState<'reps' | 'round'>(() => {
+    try {
+      return localStorage.getItem('break.planStyle') === 'round' ? 'round' : 'reps';
+    } catch {
+      return 'reps';
+    }
+  });
+  const pickStyle = (s: 'reps' | 'round') => {
+    setStyle(s);
+    try {
+      localStorage.setItem('break.planStyle', s);
+    } catch {
+      // Private mode: the choice just does not stick.
+    }
+  };
+  const plan = canChoose && style === 'round' ? roundStyle : reps;
   const startPlan = () => {
     if (state.run?.session !== TARGET_SESSION) {
       const session: SessionDef = {
@@ -232,6 +256,23 @@ export function Practice() {
       {plan.length > 0 && (
         <>
           <h2>Today's {plan.length * BLOCK_MIN} minutes</h2>
+          {canChoose && (
+            <div className="seg seg-quiet plan-style" role="group" aria-label="How you want to practice today">
+              <button aria-pressed={style === 'reps'} onClick={() => pickStyle('reps')}>
+                Reps
+              </button>
+              <button aria-pressed={style === 'round'} onClick={() => pickStyle('round')}>
+                Like a round
+              </button>
+            </div>
+          )}
+          {canChoose && (
+            <p className="small muted" style={{ margin: '6px 0 10px' }}>
+              {style === 'reps'
+                ? 'The same putt over and over until it grooves. Your pick.'
+                : 'Different distances every few balls, the way a round hands them out. Your pick.'}
+            </p>
+          )}
           <ol className="plan-list">
             {plan.map((d, i) => (
               <li key={d.id}>
@@ -343,7 +384,7 @@ export function Practice() {
         <a className="nav-row" href="#/practice/tempo">
           <span className="nav-main">
             <strong>Metronome</strong>
-            <span className="small muted">Back, top, hit. Quiet, and it buzzes on Android</span>
+            <span className="small muted">Back, top, hit, at your tempo. Quiet enough for team practice.</span>
           </span>
           <Chevron />
         </a>

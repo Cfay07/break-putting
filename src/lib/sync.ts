@@ -35,6 +35,7 @@ export interface Incoming {
     room?: Record<Surface, number>;
     target?: PinnedTarget;
     targetsDone?: PinnedTarget[];
+    levels?: Record<string, { ft: number; askAfter?: number }>;
     updated: string;
   };
   practice?: PracticeSet[];
@@ -171,7 +172,7 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
       [
         {
           user_id: session.userId,
-          payload: { baseline: state.baseline, courses: state.courses, room: state.room, target: state.target, targetsDone: state.targetsDone },
+          payload: { baseline: state.baseline, courses: state.courses, room: state.room, target: state.target, targetsDone: state.targetsDone, levels: state.levels },
           updated_at: state.settingsUpdated,
         },
       ],
@@ -206,6 +207,7 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
           room: settingsRows[0].payload?.room,
           target: settingsRows[0].payload?.target,
           targetsDone: settingsRows[0].payload?.targetsDone,
+          levels: settingsRows[0].payload?.levels,
           updated: settingsRows[0].updated_at,
         }
       : undefined,

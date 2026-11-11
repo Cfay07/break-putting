@@ -313,11 +313,6 @@ export function Tempo() {
           onFlip={() => update({ fade: !t.fade })}
         />
       </div>
-      {!buzzable && (
-        <p className="small muted" style={{ margin: '8px 0 0' }}>
-          iPhones do not let a web app buzz, so on an iPhone it is sound only.
-        </p>
-      )}
 
       <button className="btn btn-primary btn-wide" style={{ marginTop: 20 }} disabled={!t.sound && !t.buzz} onClick={() => setRunning(true)}>
         {!t.sound && !t.buzz ? 'Turn on sound or buzz' : 'Start'}

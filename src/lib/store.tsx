@@ -59,6 +59,7 @@ export type Action =
   | { t: 'setRoom'; surface: Surface; feet: number }
   | { t: 'setTarget'; target: PinnedTarget | undefined }
   | { t: 'closeTarget'; target: PinnedTarget }
+  | { t: 'setLevel'; drill: string; ft: number; askAfter?: number }
   | { t: 'startRun'; session: string; surface: Surface }
   | { t: 'finishBlock'; block: number; setId: string }
   | { t: 'goToBlock'; block: number }
@@ -421,6 +422,13 @@ export function reducer(state: AppState, a: Action): AppState {
     case 'setTarget':
       return { ...state, target: a.target, settingsUpdated: now() };
 
+    case 'setLevel':
+      return {
+        ...state,
+        levels: { ...state.levels, [a.drill]: { ft: a.ft, ...(a.askAfter !== undefined ? { askAfter: a.askAfter } : {}) } },
+        settingsUpdated: now(),
+      };
+
     case 'closeTarget':
       return {
         ...state,
@@ -568,6 +576,7 @@ export function reducer(state: AppState, a: Action): AppState {
         room: takeSettings && settings.room ? { ...DEFAULT_ROOM, ...settings.room } : state.room,
         target: takeSettings ? settings.target : state.target,
         targetsDone: takeSettings ? (settings.targetsDone ?? state.targetsDone) : state.targetsDone,
+        levels: takeSettings ? (settings.levels ?? state.levels) : state.levels,
         settingsUpdated: takeSettings ? settings.updated : state.settingsUpdated,
       };
     }

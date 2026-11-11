@@ -11,7 +11,7 @@ export interface TempoSettings {
   /** Seconds from one stroke's start to the next, so there is time to set up the next ball. */
   every: number;
   sound: boolean;
-  /** Android only: the phone buzzes each beat, so it works from a pocket with no sound at all. */
+  /** The phone buzzes each beat where it can, so it works from a pocket with no sound at all. */
   buzz: boolean;
   /** Every third stroke plays silent, so the rhythm has to come from you. */
   fade: boolean;

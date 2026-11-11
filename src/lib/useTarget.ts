@@ -228,6 +228,10 @@ export function useTarget() {
     lines,
     picks,
     check: pick.kind === 'slice' || pick.kind === 'zone' ? check : null,
+    // A drill that changes distance every few balls, for the round-style session.
+    variety:
+      zoneDrills.find((d) => new Set(d.stations.map((s) => s.d)).size > 1 && !d.shuffle && !picks.some((p) => p.id === d.id)) ??
+      (tz?.zone === 'short' ? fitted('ladder-3-6') : tz?.zone === 'mid' ? fitted('ladder-6-10') : null),
     // Lag and speed targets get the metronome drill: same stroke time, different length.
     beat:
       !!tz &&
