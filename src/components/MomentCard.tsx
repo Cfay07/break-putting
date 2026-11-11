@@ -85,11 +85,44 @@ function Streak({ holes }: { holes: { hole: number; one: boolean }[] }) {
   );
 }
 
+function Run({ rounds, from, to }: { rounds: boolean[]; from: string; to: string }) {
+  return (
+    <div className="mv-run" role="img" aria-label={`Your last ${rounds.length} rounds from ${from} to ${to}, ${rounds.filter(Boolean).length} without a three-putt`}>
+      <div className="mv-run-row">
+        {rounds.map((on, i) => (
+          <i key={i} className={on ? 'on' : undefined} />
+        ))}
+      </div>
+      <div className="mv-run-ends">
+        <span>{from}</span>
+        <span>{to}</span>
+      </div>
+    </div>
+  );
+}
+
+function Trend({ values }: { values: number[] }) {
+  const max = Math.max(1, ...values.map(Math.abs));
+  const w = 280 / values.length;
+  const mid = 50;
+  return (
+    <svg viewBox="0 0 280 100" className="moment-viz" role="img" aria-label={`Strokes gained a round, your last ${values.length} rounds, this one last`}>
+      <line x1="0" y1={mid} x2="280" y2={mid} className="mv-track" />
+      {values.map((v, i) => {
+        const h = (Math.abs(v) / max) * 44;
+        return <rect key={i} x={i * w + 3} y={v >= 0 ? mid - h : mid} width={w - 6} height={Math.max(2, h)} rx="3" className={i === values.length - 1 ? 'mv-trend me' : 'mv-trend'} />;
+      })}
+    </svg>
+  );
+}
+
 function Viz({ v }: { v: MomentViz }) {
   if (v.t === 'line') return <PuttLine dirs={v.dirs} />;
   if (v.t === 'bars') return <Bars bars={v.bars} />;
   if (v.t === 'dots') return <Dots holes={v.holes} />;
   if (v.t === 'lag') return <Lag from={v.from} leave={v.leave} />;
+  if (v.t === 'run') return <Run rounds={v.rounds} from={v.from} to={v.to} />;
+  if (v.t === 'trend') return <Trend values={v.values} />;
   return <Streak holes={v.holes} />;
 }
 

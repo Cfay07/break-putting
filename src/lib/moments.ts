@@ -1,4 +1,5 @@
 import { fmtDate, signed } from './format';
+import { per18 } from './progress';
 import { puttSG } from './sg';
 import { breakDirsOf, holeVsPar, holedOut, type BreakDir, type Hole, type Putt, type Round } from './types';
 
@@ -22,7 +23,11 @@ export type MomentViz =
   | { t: 'bars'; bars: { v: number; label: string; me: boolean }[] }
   | { t: 'dots'; holes: { hole: number; chance: number; made: boolean }[] }
   | { t: 'lag'; from: number; leave: number }
-  | { t: 'streak'; holes: { hole: number; one: boolean }[] };
+  | { t: 'streak'; holes: { hole: number; one: boolean }[] }
+  /** Rounds in order, newest last: on means it kept the run going. */
+  | { t: 'run'; rounds: boolean[]; from: string; to: string }
+  /** Strokes gained a round, newest last, around zero. */
+  | { t: 'trend'; values: number[] };
 
 export interface Moment {
   kind: string;
@@ -290,7 +295,18 @@ const onePutts: Detector = ({ round, chance }) => {
   };
 };
 
-const streak: Detector = ({ round, chance }) => {
+/** The longest run of one-putt holes in a round. */
+function oneRun(r: Round): number {
+  let best = 0;
+  let run = 0;
+  for (const h of withPutts(r)) {
+    run = h.putts.length === 1 && h.putts[0].made ? run + 1 : 0;
+    best = Math.max(best, run);
+  }
+  return best;
+}
+
+const streak: Detector = ({ round, prior, chance }) => {
   const fp = firstPutts(round, chance);
   let best = { len: 0, from: 0, to: 0 };
   let run = 0;
@@ -311,7 +327,10 @@ const streak: Detector = ({ round, chance }) => {
     tag: `Holes ${best.from} to ${best.to}`,
     big: String(best.len),
     unit: 'IN A ROW',
-    line: `One-putts on ${best.len} straight holes. The odds count every hole's make chance, not just these.`,
+    line: (() => {
+      const longer = [...prior].sort((a, b) => b.date.localeCompare(a.date)).find((r) => oneRun(r) >= best.len);
+      return longer ? `${best.len} straight one-putts. Longest run since ${fmtDate(longer.date)}.` : `${best.len} straight one-putts. Your longest run yet.`;
+    })(),
     stats: [{ v: String(best.len), l: 'one-putts in a row' }],
     viz: { t: 'streak', holes: fp.map((x) => ({ hole: x.h.hole, one: x.h.hole >= best.from && x.h.hole <= best.to })) },
   };
@@ -341,7 +360,7 @@ const fewest: Detector = ({ round, prior, chance, three }) => {
     unit: 'PUTTS',
     line: newBest
       ? `Fewest you have taken over ${n} holes. The old best was ${totals[0]}.`
-      : `${mine} putts on the first putts you faced. Your make chances put ${mine} or fewer at ${oddsText(p)} rounds.`,
+      : `${mine} putts, fewer than the putts you faced usually take.`,
     stats: [
       { v: String(fp.filter((x) => x.one).length), l: 'one-putts' },
       { v: String(withPutts(round).filter((h) => h.putts.length >= 3).length), l: 'three-putts' },
@@ -353,20 +372,94 @@ const fewest: Detector = ({ round, prior, chance, three }) => {
   };
 };
 
-const clean: Detector = ({ round, chance, three }) => {
-  const fp = firstPutts(round, chance);
-  if (fp.length < 9 || fp.some((x) => x.h.putts.length >= 3)) return null;
-  const p = fp.reduce((q, x) => q * (1 - three(x.h.putts[0].d)), 1);
-  const long = fp.filter((x) => x.h.putts[0].d >= 30).length;
+const hasThree = (r: Round) => withPutts(r).some((h) => h.putts.length >= 3);
+const days = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 864e5);
+
+/** Rounds in a row without a three-putt, ending with this one, against how often you three-putt. */
+const noThree: Detector = ({ round, prior }) => {
+  if (hasThree(round) || playedCount(round) < 9) return null;
+  const hist = [...prior].sort((a, b) => a.date.localeCompare(b.date));
+  let run = 1;
+  let i = hist.length - 1;
+  while (i >= 0 && !hasThree(hist[i])) {
+    run++;
+    i--;
+  }
+  if (run < 3 || !hist.length) return null;
+  const lastThree = i >= 0 ? hist[i].date : null;
+  let longest = 0;
+  let cur = 0;
+  for (const r of hist.slice(0, i + 1)) {
+    cur = hasThree(r) ? 0 : cur + 1;
+    longest = Math.max(longest, cur);
+  }
+  const rate = hist.filter(hasThree).length / hist.length;
+  const p = Math.pow(1 - rate, run);
+  const weeks = lastThree ? Math.floor(days(lastThree, round.date) / 7) : 0;
+  const since = lastThree ? (weeks >= 2 ? `No three-putt since ${fmtDate(lastThree)}, ${weeks} weeks.` : `No three-putt since ${fmtDate(lastThree)}.`) : 'No three-putt in any round you have logged.';
   return {
-    kind: 'clean',
+    kind: 'noThree',
     p,
     odds: oddsText(p),
-    label: 'Clean card',
-    big: '0',
-    unit: 'THREE-PUTTS',
-    line: `${long} first ${long === 1 ? 'putt' : 'putts'} from 30 ft and out, the longest ${Math.max(...fp.map((x) => x.h.putts[0].d))} ft, and two putts or fewer on every hole.`,
+    label: 'Three-putt free',
+    tag: lastThree ? `Since ${fmtDate(lastThree)}` : 'Every round so far',
+    big: String(run),
+    unit: 'ROUNDS IN A ROW',
+    line: `${since} ${run > longest ? 'Your longest run yet.' : `Your best is ${longest}.`}`,
+    stats: [
+      { v: `${Math.round(rate * 100)}%`, l: 'of your rounds had one' },
+      { v: String(totalPutts(round)), l: 'putts today' },
+    ],
+    viz: { t: 'run', rounds: [...hist, round].slice(-12).map((r) => !hasThree(r)), from: fmtDate([...hist, round].slice(-12)[0].date), to: fmtDate(round.date) },
+  };
+};
+
+/** Every putt inside 5 ft dropped. The odds multiply your make chance on each one. */
+const PERFECT_FT = 5;
+const PERFECT_MIN = 5;
+const perfect: Detector = ({ round, prior, chance }) => {
+  const short = allPutts(round).filter((x) => x.p.d <= PERFECT_FT);
+  if (short.length < PERFECT_MIN || short.some((x) => !x.p.made)) return null;
+  const p = short.reduce((q, x) => q * chance(x.p), 1);
+  const clean = (r: Round) => {
+    const s = allPutts(r).filter((x) => x.p.d <= PERFECT_FT);
+    return s.length >= PERFECT_MIN && s.every((x) => x.p.made);
+  };
+  const last = [...prior].sort((a, b) => b.date.localeCompare(a.date)).find(clean);
+  return {
+    kind: 'perfect',
+    p,
+    odds: oddsText(p),
+    label: 'Automatic',
+    tag: `Inside ${PERFECT_FT} ft`,
+    big: String(short.length),
+    unit: `FOR ${short.length}`,
+    line: `Every putt inside ${PERFECT_FT} feet dropped. ${last ? `First time since ${fmtDate(last.date)}.` : 'First time you have logged it.'}`,
+    stats: [{ v: `${Math.round(p * 100)}%`, l: 'chance of all of them' }],
+    viz: { t: 'dots', holes: short.slice(0, 9).map((x) => ({ hole: x.h.hole, chance: chance(x.p), made: true })) },
+  };
+};
+
+/** Your best putting round in a while, by strokes gained a round. */
+const bestRound: Detector = ({ round, prior, baseline }) => {
+  if (playedCount(round) < 9 || prior.length < 5) return null;
+  const mine = per18(round, baseline);
+  const others = [...prior].sort((a, b) => a.date.localeCompare(b.date)).map((r) => ({ date: r.date, v: per18(r, baseline) }));
+  const better = [...others].reverse().find((o) => o.v >= mine);
+  const gap = better ? others.length - 1 - others.indexOf(better) : others.length;
+  if (better && gap < 5) return null;
+  const p = (others.filter((o) => o.v >= mine).length + 0.5) / (others.length + 1);
+  return {
+    kind: 'bestRound',
+    p,
+    odds: oddsText(p),
+    label: better ? 'Best in a while' : 'Best ever',
+    tag: 'Putting',
+    big: signed(mine, 1),
+    unit: 'STROKES',
+    line: better ? `Best putting round since ${fmtDate(better.date)}, ${gap} rounds ago.` : 'Best putting round you have logged.',
     stats: [{ v: String(totalPutts(round)), l: 'putts' }],
+    viz: { t: 'trend', values: [...others.slice(-9).map((o) => o.v), mine] },
   };
 };
 
@@ -392,7 +485,16 @@ const lag: Detector = ({ round, prior, baseline }) => {
     tag: word ? `Hole ${best.h.hole} · ${word}` : `Hole ${best.h.hole}`,
     big: String(best.from),
     unit: `→ ${best.leave} FT`,
-    line: [shapeWords(breakDirsOf(best.h.putts[0])), `${asClose} of your ${others.length} lags before this finished as close for the length.`].filter(Boolean).join(' '),
+    line: [
+      shapeWords(breakDirsOf(best.h.putts[0])),
+      asClose === 0
+        ? 'Your best lag yet.'
+        : asClose <= 2
+          ? `One of your ${asClose + 1} best lags.`
+          : `Closer than ${Math.round((1 - asClose / others.length) * 100)}% of your lags.`,
+    ]
+      .filter(Boolean)
+      .join(' '),
     stats: [
       ...(sg !== null ? [{ v: signed(sg), l: 'strokes gained', tone: 'good' as const }] : []),
       { v: String(best.h.putts.length), l: 'putts' },
@@ -429,16 +531,26 @@ const gotAway: Detector = ({ round, baseline, chance }) => {
   };
 };
 
-const DETECTORS: Detector[] = [scoring, chipIn, longshot, onePutts, streak, fewest, clean, lag, gotAway];
+const DETECTORS: Detector[] = [scoring, chipIn, longshot, onePutts, streak, fewest, noThree, perfect, bestRound, lag, gotAway];
 
 export function momentsOf(round: Round, rounds: Round[], baseline: [number, number][], chanceOf: ChanceOf): Moment[] {
   if (round.practice) return [];
   const prior = rounds.filter((r) => r.id !== round.id && !r.practice && r.date < round.date && withPutts(r).length);
   const ctx: Ctx = { round, prior, baseline, chance: (p) => chanceOf(p) ?? BEYOND, three: threeRates(prior) };
-  return DETECTORS.map((d) => d(ctx))
+  const found = DETECTORS.map((d) => d(ctx))
     .filter((m): m is Moment => m !== null && m.p <= MOMENT_LINE)
     .sort((a, b) => a.p - b.p);
+  // Fewest putts, one-putts and best round are the same good day told three ways: keep the rarest.
+  let told = false;
+  return found.filter((m) => {
+    if (!SAME_DAY.has(m.kind)) return true;
+    if (told) return false;
+    told = true;
+    return true;
+  });
 }
+
+const SAME_DAY = new Set(['fewest', 'onePutts', 'bestRound']);
 
 /** Every round's moments, newest round first, for the reel. */
 export function allMoments(rounds: Round[], baseline: [number, number][], chanceOf: ChanceOf) {

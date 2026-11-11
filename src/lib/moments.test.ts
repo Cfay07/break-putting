@@ -90,3 +90,21 @@ describe('moments', () => {
     expect(shapeWords([])).toBe('');
   });
 });
+
+describe('the new moments', () => {
+  it('names a run of rounds with no three-putt', () => {
+    const three = (id: string, date: string) => rnd(id, date, [hole(1, [[40, false], [6, false], [1, true]]), ...twoPutts(10, 8).map((h, i) => ({ ...h, hole: i + 2 }))]);
+    const clean = (id: string, date: string) => rnd(id, date, twoPutts(10));
+    const prior = [three('x', '2026-09-20'), three('y', '2026-09-25'), three('a', '2026-10-01'), three('b', '2026-10-05'), clean('c', '2026-10-10'), clean('d', '2026-10-15')];
+    const m = momentsOf(clean('e', '2026-10-20'), [...prior, clean('e', '2026-10-20')], BASE, chance).find((x) => x.kind === 'noThree');
+    expect(m?.big).toBe('3');
+    expect(m?.line).toContain('No three-putt since Oct 5');
+  });
+
+  it('tells a great day once, not three ways', () => {
+    const prior = ['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05'].map((d, i) => rnd(`p${i}`, d, twoPutts(20)));
+    const holes = Array.from({ length: 9 }, (_, i) => hole(i + 1, [[12, true]]));
+    const m = momentsOf(rnd('a', '2026-11-01', holes), prior, BASE, chance);
+    expect(m.filter((x) => ['fewest', 'onePutts', 'bestRound'].includes(x.kind))).toHaveLength(1);
+  });
+});
