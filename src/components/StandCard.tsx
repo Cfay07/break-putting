@@ -1,7 +1,16 @@
 import { useMemo, useState } from 'react';
 import { fmtDate } from '../lib/format';
 import { gameHcp, ratingGaps } from '../lib/gameHcp';
-import { countingOf, HCP_MIN_ROUNDS, HCP_WINDOW, hcpText, puttingHcp, type HcpRound } from '../lib/puttingHcp';
+import {
+  countingOf,
+  HCP_MIN_ROUNDS,
+  HCP_PER_STROKE,
+  HCP_WINDOW,
+  hcpText,
+  puttingHcp,
+  TOUR_HCP,
+  type HcpRound,
+} from '../lib/puttingHcp';
 import type { Round, SavedCourse } from '../lib/types';
 
 type Scale = (h: number) => string;
@@ -38,9 +47,11 @@ function Lane({ r, you, out, at }: { r: HcpRound; you: number; out: boolean; at:
 
 const SG_EDGE = 6;
 const sgAt = (v: number) => `${((Math.max(-SG_EDGE, Math.min(SG_EDGE, v)) + SG_EDGE) / (2 * SG_EDGE)) * 100}%`;
+/** Strokes gained against tour, moved to a scratch putter, who loses about one a round to tour. */
+const vsScratch = (sgTour: number) => sgTour - TOUR_HCP / HCP_PER_STROKE;
 const signed1 = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}`;
 
-/** A putting round as strokes gained against tour, on its own scale: one round is not a handicap. */
+/** A putting round as strokes gained against a scratch putter, on its own scale: one round is not a handicap. */
 function PuttLane({ r, mean, out }: { r: HcpRound; mean: number; out: boolean }) {
   const open = r.id.split('+').pop()!;
   return (
@@ -52,9 +63,9 @@ function PuttLane({ r, mean, out }: { r: HcpRound; mean: number; out: boolean })
       </span>
       <span className="hcp-track">
         <i className="hcp-you" style={{ left: sgAt(mean) }} />
-        <i className="hcp-pt" style={{ left: sgAt(r.sg ?? 0) }} />
+        <i className="hcp-pt" style={{ left: sgAt(vsScratch(r.sg ?? 0)) }} />
       </span>
-      <b className="num">{signed1(r.sg ?? 0)}</b>
+      <b className="num">{signed1(vsScratch(r.sg ?? 0))}</b>
     </a>
   );
 }
@@ -105,7 +116,7 @@ export function StandCard({
   const counting =
     shown?.rounds.filter((r) => r.counts).sort((a, b) => a.hcp - b.hcp || b.date.localeCompare(a.date)) ?? [];
   const rest = shown ? shown.rounds.length - counting.length : 0;
-  const meanSg = putting ? putting.rounds.reduce((a, r) => a + (r.sg ?? 0), 0) / putting.rounds.length : 0;
+  const meanSg = putting ? vsScratch(putting.rounds.reduce((a, r) => a + (r.sg ?? 0), 0) / putting.rounds.length) : 0;
   const gap = putting && game ? game.hcp - putting.hcp : null;
   // Sized from the two headline numbers, so switching views never moves the line and one
   // freak round cannot squash the rest against an end.
@@ -191,7 +202,7 @@ export function StandCard({
                   <span className="hcp-track">
                     {[-SG_EDGE, 0, SG_EDGE].map((v) => (
                       <span key={v} className="hcp-mark" style={{ left: sgAt(v) }}>
-                        {v === 0 ? 'Tour' : signed1(v).replace('.0', '')}
+                        {v === 0 ? 'Scratch' : signed1(v).replace('.0', '')}
                       </span>
                     ))}
                   </span>
@@ -199,17 +210,18 @@ export function StandCard({
                 </div>
               </div>
               <p className="pay-note">
-                Strokes gained putting against tour, your newest {Math.min(SHOWN_PUTTING, shown.rounds.length)} of{' '}
-                {shown.rounds.length}
+                Strokes gained putting against a scratch putter, your newest{' '}
+                {Math.min(SHOWN_PUTTING, shown.rounds.length)} of {shown.rounds.length}
                 {scoped && putter ? ` with the ${putter.name}` : ''}, best first. All {shown.rounds.length} count. The
                 line is your average, {signed1(meanSg)}.
                 {shown.nextOut && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
               </p>
               <p className="pay-note">
                 How it works: Putts to is your average strokes gained putting over your last {HCP_WINDOW} rounds with
-                the putter in your bag, put on the handicap scale. Tour putting is +6.0, and each stroke a round you
-                lose to tour adds 6.0. Every round counts, because one round of putting swings too far either way to
-                pick the best ones. Two nine-hole rounds make one 9+9. Not an official handicap.
+                the putter in your bag, against a scratch putter, times six: scratch putting is 0.0 and each stroke a
+                round you lose to scratch adds 6.0. A tour pro, about a stroke better than scratch, is +6.0. Every round
+                counts, because one round of putting swings too far either way to pick the best ones. Two nine-hole
+                rounds make one 9+9. Not an official handicap.
               </p>
             </>
           ) : (
