@@ -10,7 +10,6 @@ export const TOUR_HCP = -6;
 export const HCP_PER_STROKE = 6;
 export const HCP_WINDOW = 20;
 export const HCP_MIN_ROUNDS = 5;
-const HIGH_CAP = 30;
 
 /**
  * Your best 40%: 8 of 20, and the same share before the window fills (2 of 5, 4 of 10), one rule
@@ -18,11 +17,11 @@ const HIGH_CAP = 30;
  */
 export const countingOf = (n: number) => Math.max(1, Math.round(n * 0.4));
 
-const toHcp = (sg: number) => Math.max(TOUR_HCP, Math.min(HIGH_CAP, TOUR_HCP - sg * HCP_PER_STROKE));
+/** No ceiling or floor: a round that beats tour reads better than +6, and a bad one past 30. */
+const toHcp = (sg: number) => TOUR_HCP - sg * HCP_PER_STROKE;
 
 export function hcpText(h: number): string {
   const n = Math.round(h * 10) / 10;
-  if (n >= HIGH_CAP) return `${HIGH_CAP}+`;
   return n < 0 ? `+${(-n).toFixed(1)}` : n.toFixed(1);
 }
 

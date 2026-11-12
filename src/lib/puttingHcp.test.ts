@@ -52,11 +52,12 @@ describe('putting handicap', () => {
     expect(puttingHcp(days(10).map((d) => rnd(d, d, 1)), BASE)!.counting).toBe(4);
   });
 
-  it('writes plus handicaps with a plus and caps the top', () => {
+  it('writes plus handicaps with a plus, with no cap either way', () => {
     expect(hcpText(-2.44)).toBe('+2.4');
     expect(hcpText(3.06)).toBe('3.1');
     expect(hcpText(-0.02)).toBe('0.0');
-    expect(hcpText(44)).toBe('30+');
+    expect(hcpText(44)).toBe('44.0');
+    expect(hcpText(-9.26)).toBe('+9.3');
   });
 });
 

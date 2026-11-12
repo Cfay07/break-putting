@@ -1,23 +1,26 @@
 import { useMemo, useState } from 'react';
 import { fmtDate } from '../lib/format';
-import { gameHcp, unrated } from '../lib/gameHcp';
+import { gameHcp, ratingGaps } from '../lib/gameHcp';
 import { countingOf, HCP_WINDOW, hcpText, puttingHcp, type HcpRound } from '../lib/puttingHcp';
 import type { Round, SavedCourse } from '../lib/types';
 
-const LOW = -6;
-const HIGH = 30;
-const at = (h: number) => `${((Math.max(LOW, Math.min(HIGH, h)) - LOW) / (HIGH - LOW)) * 100}%`;
-const MARKS: [number, string][] = [
-  [-6, '+6'],
-  [0, '0'],
-  [10, '10'],
-  [20, '20'],
-  [30, '30+'],
-];
+type Scale = (h: number) => string;
 
-function Lane({ r, you, out }: { r: HcpRound; you: number; out: boolean }) {
+/** From tour level to 30 by default, stretched to fit any round past either end, in steps of 10. */
+function scaleFor(values: number[]): { at: Scale; marks: [number, string][] } {
+  const lo = Math.min(-6, Math.floor(Math.min(...values) / 2) * 2);
+  const hi = Math.max(30, Math.ceil(Math.max(...values) / 10) * 10);
+  const at: Scale = (h) => `${((h - lo) / (hi - lo)) * 100}%`;
+  const marks: [number, string][] = [[lo, hcpText(lo).replace('.0', '')]];
+  for (let v = 0; v <= hi; v += 10) marks.push([v, String(v)]);
+  return { at, marks };
+}
+
+function Lane({ r, you, out, at }: { r: HcpRound; you: number; out: boolean; at: Scale }) {
+  // A 9+9 is two rounds; open the one that finished it.
+  const open = r.id.split('+').pop()!;
   return (
-    <div className="hcp-lane">
+    <a className="hcp-lane" href={`#/round/${open}`}>
       <span className="hcp-date">
         {fmtDate(r.date)}
         {r.nines && <small> 9+9</small>}
@@ -28,7 +31,7 @@ function Lane({ r, you, out }: { r: HcpRound; you: number; out: boolean }) {
         <i className="hcp-pt" style={{ left: at(r.hcp) }} />
       </span>
       <b className="num">{hcpText(r.hcp)}</b>
-    </div>
+    </a>
   );
 }
 
@@ -50,7 +53,7 @@ interface Props {
 export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRounds }: Props) {
   const putting = useMemo(() => puttingHcp(rounds, baseline), [rounds, baseline]);
   const game = useMemo(() => gameHcp(rounds, courses), [rounds, courses]);
-  const missing = useMemo(() => unrated(rounds, courses), [rounds, courses]);
+  const gaps = useMemo(() => ratingGaps(rounds, courses), [rounds, courses]);
   const [view, setView] = useState<'putting' | 'game'>('putting');
   const shown = view === 'game' && game ? game : putting;
   const kind = view === 'game' && game ? 'game' : 'putting';
@@ -58,6 +61,10 @@ export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRo
     shown?.rounds.filter((r) => r.counts).sort((a, b) => a.hcp - b.hcp || b.date.localeCompare(a.date)) ?? [];
   const rest = shown ? shown.rounds.length - counting.length : 0;
   const gap = putting && game ? game.hcp - putting.hcp : null;
+  const { at, marks } = scaleFor([
+    ...[putting, game].flatMap((x) => (x ? [x.hcp] : [])),
+    ...counting.map((r) => r.hcp),
+  ]);
 
   return (
     <div className="hcp-card light">
@@ -102,7 +109,7 @@ export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRo
             {putting && <i className="hcp-dot" style={{ left: at(putting.hcp) }} />}
           </span>
           <span className="hcp-axis2">
-            {MARKS.map(([v, label]) => (
+            {marks.map(([v, label]) => (
               <span key={v} className="hcp-mark" style={{ left: at(v) }}>
                 {label}
               </span>
@@ -126,9 +133,9 @@ export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRo
               </button>
             </div>
           )}
-          <div className="hcp-chart">
+          <div className={`hcp-chart ${kind}`}>
             {counting.map((r) => (
-              <Lane key={r.id} r={r} you={shown.hcp} out={r.id === shown.nextOut?.id} />
+              <Lane key={r.id} r={r} you={shown.hcp} out={r.id === shown.nextOut?.id} at={at} />
             ))}
           </div>
           <p className="pay-note">
@@ -137,7 +144,8 @@ export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRo
               : `Your best ${shown.counting} of your last ${shown.rounds.length}, shown above.`}
             {rest > 0 && ` The other ${rest} were worse and don't count.`}
             {shown.nextOut && !shown.nextOut.counts && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
-            {kind === 'game' && missing > 0 && ` ${missing} rounds have no rated tee, so they can't count.`}
+            {kind === 'game' && gaps.guessed > 0 && ` ${gaps.guessed} imported ${gaps.guessed === 1 ? "round didn't" : "rounds didn't"} say the tee, so ${gaps.guessed === 1 ? 'it uses' : 'they use'} the one closest to the yardage you usually play.`}
+            {kind === 'game' && gaps.unrated > 0 && ` ${gaps.unrated} ${gaps.unrated === 1 ? 'round is' : 'rounds are'} on a course with no published rating yet.`}
           </p>
           <p className="pay-note">
             How it works: {HOW[kind]} {kind === 'game' ? 'Plays to' : 'Putts to'} is the average of your best{' '}

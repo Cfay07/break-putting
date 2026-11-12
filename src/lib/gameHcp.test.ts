@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gameHcp, unrated } from './gameHcp';
+import { gameHcp, ratingGaps, sameCourse } from './gameHcp';
 import { hcpText } from './puttingHcp';
 import type { Round, SavedCourse } from './types';
 
@@ -37,6 +37,34 @@ describe('handicap from scores', () => {
   it('leaves out rounds with no rated tee and counts them', () => {
     const rounds = [...days(5).map((d) => rnd(d, 75)), rnd('2026-10-20', 70, 18, 'Gold')];
     expect(gameHcp(rounds, [course])!.rounds).toHaveLength(5);
-    expect(unrated(rounds, [course])).toBe(1);
+    expect(ratingGaps(rounds, [course]).unrated).toBe(1);
+  });
+});
+
+describe('imported rounds with only a course name', () => {
+  const named = (d: string, score: number, extra: Partial<Round>) => ({ ...rnd(d, score), courseId: undefined, tee: undefined, ...extra }) as Round;
+
+  it('matches the course by name', () => {
+    expect(sameCourse('Ives Grove', 'Ives Grove Golf Links')).toBe(true);
+    expect(sameCourse('Blue Spruce-Brighton Dale Links', 'Brighton Dale Links · Blue Spruce 18')).toBe(true);
+    expect(sameCourse('White Birch-Brighton Dale Links', 'Brighton Dale Links · Blue Spruce 18')).toBe(false);
+  });
+
+  it('uses the nines when the round has them, and your usual yardage when it does not', () => {
+    const two = {
+      ...course,
+      name: 'Test Golf Club',
+      tees: [
+        { name: 'Blue', yards: 6900, pars: Array(18).fill(4), rating: 73, slope: 130 },
+        { name: 'White', yards: 6300, pars: Array(18).fill(4), rating: 70, slope: 120 },
+      ],
+    };
+    const rounds = [
+      ...days(5).map((d) => ({ ...rnd(d, 75), tee: 'Blue' }) as Round),
+      named('2026-10-20', 80, { course: 'Test Golf Club' }),
+    ];
+    const gaps = ratingGaps(rounds, [two]);
+    expect(gaps).toEqual({ unrated: 0, guessed: 1 });
+    expect(gameHcp(rounds, [two])!.rounds).toHaveLength(6);
   });
 });

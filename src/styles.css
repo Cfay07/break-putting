@@ -2124,3 +2124,7 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .hcp-card.light .hcp-pt, .hcp-card.light .hcp-dot:not(.game), .hcp-card.light .hcp-key i:not(.game) { background: var(--accent); }
 .hcp-card.light .hcp-you { background: rgba(181, 96, 58, 0.35); }
 .hcp-card.light .hcp-date em { color: var(--accent); }
+a.hcp-lane { text-decoration: none; -webkit-tap-highlight-color: transparent; }
+a.hcp-lane:active { opacity: 0.6; }
+.hcp-card.light .hcp-chart.game .hcp-pt { background: var(--ink); }
+.hcp-card.light .hcp-chart.game .hcp-you { background: rgba(20, 57, 43, 0.3); }
