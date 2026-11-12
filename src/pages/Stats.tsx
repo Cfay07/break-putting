@@ -277,24 +277,19 @@ function RoundStats() {
               </div>
             )}
             {vol && (
-              <>
-                <div className="stat-row">
-                  <span className="k">Your average good round</span>
-                  <span className={vol.goodAvg >= 0 ? 'v num pos' : 'v num neg'}>{signed(vol.goodAvg)}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="k">Your average bad round</span>
-                  <span className={vol.badAvg >= 0 ? 'v num pos' : 'v num neg'}>{signed(vol.badAvg)}</span>
-                </div>
-              </>
+              <div className="stat-row">
+                <span className="k">Round-to-round swing</span>
+                <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(1)}</span>
+              </div>
             )}
           </div>
 
           {vol && (
             <p className="small muted" style={{ marginTop: 8 }}>
-              Strokes gained on the rounds above your average, and on the ones below it. Your best was{' '}
-              {signed(vol.best)} and your worst {signed(vol.worst)}. A gap that wide is why one round
-              tells you almost nothing.
+              Swing is how far a normal round lands from your average. Your average is{' '}
+              {signed(vol.mean)} strokes gained, so most rounds fall between {signed(vol.mean - vol.sd)} and{' '}
+              {signed(vol.mean + vol.sd)}. Your best was {signed(vol.best)} and your worst {signed(vol.worst)}.
+              A swing that wide is why one round tells you almost nothing.
             </p>
           )}
 
