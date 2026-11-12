@@ -139,7 +139,7 @@ export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRo
           </p>
           <p className="pay-note">
             How it works: {HOW[kind]} {kind === 'game' ? 'Plays to' : 'Putts to'} is the average of your best{' '}
-            {countingOf(HCP_WINDOW)} of your last {HCP_WINDOW} rounds, or your best third until you have {HCP_WINDOW}.
+            {countingOf(HCP_WINDOW)} of your last {HCP_WINDOW} rounds, or your best 40% until you have {HCP_WINDOW}.
             Two nine-hole rounds make one 9+9. Scoring average over {scoredRounds} rounds. Not an official handicap.
           </p>
         </>

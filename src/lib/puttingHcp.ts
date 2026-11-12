@@ -8,12 +8,15 @@ import { roundSG } from './sg';
  */
 export const TOUR_HCP = -6;
 export const HCP_PER_STROKE = 6;
-export const HCP_WINDOW = 15;
+export const HCP_WINDOW = 20;
 export const HCP_MIN_ROUNDS = 5;
 const HIGH_CAP = 30;
 
-/** Your best third: 5 of 15, and 1 of 5 before the window fills. A handicap is what you can play to, not your average. */
-export const countingOf = (n: number) => Math.max(1, Math.floor(n / 3));
+/**
+ * Your best 40%: 8 of 20, and the same share before the window fills (2 of 5, 4 of 10), one rule
+ * where the official system uses a lookup table. A handicap is what you can play to, not your average.
+ */
+export const countingOf = (n: number) => Math.max(1, Math.round(n * 0.4));
 
 const toHcp = (sg: number) => Math.max(TOUR_HCP, Math.min(HIGH_CAP, TOUR_HCP - sg * HCP_PER_STROKE));
 
@@ -70,7 +73,7 @@ export interface Scored {
   hcp: number;
 }
 
-/** Your best 5 of your last 15 rounds, averaged. Oldest first in. */
+/** Your best 8 of your last 20 rounds, averaged. Oldest first in. */
 export function bestOf(all: Scored[]): PuttingHcp | null {
   const each = all.slice(-HCP_WINDOW);
   if (each.length < HCP_MIN_ROUNDS) return null;
