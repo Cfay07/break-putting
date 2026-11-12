@@ -132,7 +132,9 @@ export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRo
             ))}
           </div>
           <p className="pay-note">
-            Your best {shown.counting} of your last {shown.rounds.length}, shown above.
+            {shown.rounds.length < HCP_WINDOW
+              ? `You have ${shown.rounds.length} ${kind === 'game' ? 'rated ' : ''}rounds, so your best ${shown.counting} count (40%), shown above. At ${HCP_WINDOW} it becomes your best ${countingOf(HCP_WINDOW)}.`
+              : `Your best ${shown.counting} of your last ${shown.rounds.length}, shown above.`}
             {rest > 0 && ` The other ${rest} were worse and don't count.`}
             {shown.nextOut && !shown.nextOut.counts && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
             {kind === 'game' && missing > 0 && ` ${missing} rounds have no rated tee, so they can't count.`}
