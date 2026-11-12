@@ -17,7 +17,7 @@ export const HCP_MIN_ROUNDS = 5;
  */
 export const countingOf = (n: number) => Math.max(1, Math.round(n * 0.4));
 
-/** No ceiling or floor: a round that beats tour reads better than +6, and a bad one past 30. */
+/** No ceiling or floor on the average: putting better than tour reads better than +6. */
 const toHcp = (sg: number) => TOUR_HCP - sg * HCP_PER_STROKE;
 
 export function hcpText(h: number): string {
@@ -32,6 +32,8 @@ export interface HcpRound {
   counts: boolean;
   /** Two nine-hole rounds scored as one eighteen. */
   nines: boolean;
+  /** Strokes gained putting over eighteen. Putting rounds only. */
+  sg?: number;
 }
 
 export interface PuttingHcp {
@@ -88,11 +90,25 @@ export function bestOf(all: Scored[]): PuttingHcp | null {
   };
 }
 
+/**
+ * Every one of your last 20 counts here, not the best 8. The six-per-stroke scale is built from
+ * averages: players at a handicap lose this much putting on average. One round of putting swings
+ * about four strokes either way for everyone, so converting single rounds and picking the best
+ * ones crowns lucky days (one hot nine read as +28). Average the strokes gained, convert once.
+ */
 export function puttingHcp(rounds: Round[], baseline: [number, number][]): PuttingHcp | null {
   const real = rounds
     .filter((r) => r.finished && !r.practice && r.holes.some((h) => h.putts.length))
     .sort((a, b) => a.date.localeCompare(b.date));
-  return bestOf(eighteens(real, baseline).map((r) => ({ id: r.id, date: r.date, nines: r.nines, hcp: toHcp(r.sg) })));
+  const each = eighteens(real, baseline).slice(-HCP_WINDOW);
+  if (each.length < HCP_MIN_ROUNDS) return null;
+  const marked = each.map((r) => ({ id: r.id, date: r.date, nines: r.nines, sg: r.sg, hcp: toHcp(r.sg), counts: true }));
+  return {
+    hcp: toHcp(each.reduce((a, r) => a + r.sg, 0) / each.length),
+    counting: each.length,
+    rounds: [...marked].reverse(),
+    nextOut: marked.length === HCP_WINDOW ? marked[0] : null,
+  };
 }
 
 /** Your handicap without this round and with it, and whether it is one of the rounds counting. */

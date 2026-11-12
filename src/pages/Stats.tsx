@@ -190,6 +190,7 @@ function RoundStats() {
               <h2>What you would be shooting</h2>
               <StandCard
                 rounds={rounds}
+                everyRound={state.rounds}
                 courses={courses}
                 baseline={state.baseline}
                 shoot={avgScore}

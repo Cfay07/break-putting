@@ -91,9 +91,10 @@ const diff = (score: number, rating: number, slope: number) => (113 / slope) * (
  * scores and ratings, with their slopes averaged. Then the same best 8 of the last 20
  * as the putting handicap, so the two line up.
  */
-export function gameHcp(rounds: Round[], courses: SavedCourse[]): PuttingHcp | null {
+export function gameHcp(rounds: Round[], courses: SavedCourse[], everyRound: Round[] = rounds): PuttingHcp | null {
   const real = rounds.filter((r) => r.finished && !r.practice).sort((a, b) => a.date.localeCompare(b.date));
-  const usual = usualYards(real, courses);
+  // Learned from every round, not just the filtered ones: a filter of imported rounds has no tee to learn from.
+  const usual = usualYards(everyRound, courses);
   const out: Scored[] = [];
   let waiting: { id: string; s: NonNullable<ReturnType<typeof scored>> } | null = null;
   for (const r of real) {
@@ -116,9 +117,13 @@ export function gameHcp(rounds: Round[], courses: SavedCourse[]): PuttingHcp | n
 
 /** Rounds with a score but no rated tee, so they cannot count yet. */
 /** Scored rounds that still cannot be rated, and ones rated off a guessed tee. */
-export function ratingGaps(rounds: Round[], courses: SavedCourse[]): { unrated: number; guessed: number } {
+export function ratingGaps(
+  rounds: Round[],
+  courses: SavedCourse[],
+  everyRound: Round[] = rounds,
+): { unrated: number; guessed: number } {
   const real = rounds.filter((r) => r.finished && !r.practice && r.holes.some((h) => (h.strokes ?? 0) > 0));
-  const usual = usualYards(real, courses);
+  const usual = usualYards(everyRound, courses);
   return {
     unrated: real.filter((r) => !scored(r, courses, usual)).length,
     guessed: real.filter((r) => ratedTeeOf(r, courses, usual)?.guessed).length,

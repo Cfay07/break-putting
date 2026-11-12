@@ -36,14 +36,35 @@ function Lane({ r, you, out, at }: { r: HcpRound; you: number; out: boolean; at:
   );
 }
 
-const HOW = {
-  putting:
-    "each round's strokes gained putting against tour pros becomes a number on the handicap scale. Tour putting is +6.0, and every stroke a round you lose to tour adds 6.0.",
-  game: 'each round is (113 / slope) x (score minus course rating), off the tee you played.',
-};
+const SG_EDGE = 6;
+const sgAt = (v: number) => `${((Math.max(-SG_EDGE, Math.min(SG_EDGE, v)) + SG_EDGE) / (2 * SG_EDGE)) * 100}%`;
+const signed1 = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}`;
+
+/** A putting round as strokes gained against tour, on its own scale: one round is not a handicap. */
+function PuttLane({ r, mean, out }: { r: HcpRound; mean: number; out: boolean }) {
+  const open = r.id.split('+').pop()!;
+  return (
+    <a className="hcp-lane" href={`#/round/${open}`}>
+      <span className="hcp-date">
+        {fmtDate(r.date)}
+        {r.nines && <small> 9+9</small>}
+        {out && <em> next out</em>}
+      </span>
+      <span className="hcp-track">
+        <i className="hcp-you" style={{ left: sgAt(mean) }} />
+        <i className="hcp-pt" style={{ left: sgAt(r.sg ?? 0) }} />
+      </span>
+      <b className="num">{signed1(r.sg ?? 0)}</b>
+    </a>
+  );
+}
+
+const SHOWN_PUTTING = 8;
 
 interface Props {
   rounds: Round[];
+  /** Every round, unfiltered, so the tee you usually play is known even inside a filter. */
+  everyRound: Round[];
   courses: SavedCourse[];
   baseline: [number, number][];
   shoot: number;
@@ -51,16 +72,17 @@ interface Props {
   scoredRounds: number;
 }
 
-export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRounds }: Props) {
+export function StandCard({ rounds, everyRound, courses, baseline, shoot, withTour, scoredRounds }: Props) {
   const putting = useMemo(() => puttingHcp(rounds, baseline), [rounds, baseline]);
-  const game = useMemo(() => gameHcp(rounds, courses), [rounds, courses]);
-  const gaps = useMemo(() => ratingGaps(rounds, courses), [rounds, courses]);
+  const game = useMemo(() => gameHcp(rounds, courses, everyRound), [rounds, courses, everyRound]);
+  const gaps = useMemo(() => ratingGaps(rounds, courses, everyRound), [rounds, courses, everyRound]);
   const [view, setView] = useState<'putting' | 'game'>('putting');
   const shown = view === 'game' && game ? game : putting;
   const kind = view === 'game' && game ? 'game' : 'putting';
   const counting =
     shown?.rounds.filter((r) => r.counts).sort((a, b) => a.hcp - b.hcp || b.date.localeCompare(a.date)) ?? [];
   const rest = shown ? shown.rounds.length - counting.length : 0;
+  const meanSg = putting ? putting.rounds.reduce((a, r) => a + (r.sg ?? 0), 0) / putting.rounds.length : 0;
   const gap = putting && game ? game.hcp - putting.hcp : null;
   // Sized from the two headline numbers, so switching views never moves the line and one
   // freak round cannot squash the rest against an end.
@@ -133,25 +155,62 @@ export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRo
               </button>
             </div>
           )}
-          <div className={`hcp-chart ${kind}`}>
-            {counting.map((r) => (
-              <Lane key={r.id} r={r} you={shown.hcp} out={r.id === shown.nextOut?.id} at={at} />
-            ))}
-          </div>
-          <p className="pay-note">
-            {shown.rounds.length < HCP_WINDOW
-              ? `You have ${shown.rounds.length} ${kind === 'game' ? 'rated ' : ''}rounds, so your best ${shown.counting} count (40%), shown above. At ${HCP_WINDOW} it becomes your best ${countingOf(HCP_WINDOW)}.`
-              : `Your best ${shown.counting} of your last ${shown.rounds.length}, shown above.`}
-            {rest > 0 && ` The other ${rest} were worse and don't count.`}
-            {shown.nextOut && !shown.nextOut.counts && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
-            {kind === 'game' && gaps.guessed > 0 && ` ${gaps.guessed} imported ${gaps.guessed === 1 ? "round didn't" : "rounds didn't"} say the tee, so ${gaps.guessed === 1 ? 'it uses' : 'they use'} the one closest to the yardage you usually play.`}
-            {kind === 'game' && gaps.unrated > 0 && ` ${gaps.unrated} ${gaps.unrated === 1 ? 'round is' : 'rounds are'} on a course with no published rating yet.`}
-          </p>
-          <p className="pay-note">
-            How it works: {HOW[kind]} {kind === 'game' ? 'Plays to' : 'Putts to'} is the average of your best{' '}
-            {countingOf(HCP_WINDOW)} of your last {HCP_WINDOW} rounds, or your best 40% until you have {HCP_WINDOW}.
-            Two nine-hole rounds make one 9+9. Scoring average over {scoredRounds} rounds. Not an official handicap.
-          </p>
+          {kind === 'putting' ? (
+            <>
+              <div className="hcp-chart putting">
+                {shown.rounds.slice(0, SHOWN_PUTTING).map((r) => (
+                  <PuttLane key={r.id} r={r} mean={meanSg} out={r.id === shown.nextOut?.id} />
+                ))}
+                <div className="hcp-lane hcp-axis">
+                  <span />
+                  <span className="hcp-track">
+                    {[-SG_EDGE, 0, SG_EDGE].map((v) => (
+                      <span key={v} className="hcp-mark" style={{ left: sgAt(v) }}>
+                        {v === 0 ? 'Tour' : signed1(v).replace('.0', '')}
+                      </span>
+                    ))}
+                  </span>
+                  <span />
+                </div>
+              </div>
+              <p className="pay-note">
+                Strokes gained putting against tour, your newest {Math.min(SHOWN_PUTTING, shown.rounds.length)} of{' '}
+                {shown.rounds.length}. All {shown.rounds.length} count. The line is your average, {signed1(meanSg)}.
+                {shown.nextOut && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
+              </p>
+              <p className="pay-note">
+                How it works: Putts to is your average strokes gained putting over your last {HCP_WINDOW} rounds, put
+                on the handicap scale. Tour putting is +6.0, and each stroke a round you lose to tour adds 6.0. Every
+                round counts, because one round of putting swings too far either way to pick the best ones. Two
+                nine-hole rounds make one 9+9. Not an official handicap.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="hcp-chart game">
+                {counting.map((r) => (
+                  <Lane key={r.id} r={r} you={shown.hcp} out={r.id === shown.nextOut?.id} at={at} />
+                ))}
+              </div>
+              <p className="pay-note">
+                {shown.rounds.length < HCP_WINDOW
+                  ? `You have ${shown.rounds.length} rated rounds, so your best ${shown.counting} count (40%), shown above. At ${HCP_WINDOW} it becomes your best ${countingOf(HCP_WINDOW)}.`
+                  : `Your best ${shown.counting} of your last ${shown.rounds.length}, shown above.`}
+                {rest > 0 && ` The other ${rest} were worse and don't count.`}
+                {shown.nextOut && !shown.nextOut.counts && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
+                {gaps.guessed > 0 &&
+                  ` ${gaps.guessed} imported ${gaps.guessed === 1 ? "round didn't" : "rounds didn't"} say the tee, so ${gaps.guessed === 1 ? 'it uses' : 'they use'} the one closest to the yardage you usually play.`}
+                {gaps.unrated > 0 &&
+                  ` ${gaps.unrated} ${gaps.unrated === 1 ? 'round is' : 'rounds are'} on a course with no published rating yet.`}
+              </p>
+              <p className="pay-note">
+                How it works: each round is (113 / slope) x (score minus course rating), off the tee you played. Plays to
+                is the average of your best {countingOf(HCP_WINDOW)} of your last {HCP_WINDOW} rounds, or your best 40%
+                until you have {HCP_WINDOW}. Two nine-hole rounds make one 9+9. Scoring average over {scoredRounds}{' '}
+                rounds. Not an official handicap.
+              </p>
+            </>
+          )}
         </>
       )}
     </div>

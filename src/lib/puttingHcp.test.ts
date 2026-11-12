@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hcpMove, hcpText, puttingHcp } from './puttingHcp';
+import { bestOf, hcpMove, hcpText, puttingHcp } from './puttingHcp';
 import type { Hole, Round } from './types';
 
 const BASE: [number, number][] = [[1, 1], [5, 1.5], [20, 2], [60, 2.5]];
@@ -29,27 +29,33 @@ describe('putting handicap', () => {
     expect(puttingHcp(rounds, BASE)).toBeNull();
   });
 
-  it('counts the best 8 of the last 20', () => {
+  it('averages all of the last 20 rather than picking the best', () => {
     const rounds = days(24).map((d, i) => rnd(d, d, i % 3));
     const h = puttingHcp(rounds, BASE)!;
     expect(h.rounds).toHaveLength(20);
-    expect(h.counting).toBe(8);
-    expect(h.rounds.filter((r) => r.counts)).toHaveLength(8);
-    expect(h.rounds[0].date).toBe('2026-10-24');
+    expect(h.counting).toBe(20);
+    expect(h.rounds.every((r) => r.counts)).toBe(true);
     expect(h.nextOut?.date).toBe('2026-10-05');
+  });
+
+  it('never reads one hot round as a crazy plus', () => {
+    const rounds = [...days(19).map((d) => rnd(d, d, 2)), rnd('2026-10-25', '2026-10-25', 0)];
+    expect(puttingHcp(rounds, BASE)!.hcp).toBeGreaterThan(5);
   });
 
   it('says what a round did to the handicap', () => {
     const rounds = days(6).map((d, i) => rnd(d, d, i === 5 ? 0 : 2));
     const m = hcpMove(rounds, rounds[5], (rs) => puttingHcp(rs, BASE))!;
     expect(hcpText(m.before!.hcp)).toBe('6.0');
-    expect(hcpText(m.after.hcp)).toBe('0.0');
+    expect(hcpText(m.after.hcp)).toBe('4.0');
     expect(m.counts).toBe(true);
   });
 
-  it('counts fewer when there are fewer rounds', () => {
-    expect(puttingHcp(days(5).map((d) => rnd(d, d, 1)), BASE)!.counting).toBe(2);
-    expect(puttingHcp(days(10).map((d) => rnd(d, d, 1)), BASE)!.counting).toBe(4);
+  it('best-of counts fewer when there are fewer rounds', () => {
+    const scored = (n: number) => days(n).map((d, i) => ({ id: d, date: d, nines: false, hcp: i }));
+    expect(bestOf(scored(5))!.counting).toBe(2);
+    expect(bestOf(scored(20))!.counting).toBe(8);
+    expect(bestOf(scored(20))!.hcp).toBeCloseTo(3.5);
   });
 
   it('writes plus handicaps with a plus, with no cap either way', () => {
