@@ -321,6 +321,10 @@ export function Settings() {
           ))}
         </div>
       )}
+      {/* The open ratings data is ODbL, which requires this credit wherever its numbers are used. */}
+      <p className="small muted" style={{ marginTop: 8 }}>
+        Some course ratings: © OpenStreetMap contributors (ODbL), via OpenGolfAPI.
+      </p>
 
       <h2 id="imports">Imports</h2>
       <div className="list">
