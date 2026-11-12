@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { gameHcp } from '../lib/gameHcp';
-import { hcpMove, hcpText, puttingHcp } from '../lib/puttingHcp';
+import { HCP_MIN_ROUNDS, hcpMove, hcpText, puttingHcp } from '../lib/puttingHcp';
 import { useApp } from '../lib/store';
 import type { Round } from '../lib/types';
 import { useCourseRatings } from '../lib/useCourseRatings';
@@ -25,7 +25,11 @@ export function RoundHcp({ round }: { round: Round }) {
     [state.rounds, round, courses, state.backTees],
   );
   const putting = useMemo(
-    () => hcpMove(state.rounds, round, (rs) => puttingHcp(rs, state.baseline)),
+    () =>
+      hcpMove(state.rounds, round, (rs) => {
+        const same = rs.filter((r) => r.putterId === round.putterId);
+        return puttingHcp(same.length >= HCP_MIN_ROUNDS ? same : rs, state.baseline);
+      }),
     [state.rounds, round, state.baseline],
   );
   return (

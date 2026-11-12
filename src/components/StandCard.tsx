@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { fmtDate } from '../lib/format';
 import { gameHcp, ratingGaps } from '../lib/gameHcp';
-import { countingOf, HCP_WINDOW, hcpText, puttingHcp, type HcpRound } from '../lib/puttingHcp';
+import { countingOf, HCP_MIN_ROUNDS, HCP_WINDOW, hcpText, puttingHcp, type HcpRound } from '../lib/puttingHcp';
 import type { Round, SavedCourse } from '../lib/types';
 
 type Scale = (h: number) => string;
@@ -67,6 +67,8 @@ interface Props {
   everyRound: Round[];
   /** Rate a round with no tee off the back tees. */
   backTees: boolean;
+  /** The putter in the bag. Putting is never read across a putter change. */
+  putter?: { id: string; name: string };
   courses: SavedCourse[];
   baseline: [number, number][];
   shoot: number;
@@ -74,8 +76,24 @@ interface Props {
   scoredRounds: number;
 }
 
-export function StandCard({ rounds, everyRound, backTees, courses, baseline, shoot, withTour, scoredRounds }: Props) {
-  const putting = useMemo(() => puttingHcp(rounds, baseline), [rounds, baseline]);
+export function StandCard({
+  rounds,
+  everyRound,
+  backTees,
+  putter,
+  courses,
+  baseline,
+  shoot,
+  withTour,
+  scoredRounds,
+}: Props) {
+  // Putting with the putter in the bag once it has five rounds here; a switch changes the stroke.
+  const withPutter = useMemo(() => (putter ? rounds.filter((r) => r.putterId === putter.id) : []), [rounds, putter]);
+  const scoped = withPutter.length >= HCP_MIN_ROUNDS && withPutter.length < rounds.length;
+  const putting = useMemo(
+    () => puttingHcp(scoped ? withPutter : rounds, baseline),
+    [scoped, withPutter, rounds, baseline],
+  );
   const game = useMemo(() => gameHcp(rounds, courses, everyRound, backTees), [rounds, courses, everyRound, backTees]);
   const gaps = useMemo(
     () => ratingGaps(rounds, courses, everyRound, backTees),
@@ -166,8 +184,8 @@ export function StandCard({ rounds, everyRound, backTees, courses, baseline, sho
                 {[...shown.rounds.slice(0, SHOWN_PUTTING)]
                   .sort((x, y) => (y.sg ?? 0) - (x.sg ?? 0))
                   .map((r) => (
-                  <PuttLane key={r.id} r={r} mean={meanSg} out={r.id === shown.nextOut?.id} />
-                ))}
+                    <PuttLane key={r.id} r={r} mean={meanSg} out={r.id === shown.nextOut?.id} />
+                  ))}
                 <div className="hcp-lane hcp-axis">
                   <span />
                   <span className="hcp-track">
@@ -182,14 +200,16 @@ export function StandCard({ rounds, everyRound, backTees, courses, baseline, sho
               </div>
               <p className="pay-note">
                 Strokes gained putting against tour, your newest {Math.min(SHOWN_PUTTING, shown.rounds.length)} of{' '}
-                {shown.rounds.length}, best first. All {shown.rounds.length} count. The line is your average, {signed1(meanSg)}.
+                {shown.rounds.length}
+                {scoped && putter ? ` with the ${putter.name}` : ''}, best first. All {shown.rounds.length} count. The
+                line is your average, {signed1(meanSg)}.
                 {shown.nextOut && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
               </p>
               <p className="pay-note">
-                How it works: Putts to is your average strokes gained putting over your last {HCP_WINDOW} rounds, put
-                on the handicap scale. Tour putting is +6.0, and each stroke a round you lose to tour adds 6.0. Every
-                round counts, because one round of putting swings too far either way to pick the best ones. Two
-                nine-hole rounds make one 9+9. Not an official handicap.
+                How it works: Putts to is your average strokes gained putting over your last {HCP_WINDOW} rounds with
+                the putter in your bag, put on the handicap scale. Tour putting is +6.0, and each stroke a round you
+                lose to tour adds 6.0. Every round counts, because one round of putting swings too far either way to
+                pick the best ones. Two nine-hole rounds make one 9+9. Not an official handicap.
               </p>
             </>
           ) : (
@@ -211,9 +231,9 @@ export function StandCard({ rounds, everyRound, backTees, courses, baseline, sho
                   ` ${gaps.unrated} ${gaps.unrated === 1 ? 'round is' : 'rounds are'} on a course with no published rating yet.`}
               </p>
               <p className="pay-note">
-                How it works: each round is (113 / slope) x (score minus course rating), off the tee you played. Plays to
-                is the average of your best {countingOf(HCP_WINDOW)} of your last {HCP_WINDOW} rounds, or your best 40%
-                until you have {HCP_WINDOW}. Two nine-hole rounds make one 9+9. Scoring average over {scoredRounds}{' '}
+                How it works: each round is (113 / slope) x (score minus course rating), off the tee you played. Plays
+                to is the average of your best {countingOf(HCP_WINDOW)} of your last {HCP_WINDOW} rounds, or your best
+                40% until you have {HCP_WINDOW}. Two nine-hole rounds make one 9+9. Scoring average over {scoredRounds}{' '}
                 rounds. Not an official handicap.
               </p>
             </>
