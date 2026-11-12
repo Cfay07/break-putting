@@ -427,7 +427,18 @@ export function volatility(rounds: Round[], baseline: [number, number][]) {
   if (per.length < 3) return null;
   const mean = per.reduce((a, b) => a + b, 0) / per.length;
   const sd = Math.sqrt(per.reduce((s, v) => s + (v - mean) ** 2, 0) / (per.length - 1));
-  return { rounds: per.length, mean, sd, best: Math.max(...per), worst: Math.min(...per) };
+  const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const good = per.filter((v) => v >= mean);
+  const bad = per.filter((v) => v < mean);
+  return {
+    rounds: per.length,
+    mean,
+    sd,
+    best: Math.max(...per),
+    worst: Math.min(...per),
+    goodAvg: avg(good),
+    badAvg: bad.length ? avg(bad) : mean,
+  };
 }
 
 export interface MissAnatomy {

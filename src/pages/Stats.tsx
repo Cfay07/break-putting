@@ -34,6 +34,7 @@ import { StatsFilter } from '../components/StatsFilter';
 import { PracticeStats } from './PracticeStats';
 import { applyFilter, filterLabel, isFiltered, NO_FILTER, type RoundFilter } from '../lib/roundFilter';
 import { Trend } from '../components/Trend';
+import { PuttingHcpCard } from '../components/PuttingHcpCard';
 import { fmtDate, pctText, signed } from '../lib/format';
 import { Bar } from '../components/Bar';
 import {
@@ -238,6 +239,7 @@ function RoundStats() {
           )}
 
           <h2>Averages</h2>
+          <PuttingHcpCard />
           <div className="card">
             {/* Each row says what it stands on. A per-round average over three rounds and one
                 over thirty are not the same claim and used to look identical. */}
@@ -275,18 +277,24 @@ function RoundStats() {
               </div>
             )}
             {vol && (
-              <div className="stat-row">
-                <span className="k">Round-to-round swing</span>
-                <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(1)}</span>
-              </div>
+              <>
+                <div className="stat-row">
+                  <span className="k">Your average good round</span>
+                  <span className={vol.goodAvg >= 0 ? 'v num pos' : 'v num neg'}>{signed(vol.goodAvg)}</span>
+                </div>
+                <div className="stat-row">
+                  <span className="k">Your average bad round</span>
+                  <span className={vol.badAvg >= 0 ? 'v num pos' : 'v num neg'}>{signed(vol.badAvg)}</span>
+                </div>
+              </>
             )}
           </div>
 
           {vol && (
             <p className="small muted" style={{ marginTop: 8 }}>
-              Strokes gained has run from {signed(vol.best)} at your best to{' '}
-              {signed(vol.worst)} at your worst, and most rounds land within {vol.sd.toFixed(1)}
-              {' '}of the average. That spread is why one round tells you almost nothing.
+              Strokes gained on the rounds above your average, and on the ones below it. Your best was{' '}
+              {signed(vol.best)} and your worst {signed(vol.worst)}. A gap that wide is why one round
+              tells you almost nothing.
             </p>
           )}
 
