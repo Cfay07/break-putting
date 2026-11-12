@@ -73,9 +73,9 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     // Two tees on the 18Birdies card. Other sites name the 5588 "Red" and add a 5337 nobody
     // else lists, so this follows the one source that got every par right.
         tees: [
-      // GolfPass and GolfNow: White 67.8/119, Orange (women's) 70.9/122.
+      // BlueGolf men's: White 67.8/119, the forward tee (their Red) 66.0/115.
       { name: 'White', yards: 5979, pars: PETRIFYING_PARS, rating: 67.8, slope: 119 },
-      { name: 'Orange', yards: 5588, pars: PETRIFYING_PARS, rating: 70.9, slope: 122 },
+      { name: 'Orange', yards: 5588, pars: PETRIFYING_PARS, rating: 66.0, slope: 115 },
     ],
   },
   {
@@ -83,10 +83,10 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     name: 'Browns Lake Golf Course',
     place: 'Burlington, WI',
         tees: [
-      // 18Birdies, on the same 6386 yards: 70.8/124. Nobody publishes Yellow or the 5119 Red.
-      { name: 'White', yards: 6386, pars: BROWNS_LAKE_PARS, rating: 70.8, slope: 124 },
-      { name: 'Yellow', yards: 5391, pars: BROWNS_LAKE_PARS },
-      { name: 'Red', yards: 5119, pars: BROWNS_LAKE_PARS },
+      // BlueGolf men's ratings.
+      { name: 'White', yards: 6386, pars: BROWNS_LAKE_PARS, rating: 71.1, slope: 126 },
+      { name: 'Yellow', yards: 5391, pars: BROWNS_LAKE_PARS, rating: 65.8, slope: 115 },
+      { name: 'Red', yards: 5119, pars: BROWNS_LAKE_PARS, rating: 64.1, slope: 109 },
     ],
   },
   {
@@ -94,10 +94,11 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     name: 'Shiloh Park Golf Course',
     place: 'Zion, IL',
     tees: [
-      // Nine-hole ratings, GolfPass. Sites printing 68.4 have doubled the 34.2.
-      { name: 'Blue', yards: 2863, pars: SHILOH_PARS, rating: 34.2, slope: 118 },
-      { name: 'White', yards: 2695, pars: SHILOH_PARS, rating: 33.7, slope: 115 },
-      { name: 'Yellow', yards: 2348, pars: SHILOH_PARS, rating: 33.4, slope: 111 },
+      // BlueGolf rates it as eighteen (twice round): Blue 67.6/122, White 66.0/118, Yellow
+      // (women's only) 67.2/114. Halved for the nine.
+      { name: 'Blue', yards: 2863, pars: SHILOH_PARS, rating: 33.8, slope: 122 },
+      { name: 'White', yards: 2695, pars: SHILOH_PARS, rating: 33.0, slope: 118 },
+      { name: 'Yellow', yards: 2348, pars: SHILOH_PARS, rating: 33.6, slope: 114 },
     ],
   },
   {
@@ -105,9 +106,9 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     name: 'Shoop Park Golf Course',
     place: 'Racine, WI',
     tees: [
-      // GolfLink and Foretee, nine holes: 35.5/113. No published figure for the Red.
-      { name: 'White', yards: 2667, pars: SHOOP_PARS, rating: 35.5, slope: 113 },
-      { name: 'Red', yards: 2615, pars: SHOOP_PARS },
+      // BlueGolf men's, rated as eighteen: White 66.2/104, Red 65.2/102. Halved for the nine.
+      { name: 'White', yards: 2667, pars: SHOOP_PARS, rating: 33.1, slope: 104 },
+      { name: 'Red', yards: 2615, pars: SHOOP_PARS, rating: 32.6, slope: 102 },
     ],
   },
 ];
