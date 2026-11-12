@@ -39,7 +39,7 @@ function Lane({ r, you, out, at }: { r: HcpRound; you: number; out: boolean; at:
 const HOW = {
   game: 'each round is (113 / slope) x (score minus course rating), off the tee you played.',
   putting:
-    'each round is your putts minus what a scratch putter takes from the same first putts, the same way a score is measured against the course rating. A tour pro is about +1.',
+    "each round's strokes gained putting becomes a number on the handicap scale. Scratch putting is 0.0, a tour pro is +6.0, and every stroke a round you lose adds 6.0. A round better than tour keeps counting, just for less, so one hot day can't run away.",
 };
 
 interface Props {
@@ -100,14 +100,10 @@ export function StandCard({ rounds, everyRound, backTees, courses, baseline, sho
         {shoot > withTour
           ? `On an average round a tour pro's putter would save you ${(shoot - withTour).toFixed(1)}. `
           : `You putt better than tour, by ${(withTour - shoot).toFixed(1)} a round. `}
-        {putting &&
-          (Math.abs(putting.hcp) < 0.05
-            ? 'On your good days your putting matches a scratch putter. '
-            : `On your good days your putting ${putting.hcp < 0 ? 'saves' : 'costs'} you ${Math.abs(putting.hcp).toFixed(1)} a round against scratch. `)}
         {gap !== null &&
-          (Math.abs(gap) < 0.05
-            ? 'The rest of your game matches scratch.'
-            : `The rest of your game ${gap > 0 ? 'costs' : 'saves'} about ${Math.abs(gap).toFixed(1)}.`)}
+          (Math.abs(gap) < 0.5
+            ? 'Your putting is right in line with the rest of your game.'
+            : `Your putting plays ${Math.abs(gap).toFixed(1)} ${gap > 0 ? 'better' : 'worse'} than your game.`)}
         {!game && ' Plays to needs five rounds on a rated tee.'}
       </p>
 
