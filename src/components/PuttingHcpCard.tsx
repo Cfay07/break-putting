@@ -1,16 +1,50 @@
-import { useMemo } from 'react';
-import { hcpText, puttingHcp } from '../lib/puttingHcp';
-import type { Round } from '../lib/types';
+import { useMemo } from "react";
+import { fmtDate } from "../lib/format";
+import { hcpText, puttingHcp, type HcpRound } from "../lib/puttingHcp";
+import type { Round } from "../lib/types";
 
 const LOW = -6;
 const HIGH = 30;
-const at = (h: number) => `${((h - LOW) / (HIGH - LOW)) * 100}%`;
+const at = (h: number) =>
+  `${((Math.max(LOW, Math.min(HIGH, h)) - LOW) / (HIGH - LOW)) * 100}%`;
+const MARKS: [number, string][] = [
+  [-6, "+6"],
+  [0, "0"],
+  [10, "10"],
+  [20, "20"],
+  [30, "30+"],
+];
 
-export function PuttingHcpCard({ rounds, baseline }: { rounds: Round[]; baseline: [number, number][] }) {
+function Lane({ r, you, out }: { r: HcpRound; you: number; out: boolean }) {
+  return (
+    <div className="hcp-lane">
+      <span className="hcp-date">
+        {fmtDate(r.date)}
+        {r.nines && <small> 9+9</small>}
+        {out && <em> next out</em>}
+      </span>
+      <span className="hcp-track">
+        <i className="hcp-you" style={{ left: at(you) }} />
+        <i className="hcp-pt" style={{ left: at(r.hcp) }} />
+      </span>
+      <b className="num">{hcpText(r.hcp)}</b>
+    </div>
+  );
+}
+
+export function PuttingHcpCard({
+  rounds,
+  baseline,
+}: {
+  rounds: Round[];
+  baseline: [number, number][];
+}) {
   const h = useMemo(() => puttingHcp(rounds, baseline), [rounds, baseline]);
-  const all = useMemo(() => puttingHcp(rounds, baseline, Infinity), [rounds, baseline]);
-  if (!h || !all) return null;
-  const more = all.rounds > h.rounds;
+  if (!h) return null;
+  const counting = h.rounds
+    .filter((r) => r.counts)
+    .sort((a, b) => a.hcp - b.hcp || b.date.localeCompare(a.date));
+  const rest = h.rounds.length - counting.length;
 
   return (
     <div className="hcp-card">
@@ -18,24 +52,40 @@ export function PuttingHcpCard({ rounds, baseline }: { rounds: Round[]; baseline
         <span className="pay-eyebrow">Putting handicap</span>
         <strong className="hcp-big num">{hcpText(h.hcp)}</strong>
       </div>
-      <div className="hcp-scale" role="img" aria-label={`Putting handicap ${hcpText(h.hcp)}. Good days putt like a ${hcpText(h.good)}, bad days like a ${hcpText(h.bad)}.`}>
-        <div className="hcp-track" />
-        <div className="hcp-band" style={{ left: at(h.good), width: `calc(${at(h.bad)} - ${at(h.good)})` }} />
-        <i className="hcp-dot" style={{ left: at(h.hcp) }} />
-        <div className="hcp-ticks">
-          {[-6, 0, 10, 20, 30].map((t) => (
-            <span key={t} style={{ left: at(t) }}>{hcpText(t)}</span>
-          ))}
+      <p className="hcp-how">
+        Best {h.counting} of your last {h.rounds.length} rounds, like a real
+        handicap.
+      </p>
+      <div className="hcp-chart">
+        {counting.map((r) => (
+          <Lane key={r.id} r={r} you={h.hcp} out={r.id === h.nextOut?.id} />
+        ))}
+        <div className="hcp-lane hcp-axis">
+          <span />
+          <span className="hcp-track">
+            {MARKS.map(([v, label]) => (
+              <span key={v} className="hcp-mark" style={{ left: at(v) }}>
+                {label}
+              </span>
+            ))}
+          </span>
+          <span />
         </div>
       </div>
-      <div className="hcp-days">
-        <span>Good day <b className="num">{hcpText(h.good)}</b></span>
-        <span>Bad day <b className="num">{hcpText(h.bad)}</b></span>
-        {more && <span>All {all.rounds} <b className="num">{hcpText(all.hcp)}</b></span>}
-      </div>
+      {(rest > 0 || h.nextOut) && (
+        <p className="pay-note">
+          {rest > 0 && `The other ${rest} putted worse and don't count. `}
+          {h.nextOut &&
+            !h.nextOut.counts &&
+            `${fmtDate(h.nextOut.date)} is the next round out. `}
+        </p>
+      )}
       <p className="pay-note">
-        {more ? `Your last ${h.rounds} rounds` : `All ${h.rounds} rounds`} in this view. An estimate, not an official
-        handicap. A good day is your rounds above your own average.
+        How it works: each round's strokes gained against tour pros becomes a
+        handicap. Tour putting is +6.0, and every stroke a round you lose to
+        tour adds 6.0. Your handicap is the average of your best {h.counting} of
+        your last {h.rounds.length}. Two nine-hole rounds make one 9+9. An
+        estimate, not an official handicap.
       </p>
     </div>
   );

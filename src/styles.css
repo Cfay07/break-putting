@@ -2072,13 +2072,23 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .mv-trend { fill: var(--m-rule); }
 .mv-trend.me { fill: var(--m-accent); }
 
-.hcp-card { background: var(--ink); color: var(--paper); border-radius: 16px; padding: 16px; display: grid; gap: 12px; margin-bottom: 12px; }
+.hcp-card { background: var(--ink); color: var(--paper); border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px; margin-bottom: 12px; }
 .hcp-head { display: flex; justify-content: space-between; align-items: center; }
-.hcp-big { font-size: 44px; font-weight: 900; line-height: 1; letter-spacing: -0.03em; }
-.hcp-scale { position: relative; height: 36px; margin: 0 8px; }
-.hcp-track { position: absolute; left: 0; right: 0; top: 7px; height: 4px; border-radius: 2px; background: rgba(242, 239, 230, 0.16); }
-.hcp-band { position: absolute; top: 4px; height: 10px; border-radius: 5px; background: rgba(232, 147, 95, 0.4); }
-.hcp-dot { position: absolute; top: 1px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: #e8935f; border: 2px solid var(--ink); }
-.hcp-ticks span { position: absolute; top: 21px; transform: translateX(-50%); font-size: 11px; color: #a9c2b5; font-variant-numeric: tabular-nums; }
-.hcp-days { display: flex; justify-content: space-between; font-size: 13px; color: #cfdcd4; }
-.hcp-days b { color: var(--paper); font-size: 15px; margin-left: 4px; }
+.hcp-big { font-size: 40px; font-weight: 900; line-height: 1; letter-spacing: -0.03em; }
+.hcp-how { margin: -4px 0 0; font-size: 14px; line-height: 1.4; color: #cfdcd4; }
+.hcp-chart { display: grid; }
+.hcp-lane { display: grid; grid-template-columns: 96px 1fr 38px; align-items: center; gap: 8px; height: 18px; color: var(--paper); }
+.hcp-date { font-size: 12px; white-space: nowrap; }
+.hcp-date small { font-size: 10px; opacity: 0.8; }
+.hcp-date em { font-style: normal; font-size: 10px; font-weight: 700; color: #e8935f; }
+.hcp-lane b { font-size: 13px; font-weight: 800; text-align: right; }
+.hcp-track { position: relative; height: 100%; margin: 0 6px; }
+.hcp-track::before { content: ''; position: absolute; left: -6px; right: -6px; top: 50%; height: 2px; margin-top: -1px; border-radius: 1px; background: rgba(242, 239, 230, 0.1); }
+.hcp-you { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(232, 147, 95, 0.35); }
+.hcp-pt { position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #e8935f; }
+
+.hcp-axis { height: 22px; margin-top: 2px; }
+.hcp-axis .hcp-track::before { display: none; }
+.hcp-mark { position: absolute; top: 4px; transform: translateX(-50%); font-size: 10.5px; color: #a9c2b5; white-space: nowrap; }
+.hcp-mark:first-child { transform: none; margin-left: -6px; }
+.hcp-mark:last-child { transform: translateX(-100%); margin-left: 6px; }

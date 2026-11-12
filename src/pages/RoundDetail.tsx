@@ -30,6 +30,7 @@ import { LagPanel } from '../components/LagPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { ReadPanel } from '../components/ReadPanel';
 import { RoundPayoff } from '../components/RoundPayoff';
+import { RoundHcp } from '../components/RoundHcp';
 import { RoundMoments } from '../components/RoundMoments';
 import { momentsOf } from '../lib/moments';
 import { readError } from '../lib/readError';
@@ -303,6 +304,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           <span className="k">Putts</span>
           <span className="v num">{s.totalPutts}</span>
         </div>
+        <RoundHcp round={round} />
         {mismatch && (
           <div className="stat-row">
             <span className="k">On the card</span>
