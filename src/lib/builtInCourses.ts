@@ -59,7 +59,27 @@ const SHILOH_PARS = [4, 5, 4, 3, 4, 4, 3, 4, 4];
  */
 const SHOOP_PARS = [3, 5, 4, 5, 3, 4, 4, 3, 4];
 
+/**
+ * Out 36, in 36, par 72. Pars from the round imported off this course; ratings from the GolfPass
+ * tee table. The open course data only knows the club's par-3 course, and the main course service
+ * does not list Como Crossings at all.
+ */
+const COMO_PARS = [4, 4, 3, 4, 4, 3, 5, 4, 5, 5, 3, 4, 4, 5, 4, 4, 3, 4];
+
 export const BUILT_IN_COURSES: SavedCourse[] = [
+  {
+    id: 'builtin-como-crossings',
+    name: "Hawk's View Golf Club · Como Crossings",
+    place: 'Lake Geneva, WI',
+    tees: [
+      { name: 'Black', yards: 7074, pars: COMO_PARS, rating: 73.1, slope: 133 },
+      { name: 'Blue', yards: 6595, pars: COMO_PARS, rating: 71.0, slope: 128 },
+      { name: 'White', yards: 6210, pars: COMO_PARS, rating: 69.2, slope: 124 },
+      { name: 'Gold', yards: 5701, pars: COMO_PARS, rating: 66.9, slope: 118 },
+      // Women's rating, the only one published for the Red.
+      { name: 'Red', yards: 5115, pars: COMO_PARS, rating: 69.3, slope: 115 },
+    ],
+  },
   {
     id: 'builtin-ives-grove',
     name: 'Ives Grove Golf Links',

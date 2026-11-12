@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BUILT_IN_COURSES } from '../lib/builtInCourses';
+import { dedupeCourses } from '../lib/gameHcp';
 import { loadCourse, searchCourses, type CourseHit } from '../lib/courseApi';
 import { newId } from '../lib/storage';
 import { useApp } from '../lib/store';
@@ -38,17 +39,7 @@ function fitPars(pars: number[], holeCount: number): number[] {
 }
 
 function mergeCourses(saved: SavedCourse[]): SavedCourse[] {
-  const builtInNames = new Set(BUILT_IN_COURSES.map((b) => b.name.toLowerCase()));
-  const keep = saved.filter(
-    (c) => c.tees.length > 0 || !builtInNames.has(c.name.toLowerCase()),
-  );
-  const takenNames = new Set(keep.map((c) => c.name.toLowerCase()));
-  return [
-    ...keep,
-    ...BUILT_IN_COURSES.filter(
-      (b) => !keep.some((c) => c.id === b.id) && !takenNames.has(b.name.toLowerCase()),
-    ),
-  ];
+  return dedupeCourses([...saved, ...BUILT_IN_COURSES]);
 }
 
 export function CoursePicker({

@@ -53,8 +53,10 @@ export async function loadCourse(id: string): Promise<SavedCourse> {
     for (const tee of group ?? []) {
       const pars = (tee.holes ?? []).map((h) => h.par ?? 4);
       if (!pars.length) continue;
-      const name = tee.tee_name ?? 'Tee';
-      if (tees.some((t) => t.name === name && t.yards === tee.total_yards)) continue;
+      const base = tee.tee_name ?? 'Tee';
+      if (tees.some((t) => t.name === base && t.yards === tee.total_yards)) continue;
+      // A women's tee sharing a men's name but not its length is a different box: label it.
+      const name = tees.some((t) => t.name === base) ? `${base} (W)` : base;
       const rated = (tee.course_rating ?? 0) > 0 && (tee.slope_rating ?? 0) > 0;
       tees.push({
         name,

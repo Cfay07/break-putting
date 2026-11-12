@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gameHcp, ratingGaps, sameCourse } from './gameHcp';
+import { dedupeCourses, gameHcp, ratingGaps, sameCourse } from './gameHcp';
 import { hcpText } from './puttingHcp';
 import type { Round, SavedCourse } from './types';
 
@@ -66,5 +66,14 @@ describe('imported rounds with only a course name', () => {
     const gaps = ratingGaps(rounds, [two]);
     expect(gaps).toEqual({ unrated: 0, guessed: 1 });
     expect(gameHcp(rounds, [two])!.rounds).toHaveLength(6);
+  });
+});
+
+describe('one entry per course', () => {
+  it('collapses copies of a course to the best-rated one, but keeps same-named courses in different towns', () => {
+    const blank = { id: 'saved', name: 'Shiloh Park Golf Course', place: 'Zion, IL', tees: [] };
+    const rated = { id: 'builtin', name: 'Shiloh Park Golf Course', place: 'Zion, IL', tees: [{ name: 'Blue', pars: [], rating: 33.8, slope: 122 }] };
+    const other = { id: 'woodstock', name: 'Shiloh Park Golf Course', place: 'Woodstock, IL', tees: [] };
+    expect(dedupeCourses([blank, rated, other]).map((c) => c.id)).toEqual(['builtin', 'woodstock']);
   });
 });

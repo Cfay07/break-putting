@@ -6,11 +6,26 @@ import { fillFrom, ratedTees } from './openGolf';
 import { useApp } from './store';
 import type { SavedCourse, SavedTee } from './types';
 
+/**
+ * Courses found for rating but never saved, kept on the phone so each is looked up once rather
+ * than on every load. A lost cache only costs a few lookups.
+ */
+const CACHE = 'break.foundCourses';
 const tried = new Set<string>();
 const fetched = new Map<string, SavedCourse>();
+try {
+  for (const c of JSON.parse(localStorage.getItem(CACHE) ?? '[]') as SavedCourse[]) fetched.set(c.id, c);
+} catch {
+  /* private window or bad data: start empty */
+}
 const listeners = new Set<() => void>();
 const publish = (course: SavedCourse) => {
   fetched.set(course.id, course);
+  try {
+    localStorage.setItem(CACHE, JSON.stringify([...fetched.values()]));
+  } catch {
+    /* storage full or blocked: keep it for this session */
+  }
   listeners.forEach((l) => l());
 };
 
@@ -25,7 +40,8 @@ async function gentleSearch(q: string) {
   });
 }
 
-const unrated = (tees: SavedTee[]) => tees.some((t) => !t.rating || !t.slope);
+const unrated = (tees: SavedTee[]) =>
+  tees.some((t) => !t.rating || !t.slope) || tees.some((t, i) => tees.findIndex((o) => o.name === t.name) !== i);
 const isBuiltIn = (id: string) => id.startsWith('builtin-');
 
 function withRatings(mine: SavedTee[], theirs: SavedTee[]): SavedTee[] {
@@ -39,7 +55,16 @@ function withRatings(mine: SavedTee[], theirs: SavedTee[]): SavedTee[] {
 /** The course service first, then the free ratings lookup for whatever tees it left blank. */
 async function rate(course: SavedCourse): Promise<SavedTee[]> {
   let tees = course.tees;
-  if (!isBuiltIn(course.id)) tees = withRatings(tees, (await loadCourse(course.id)).tees);
+  if (!isBuiltIn(course.id)) {
+    const fresh = (await loadCourse(course.id)).tees;
+    // Saved before women's tees were labelled: two tees called Blue. Take the fresh name by length.
+    tees = tees.map((t) => {
+      if (tees.filter((o) => o.name === t.name).length < 2) return t;
+      const twin = fresh.find((f) => f.yards === t.yards && f.name.startsWith(t.name));
+      return twin ? { ...t, name: twin.name } : t;
+    });
+    tees = withRatings(tees, fresh);
+  }
   if (unrated(tees)) tees = fillFrom(tees, await ratedTees(course).catch(() => []));
   return tees;
 }
@@ -65,7 +90,7 @@ export function useCourseRatings(): SavedCourse[] {
       ...state.courses.filter((c) => unrated(c.tees) && !isBuiltIn(c.id)).map((course) => ({ course, mine: true })),
       ...BUILT_IN_COURSES.filter((c) => played.has(c.id) && unrated(c.tees)).map((course) => ({ course, mine: false })),
     ];
-    const unsaved = [...played].filter((id) => !saved.has(id) && !isBuiltIn(id) && !tried.has(id));
+    const unsaved = [...played].filter((id) => !saved.has(id) && !isBuiltIn(id) && !fetched.has(id) && !tried.has(id));
     for (const id of unsaved) {
       tried.add(id);
       loadCourse(id)

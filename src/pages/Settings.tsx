@@ -1,3 +1,5 @@
+import { BUILT_IN_COURSES } from '../lib/builtInCourses';
+import { dedupeCourses } from '../lib/gameHcp';
 import { useRef, useState, type ReactNode } from 'react';
 import { Account } from '../components/Account';
 import { ConfirmButton } from '../components/ConfirmButton';
@@ -316,9 +318,11 @@ export function Settings() {
         <p className="small muted">None saved yet. Pick one when you start a round and it gets kept here with its pars.</p>
       ) : (
         <div className="list">
-          {state.courses.map((c) => (
-            <Row key={c.id} title={c.name} sub={c.place} onClick={() => setOpen({ k: 'course', id: c.id })} />
-          ))}
+          {dedupeCourses([...state.courses, ...BUILT_IN_COURSES])
+            .filter((c) => state.courses.some((s) => s.id === c.id))
+            .map((c) => (
+              <Row key={c.id} title={c.name} sub={c.place} onClick={() => setOpen({ k: 'course', id: c.id })} />
+            ))}
         </div>
       )}
       {/* The open ratings data is ODbL, which requires this credit wherever its numbers are used. */}
