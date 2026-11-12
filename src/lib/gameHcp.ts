@@ -59,7 +59,12 @@ function usualYards(rounds: Round[], courses: SavedCourse[]): number | null {
  * The tee a round was played off. Imported rounds often carry only the course name, so the
  * nines are tried next, then the rated tee closest to your usual yardage, marked as a guess.
  */
-export function ratedTeeOf(round: Round, courses: SavedCourse[], usual: number | null): { tee: SavedTee; guessed: boolean } | null {
+export function ratedTeeOf(
+  round: Round,
+  courses: SavedCourse[],
+  usual: number | null,
+  backTees = false,
+): { tee: SavedTee; guessed: boolean } | null {
   const known = teeOf(round, courses);
   if (known) return known.rating && known.slope ? { tee: known, guessed: false } : null;
   const course = courseOf(round, courses);
@@ -68,14 +73,19 @@ export function ratedTeeOf(round: Round, courses: SavedCourse[], usual: number |
   const named = round.tee ?? (round.firstNine && round.secondNine ? `${round.firstNine}/${round.secondNine}` : undefined);
   const exact = named && rated.find((t) => t.name === named);
   if (exact) return { tee: exact, guessed: false };
-  if (!rated.length || usual === null) return null;
+  if (!rated.length) return null;
+  if (backTees) {
+    const back = [...rated].filter((t) => !t.name.endsWith('(W)')).sort((a, b) => (b.yards ?? 0) - (a.yards ?? 0))[0];
+    if (back) return { tee: back, guessed: true };
+  }
+  if (usual === null) return null;
   const closest = [...rated].sort((a, b) => Math.abs((a.yards ?? 0) - usual) - Math.abs((b.yards ?? 0) - usual))[0];
   return { tee: closest, guessed: true };
 }
 
 /** Score and the rating it is measured against, for the holes actually played. */
-function scored(round: Round, courses: SavedCourse[], usual: number | null) {
-  const tee = ratedTeeOf(round, courses, usual)?.tee;
+function scored(round: Round, courses: SavedCourse[], usual: number | null, backTees = false) {
+  const tee = ratedTeeOf(round, courses, usual, backTees)?.tee;
   if (!tee?.rating || !tee.slope) return null;
   const holes = round.holes.filter((h) => (h.strokes ?? 0) > 0);
   if (holes.length !== 9 && holes.length !== 18) return null;
@@ -91,14 +101,19 @@ const diff = (score: number, rating: number, slope: number) => (113 / slope) * (
  * scores and ratings, with their slopes averaged. Then the same best 8 of the last 20
  * as the putting handicap, so the two line up.
  */
-export function gameHcp(rounds: Round[], courses: SavedCourse[], everyRound: Round[] = rounds): PuttingHcp | null {
+export function gameHcp(
+  rounds: Round[],
+  courses: SavedCourse[],
+  everyRound: Round[] = rounds,
+  backTees = false,
+): PuttingHcp | null {
   const real = rounds.filter((r) => r.finished && !r.practice).sort((a, b) => a.date.localeCompare(b.date));
   // Learned from every round, not just the filtered ones: a filter of imported rounds has no tee to learn from.
   const usual = usualYards(everyRound, courses);
   const out: Scored[] = [];
   let waiting: { id: string; s: NonNullable<ReturnType<typeof scored>> } | null = null;
   for (const r of real) {
-    const s = scored(r, courses, usual);
+    const s = scored(r, courses, usual, backTees);
     if (!s) continue;
     if (!s.nine) out.push({ id: r.id, date: r.date, nines: false, hcp: diff(s.score, s.rating, s.slope) });
     else if (waiting) {
@@ -121,11 +136,12 @@ export function ratingGaps(
   rounds: Round[],
   courses: SavedCourse[],
   everyRound: Round[] = rounds,
+  backTees = false,
 ): { unrated: number; guessed: number } {
   const real = rounds.filter((r) => r.finished && !r.practice && r.holes.some((h) => (h.strokes ?? 0) > 0));
   const usual = usualYards(everyRound, courses);
   return {
-    unrated: real.filter((r) => !scored(r, courses, usual)).length,
-    guessed: real.filter((r) => ratedTeeOf(r, courses, usual)?.guessed).length,
+    unrated: real.filter((r) => !scored(r, courses, usual, backTees)).length,
+    guessed: real.filter((r) => ratedTeeOf(r, courses, usual, backTees)?.guessed).length,
   };
 }

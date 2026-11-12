@@ -20,7 +20,10 @@ function Row({ label, m }: { label: string; m: ReturnType<typeof hcpMove> }) {
 export function RoundHcp({ round }: { round: Round }) {
   const { state } = useApp();
   const courses = useCourseRatings();
-  const game = useMemo(() => hcpMove(state.rounds, round, (rs) => gameHcp(rs, courses)), [state.rounds, round, courses]);
+  const game = useMemo(
+    () => hcpMove(state.rounds, round, (rs) => gameHcp(rs, courses, state.rounds, !!state.backTees)),
+    [state.rounds, round, courses, state.backTees],
+  );
   const putting = useMemo(
     () => hcpMove(state.rounds, round, (rs) => puttingHcp(rs, state.baseline)),
     [state.rounds, round, state.baseline],

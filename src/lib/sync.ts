@@ -36,6 +36,7 @@ export interface Incoming {
     target?: PinnedTarget;
     targetsDone?: PinnedTarget[];
     levels?: Record<string, { ft: number; askAfter?: number }>;
+    backTees?: boolean;
     updated: string;
   };
   practice?: PracticeSet[];
@@ -172,7 +173,7 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
       [
         {
           user_id: session.userId,
-          payload: { baseline: state.baseline, courses: state.courses, room: state.room, target: state.target, targetsDone: state.targetsDone, levels: state.levels },
+          payload: { baseline: state.baseline, courses: state.courses, room: state.room, target: state.target, targetsDone: state.targetsDone, levels: state.levels, backTees: state.backTees },
           updated_at: state.settingsUpdated,
         },
       ],
@@ -208,6 +209,7 @@ export async function sync(state: AppState): Promise<{ result: SyncResult; incom
           target: settingsRows[0].payload?.target,
           targetsDone: settingsRows[0].payload?.targetsDone,
           levels: settingsRows[0].payload?.levels,
+          backTees: settingsRows[0].payload?.backTees,
           updated: settingsRows[0].updated_at,
         }
       : undefined,

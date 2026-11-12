@@ -191,6 +191,7 @@ function RoundStats() {
               <StandCard
                 rounds={rounds}
                 everyRound={state.rounds}
+                backTees={!!state.backTees}
                 courses={courses}
                 baseline={state.baseline}
                 shoot={avgScore}

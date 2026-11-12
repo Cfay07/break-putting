@@ -50,6 +50,7 @@ export type Action =
   | { t: 'deleteRound'; id: string }
   | { t: 'setBaseline'; baseline: [number, number][] }
   | { t: 'setQuietTrack'; on: boolean }
+  | { t: 'setBackTees'; on: boolean }
   | { t: 'addPracticeSet'; set: PracticeSet }
   | { t: 'deletePracticeSet'; id: string }
   | { t: 'deletePracticeSets'; ids: string[] }
@@ -380,6 +381,9 @@ export function reducer(state: AppState, a: Action): AppState {
       };
     }
 
+    case 'setBackTees':
+      return { ...state, backTees: a.on, settingsUpdated: now() };
+
     case 'setQuietTrack':
       return { ...state, quietTrack: a.on };
 
@@ -586,6 +590,7 @@ export function reducer(state: AppState, a: Action): AppState {
         target: takeSettings ? settings.target : state.target,
         targetsDone: takeSettings ? (settings.targetsDone ?? state.targetsDone) : state.targetsDone,
         levels: takeSettings ? (settings.levels ?? state.levels) : state.levels,
+        backTees: takeSettings ? (settings.backTees ?? state.backTees) : state.backTees,
         settingsUpdated: takeSettings ? settings.updated : state.settingsUpdated,
       };
     }

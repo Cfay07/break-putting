@@ -314,6 +314,22 @@ export function Settings() {
       </div>
 
       <h2>Courses</h2>
+      <div className="list">
+        <Row
+          title="Rounds with no tee use the back tees"
+          sub="Off, they use the tee closest to the yardage you usually play."
+          end={
+            <button
+              type="button"
+              role="switch"
+              className="switch"
+              aria-checked={!!state.backTees}
+              aria-label="Rounds with no tee use the back tees"
+              onClick={() => dispatch({ t: 'setBackTees', on: !state.backTees })}
+            />
+          }
+        />
+      </div>
       {state.courses.length === 0 ? (
         <p className="small muted">None saved yet. Pick one when you start a round and it gets kept here with its pars.</p>
       ) : (

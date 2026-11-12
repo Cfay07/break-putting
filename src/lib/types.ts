@@ -272,6 +272,8 @@ export interface AppState {
   settingsUpdated?: string;
   /** Hides the running score and the bleed drop while playing, for competitive rounds. */
   quietTrack?: boolean;
+  /** A round with no tee is rated off the back tees, not the tee nearest your usual yardage. */
+  backTees?: boolean;
   /** Drill sets. Kept apart from rounds so nothing that reads a round can ever read these. */
   practice: PracticeSet[];
   /** Drills you built or imported, and your edited copies of anyone else's. */

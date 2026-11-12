@@ -66,6 +66,10 @@ describe('imported rounds with only a course name', () => {
     const gaps = ratingGaps(rounds, [two]);
     expect(gaps).toEqual({ unrated: 0, guessed: 1 });
     expect(gameHcp(rounds, [two])!.rounds).toHaveLength(6);
+    // Back tees on: the 80 is rated off the Blue (73 / 130) whatever the usual yardage.
+    const short = [...days(5).map((d) => ({ ...rnd(d, 75), tee: 'White' }) as Round), named('2026-10-20', 80, { course: 'Test Golf Club' })];
+    const back = gameHcp(short, [two], short, true)!.rounds.find((r) => r.date === '2026-10-20')!;
+    expect(back.hcp).toBeCloseTo((113 / 130) * 7);
   });
 });
 

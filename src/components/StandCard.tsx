@@ -65,6 +65,8 @@ interface Props {
   rounds: Round[];
   /** Every round, unfiltered, so the tee you usually play is known even inside a filter. */
   everyRound: Round[];
+  /** Rate a round with no tee off the back tees. */
+  backTees: boolean;
   courses: SavedCourse[];
   baseline: [number, number][];
   shoot: number;
@@ -72,10 +74,13 @@ interface Props {
   scoredRounds: number;
 }
 
-export function StandCard({ rounds, everyRound, courses, baseline, shoot, withTour, scoredRounds }: Props) {
+export function StandCard({ rounds, everyRound, backTees, courses, baseline, shoot, withTour, scoredRounds }: Props) {
   const putting = useMemo(() => puttingHcp(rounds, baseline), [rounds, baseline]);
-  const game = useMemo(() => gameHcp(rounds, courses, everyRound), [rounds, courses, everyRound]);
-  const gaps = useMemo(() => ratingGaps(rounds, courses, everyRound), [rounds, courses, everyRound]);
+  const game = useMemo(() => gameHcp(rounds, courses, everyRound, backTees), [rounds, courses, everyRound, backTees]);
+  const gaps = useMemo(
+    () => ratingGaps(rounds, courses, everyRound, backTees),
+    [rounds, courses, everyRound, backTees],
+  );
   const [view, setView] = useState<'putting' | 'game'>('putting');
   const shown = view === 'game' && game ? game : putting;
   const kind = view === 'game' && game ? 'game' : 'putting';
@@ -158,7 +163,9 @@ export function StandCard({ rounds, everyRound, courses, baseline, shoot, withTo
           {kind === 'putting' ? (
             <>
               <div className="hcp-chart putting">
-                {shown.rounds.slice(0, SHOWN_PUTTING).map((r) => (
+                {[...shown.rounds.slice(0, SHOWN_PUTTING)]
+                  .sort((x, y) => (y.sg ?? 0) - (x.sg ?? 0))
+                  .map((r) => (
                   <PuttLane key={r.id} r={r} mean={meanSg} out={r.id === shown.nextOut?.id} />
                 ))}
                 <div className="hcp-lane hcp-axis">
@@ -175,7 +182,7 @@ export function StandCard({ rounds, everyRound, courses, baseline, shoot, withTo
               </div>
               <p className="pay-note">
                 Strokes gained putting against tour, your newest {Math.min(SHOWN_PUTTING, shown.rounds.length)} of{' '}
-                {shown.rounds.length}. All {shown.rounds.length} count. The line is your average, {signed1(meanSg)}.
+                {shown.rounds.length}, best first. All {shown.rounds.length} count. The line is your average, {signed1(meanSg)}.
                 {shown.nextOut && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
               </p>
               <p className="pay-note">
@@ -199,7 +206,7 @@ export function StandCard({ rounds, everyRound, courses, baseline, shoot, withTo
                 {rest > 0 && ` The other ${rest} were worse and don't count.`}
                 {shown.nextOut && !shown.nextOut.counts && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
                 {gaps.guessed > 0 &&
-                  ` ${gaps.guessed} imported ${gaps.guessed === 1 ? "round didn't" : "rounds didn't"} say the tee, so ${gaps.guessed === 1 ? 'it uses' : 'they use'} the one closest to the yardage you usually play.`}
+                  ` ${gaps.guessed} imported ${gaps.guessed === 1 ? "round didn't" : "rounds didn't"} say the tee, so ${gaps.guessed === 1 ? 'it uses' : 'they use'} ${backTees ? 'the back tees' : 'the one closest to the yardage you usually play'}.`}
                 {gaps.unrated > 0 &&
                   ` ${gaps.unrated} ${gaps.unrated === 1 ? 'round is' : 'rounds are'} on a course with no published rating yet.`}
               </p>
