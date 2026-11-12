@@ -1,18 +1,34 @@
 import { useMemo } from 'react';
-import { hcpMove, hcpText } from '../lib/puttingHcp';
+import { gameHcp } from '../lib/gameHcp';
+import { hcpMove, hcpText, puttingHcp } from '../lib/puttingHcp';
 import { useApp } from '../lib/store';
 import type { Round } from '../lib/types';
+import { useCourseRatings } from '../lib/useCourseRatings';
 
-export function RoundHcp({ round }: { round: Round }) {
-  const { state } = useApp();
-  const m = useMemo(() => hcpMove(state.rounds, round, state.baseline), [state.rounds, round, state.baseline]);
+function Row({ label, m }: { label: string; m: ReturnType<typeof hcpMove> }) {
   if (!m) return null;
   const after = hcpText(m.after.hcp);
   const before = m.before ? hcpText(m.before.hcp) : null;
   return (
     <div className="stat-row">
-      <span className="k">Putting handicap</span>
+      <span className="k">{label}</span>
       <span className="v num">{before && before !== after ? `${before} → ${after}` : after}</span>
     </div>
+  );
+}
+
+export function RoundHcp({ round }: { round: Round }) {
+  const { state } = useApp();
+  const courses = useCourseRatings();
+  const game = useMemo(() => hcpMove(state.rounds, round, (rs) => gameHcp(rs, courses)), [state.rounds, round, courses]);
+  const putting = useMemo(
+    () => hcpMove(state.rounds, round, (rs) => puttingHcp(rs, state.baseline)),
+    [state.rounds, round, state.baseline],
+  );
+  return (
+    <>
+      <Row label="Plays to" m={game} />
+      <Row label="Putts to" m={putting} />
+    </>
   );
 }

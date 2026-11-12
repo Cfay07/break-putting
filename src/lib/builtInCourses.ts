@@ -11,12 +11,25 @@ const IVES_NINES: Record<string, number[]> = {
   Red: [4, 4, 3, 4, 5, 3, 4, 4, 5],
 };
 
+/**
+ * Back-tee rating and slope for each pair of nines, from GolfPass. Red/White 72.8/130, Blue/Red
+ * 73.0/131, and the White/Blue card's Blue tees 73.0/131. Same two nines either way round.
+ */
+const IVES_RATED: Record<string, [number, number]> = {
+  'Red+White': [72.8, 130],
+  'Blue+Red': [73.0, 131],
+  'Blue+White': [73.0, 131],
+};
+
 function combinations(nines: Record<string, number[]>) {
   const names = Object.keys(nines);
   return names.flatMap((out) =>
     names
       .filter((back) => back !== out)
-      .map((back) => ({ name: `${out}/${back}`, pars: [...nines[out], ...nines[back]] })),
+      .map((back) => {
+        const [rating, slope] = IVES_RATED[[out, back].sort().join('+')];
+        return { name: `${out}/${back}`, pars: [...nines[out], ...nines[back]], rating, slope };
+      }),
   );
 }
 
@@ -60,8 +73,9 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     // Two tees on the 18Birdies card. Other sites name the 5588 "Red" and add a 5337 nobody
     // else lists, so this follows the one source that got every par right.
         tees: [
-      { name: 'White', yards: 5979, pars: PETRIFYING_PARS },
-      { name: 'Orange', yards: 5588, pars: PETRIFYING_PARS },
+      // GolfPass and GolfNow: White 67.8/119, Orange (women's) 70.9/122.
+      { name: 'White', yards: 5979, pars: PETRIFYING_PARS, rating: 67.8, slope: 119 },
+      { name: 'Orange', yards: 5588, pars: PETRIFYING_PARS, rating: 70.9, slope: 122 },
     ],
   },
   {
@@ -69,7 +83,8 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     name: 'Browns Lake Golf Course',
     place: 'Burlington, WI',
         tees: [
-      { name: 'White', yards: 6386, pars: BROWNS_LAKE_PARS },
+      // 18Birdies, on the same 6386 yards: 70.8/124. Nobody publishes Yellow or the 5119 Red.
+      { name: 'White', yards: 6386, pars: BROWNS_LAKE_PARS, rating: 70.8, slope: 124 },
       { name: 'Yellow', yards: 5391, pars: BROWNS_LAKE_PARS },
       { name: 'Red', yards: 5119, pars: BROWNS_LAKE_PARS },
     ],
@@ -79,9 +94,10 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     name: 'Shiloh Park Golf Course',
     place: 'Zion, IL',
     tees: [
-      { name: 'Blue', yards: 2863, pars: SHILOH_PARS },
-      { name: 'White', yards: 2695, pars: SHILOH_PARS },
-      { name: 'Yellow', yards: 2348, pars: SHILOH_PARS },
+      // Nine-hole ratings, GolfPass. Sites printing 68.4 have doubled the 34.2.
+      { name: 'Blue', yards: 2863, pars: SHILOH_PARS, rating: 34.2, slope: 118 },
+      { name: 'White', yards: 2695, pars: SHILOH_PARS, rating: 33.7, slope: 115 },
+      { name: 'Yellow', yards: 2348, pars: SHILOH_PARS, rating: 33.4, slope: 111 },
     ],
   },
   {
@@ -89,7 +105,8 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     name: 'Shoop Park Golf Course',
     place: 'Racine, WI',
     tees: [
-      { name: 'White', yards: 2667, pars: SHOOP_PARS },
+      // GolfLink and Foretee, nine holes: 35.5/113. No published figure for the Red.
+      { name: 'White', yards: 2667, pars: SHOOP_PARS, rating: 35.5, slope: 113 },
       { name: 'Red', yards: 2615, pars: SHOOP_PARS },
     ],
   },

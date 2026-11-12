@@ -12,6 +12,8 @@ export interface CourseHit {
 interface ApiTee {
   tee_name?: string;
   total_yards?: number;
+  course_rating?: number;
+  slope_rating?: number;
   holes?: { par?: number }[];
 }
 
@@ -45,13 +47,21 @@ export async function loadCourse(id: string): Promise<SavedCourse> {
   const c = data.course ?? {};
   const tees: SavedTee[] = [];
 
-  for (const group of Object.values(c.tees ?? {})) {
+  // Men's first, so a tee listed for both keeps the men's rating.
+  const groups = Object.entries(c.tees ?? {}).sort(([a], [b]) => (a === 'male' ? -1 : b === 'male' ? 1 : 0));
+  for (const [, group] of groups) {
     for (const tee of group ?? []) {
       const pars = (tee.holes ?? []).map((h) => h.par ?? 4);
       if (!pars.length) continue;
       const name = tee.tee_name ?? 'Tee';
       if (tees.some((t) => t.name === name && t.yards === tee.total_yards)) continue;
-      tees.push({ name, yards: tee.total_yards, pars });
+      const rated = (tee.course_rating ?? 0) > 0 && (tee.slope_rating ?? 0) > 0;
+      tees.push({
+        name,
+        yards: tee.total_yards,
+        pars,
+        ...(rated ? { rating: tee.course_rating, slope: tee.slope_rating } : {}),
+      });
     }
   }
 

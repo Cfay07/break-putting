@@ -8,14 +8,12 @@ import { roundSG } from './sg';
  */
 export const TOUR_HCP = -6;
 export const HCP_PER_STROKE = 6;
-export const HCP_WINDOW = 20;
+export const HCP_WINDOW = 12;
 export const HCP_MIN_ROUNDS = 5;
 const HIGH_CAP = 30;
 
-/** How many of your recent rounds count, the same table a real handicap uses (5 rounds: 1, 20: 8). */
-const COUNTING: Record<number, number> = {
-  5: 1, 6: 2, 7: 2, 8: 2, 9: 3, 10: 3, 11: 3, 12: 4, 13: 4, 14: 4, 15: 5, 16: 5, 17: 6, 18: 6, 19: 7, 20: 8,
-};
+/** Your best third: 4 of 12, and 1 of 5 before the window fills. A handicap is what you can play to, not your average. */
+export const countingOf = (n: number) => Math.max(1, Math.floor(n / 3));
 
 const toHcp = (sg: number) => Math.max(TOUR_HCP, Math.min(HIGH_CAP, TOUR_HCP - sg * HCP_PER_STROKE));
 
@@ -39,7 +37,7 @@ export interface PuttingHcp {
   counting: number;
   /** Your last rounds, newest first. */
   rounds: HcpRound[];
-  /** The round the next one pushes out, once there are twenty. */
+  /** The round the next one pushes out, once the window is full. */
   nextOut: HcpRound | null;
 }
 
@@ -47,7 +45,7 @@ const played = (r: Round) => r.holes.filter((h) => h.putts.length > 0 || holedOu
 
 /**
  * Two nines make one eighteen, the way handicaps used to pair them. Doubling a nine instead lets one
- * hot stretch count as a whole round, and best-of-twenty picks exactly those.
+ * hot stretch count as a whole round, and a best-of average picks exactly those.
  */
 function eighteens(rounds: Round[], baseline: [number, number][]) {
   const out: { id: string; date: string; sg: number; nines: boolean }[] = [];
@@ -65,15 +63,18 @@ function eighteens(rounds: Round[], baseline: [number, number][]) {
   return out;
 }
 
-/** Best rounds of your last twenty, averaged, the way a handicap index is worked out. */
-export function puttingHcp(rounds: Round[], baseline: [number, number][]): PuttingHcp | null {
-  const real = rounds
-    .filter((r) => r.finished && !r.practice && r.holes.some((h) => h.putts.length))
-    .sort((a, b) => a.date.localeCompare(b.date));
-  const recent = eighteens(real, baseline).slice(-HCP_WINDOW);
-  if (recent.length < HCP_MIN_ROUNDS) return null;
-  const each = recent.map((r) => ({ id: r.id, date: r.date, nines: r.nines, hcp: toHcp(r.sg) }));
-  const counting = COUNTING[each.length];
+export interface Scored {
+  id: string;
+  date: string;
+  nines: boolean;
+  hcp: number;
+}
+
+/** Your best 4 of your last 12 rounds, averaged. Oldest first in. */
+export function bestOf(all: Scored[]): PuttingHcp | null {
+  const each = all.slice(-HCP_WINDOW);
+  if (each.length < HCP_MIN_ROUNDS) return null;
+  const counting = countingOf(each.length);
   const best = new Set([...each].sort((a, b) => a.hcp - b.hcp).slice(0, counting).map((r) => r.id));
   const counted = each.filter((r) => best.has(r.id));
   const marked = each.map((r) => ({ ...r, counts: best.has(r.id) }));
@@ -85,15 +86,26 @@ export function puttingHcp(rounds: Round[], baseline: [number, number][]): Putti
   };
 }
 
+export function puttingHcp(rounds: Round[], baseline: [number, number][]): PuttingHcp | null {
+  const real = rounds
+    .filter((r) => r.finished && !r.practice && r.holes.some((h) => h.putts.length))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return bestOf(eighteens(real, baseline).map((r) => ({ id: r.id, date: r.date, nines: r.nines, hcp: toHcp(r.sg) })));
+}
+
 /** Your handicap without this round and with it, and whether it is one of the rounds counting. */
-export function hcpMove(rounds: Round[], round: Round, baseline: [number, number][]) {
+export function hcpMove(
+  rounds: Round[],
+  round: Round,
+  index: (rounds: Round[]) => PuttingHcp | null,
+) {
   const sorted = rounds
     .filter((r) => r.finished && !r.practice)
     .sort((a, b) => a.date.localeCompare(b.date) || (a.id === round.id ? 1 : b.id === round.id ? -1 : 0));
   const i = sorted.findIndex((r) => r.id === round.id);
   if (i < 0) return null;
-  const after = puttingHcp(sorted.slice(0, i + 1), baseline);
+  const after = index(sorted.slice(0, i + 1));
   if (!after) return null;
   const mine = after.rounds.find((r) => r.id.split('+').includes(round.id));
-  return { before: puttingHcp(sorted.slice(0, i), baseline), after, counts: mine?.counts ?? false, waiting: !mine };
+  return { before: index(sorted.slice(0, i)), after, counts: mine?.counts ?? false, waiting: !mine };
 }

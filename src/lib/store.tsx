@@ -10,6 +10,7 @@ import type {
   Putt,
   Round,
   SavedCourse,
+  SavedTee,
   SessionDef,
   PinnedTarget,
   Surface,
@@ -27,6 +28,7 @@ export type Action =
   | { t: 'deletePutter'; id: string; moveTo?: string }
   | { t: 'saveCourse'; course: SavedCourse }
   | { t: 'deleteCourse'; id: string }
+  | { t: 'rateTees'; id: string; tees: SavedTee[] }
   | { t: 'newRound'; round: Round }
   | { t: 'addPutt'; putt: Putt }
   | { t: 'insertPutt'; roundId: string; hole: number; putt: Putt }
@@ -202,6 +204,13 @@ export function reducer(state: AppState, a: Action): AppState {
       return {
         ...state,
         courses: [a.course, ...state.courses.filter((c) => c.id !== a.course.id)],
+        settingsUpdated: now(),
+      };
+
+    case 'rateTees':
+      return {
+        ...state,
+        courses: state.courses.map((c) => (c.id === a.id ? { ...c, tees: a.tees } : c)),
         settingsUpdated: now(),
       };
 

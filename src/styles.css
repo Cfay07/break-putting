@@ -2092,3 +2092,35 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .hcp-mark { position: absolute; top: 4px; transform: translateX(-50%); font-size: 10.5px; color: #a9c2b5; white-space: nowrap; }
 .hcp-mark:first-child { transform: none; margin-left: -6px; }
 .hcp-mark:last-child { transform: translateX(-100%); margin-left: 6px; }
+.stand-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.stand-grid > div { display: grid; gap: 3px; }
+.stand-grid strong { font-size: 36px; font-weight: 900; line-height: 1; letter-spacing: -0.03em; }
+.hcp-line2 { position: relative; display: grid; gap: 2px; margin: 2px 0; }
+.hcp-line2 > .hcp-track { height: 20px; margin: 0 8px; }
+.hcp-axis2 { position: relative; height: 16px; margin: 0 8px; }
+.hcp-axis2 .hcp-mark { top: 0; }
+.hcp-dot { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: #e8935f; box-shadow: 0 0 0 3px var(--ink); transition: left 0.4s ease; }
+.hcp-dot.game { background: var(--paper); }
+.hcp-key { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #cfdcd4; margin-top: 4px; }
+.hcp-key i { width: 9px; height: 9px; border-radius: 50%; background: #e8935f; display: inline-block; }
+.hcp-key i.game { background: var(--paper); }
+.hcp-key i:not(.game) { margin-left: 8px; }
+.hcp-seg > button { min-height: 36px; font-size: 13px; color: #cfdcd4; border-color: rgba(242, 239, 230, 0.2); background: transparent; }
+.hcp-seg > button[aria-pressed='true'] { background: var(--paper); border-color: var(--paper); color: var(--ink); }
+
+/* The page opener sits on the same ground as every other card; orange stays the only accent. */
+.hcp-card.light { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+.hcp-card.light .pay-eyebrow { color: var(--ink-3); }
+.hcp-card.light .hcp-how { color: var(--ink-2); }
+.hcp-card.light .pay-note { color: var(--ink-3); }
+.hcp-card.light .hcp-lane { color: var(--ink); }
+.hcp-card.light .hcp-mark { color: var(--ink-3); }
+.hcp-card.light .hcp-track::before { background: var(--line); }
+.hcp-card.light .hcp-dot { box-shadow: 0 0 0 3px var(--card); }
+.hcp-card.light .hcp-dot.game, .hcp-card.light .hcp-key i.game { background: var(--ink); }
+.hcp-card.light .hcp-key { color: var(--ink-2); }
+.hcp-card.light .hcp-seg > button { color: var(--ink-2); border-color: var(--line); }
+.hcp-card.light .hcp-seg > button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: #f7f5ee; }
+.hcp-card.light .hcp-pt, .hcp-card.light .hcp-dot:not(.game), .hcp-card.light .hcp-key i:not(.game) { background: var(--accent); }
+.hcp-card.light .hcp-you { background: rgba(181, 96, 58, 0.35); }
+.hcp-card.light .hcp-date em { color: var(--accent); }

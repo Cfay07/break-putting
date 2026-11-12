@@ -31,6 +31,8 @@ import { PatternPanel } from '../components/PatternPanel';
 import { ReadPanel } from '../components/ReadPanel';
 import { RoundPayoff } from '../components/RoundPayoff';
 import { RoundHcp } from '../components/RoundHcp';
+import { teeOf } from '../lib/gameHcp';
+import { useCourseRatings } from '../lib/useCourseRatings';
 import { RoundMoments } from '../components/RoundMoments';
 import { momentsOf } from '../lib/moments';
 import { readError } from '../lib/readError';
@@ -76,7 +78,9 @@ function SgCell({ value }: { value: number | null }) {
 
 export function RoundDetail({ id, openHole }: { id: string; openHole?: number }) {
   const { state, dispatch } = useApp();
+  const courses = useCourseRatings();
   const round = findRound(state, id);
+  const tee = round ? teeOf(round, courses) : undefined;
   const practice = !!round?.practice;
   // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
   const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
@@ -193,7 +197,11 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       )}
       {(round.course || round.firstNine) && (
         <p className="small muted" style={{ margin: '2px 0 0' }}>
-          {[round.course, [round.firstNine, round.secondNine].filter(Boolean).join(' + ')]
+          {[
+            round.course,
+            [round.firstNine, round.secondNine].filter(Boolean).join(' + ') || round.tee,
+            tee?.rating && tee.slope ? `${tee.rating.toFixed(1)} / ${tee.slope}` : '',
+          ]
             .filter(Boolean)
             .join(' · ')}
         </p>

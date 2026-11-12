@@ -224,6 +224,9 @@ export interface Round {
 export interface SavedTee {
   name: string;
   yards?: number;
+  /** Course rating and slope for this tee. Nine-hole ratings on a nine-hole tee. */
+  rating?: number;
+  slope?: number;
   /** Par for each hole in order. Nine entries for a nine-hole course. */
   pars: number[];
 }

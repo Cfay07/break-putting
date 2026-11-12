@@ -29,27 +29,27 @@ describe('putting handicap', () => {
     expect(puttingHcp(rounds, BASE)).toBeNull();
   });
 
-  it('counts the best 8 of the last 20, like a real handicap', () => {
-    const rounds = days(24).map((d, i) => rnd(d, d, i < 4 ? 0 : i % 3));
+  it('counts the best 4 of the last 12', () => {
+    const rounds = days(16).map((d, i) => rnd(d, d, i % 3));
     const h = puttingHcp(rounds, BASE)!;
-    expect(h.rounds).toHaveLength(20);
-    expect(h.counting).toBe(8);
-    expect(h.rounds.filter((r) => r.counts)).toHaveLength(8);
-    expect(h.rounds[0].date).toBe('2026-10-24');
-    expect(h.rounds.some((r) => r.date <= '2026-10-04')).toBe(false);
+    expect(h.rounds).toHaveLength(12);
+    expect(h.counting).toBe(4);
+    expect(h.rounds.filter((r) => r.counts)).toHaveLength(4);
+    expect(h.rounds[0].date).toBe('2026-10-16');
     expect(h.nextOut?.date).toBe('2026-10-05');
   });
 
   it('says what a round did to the handicap', () => {
     const rounds = days(6).map((d, i) => rnd(d, d, i === 5 ? 0 : 2));
-    const m = hcpMove(rounds, rounds[5], BASE)!;
+    const m = hcpMove(rounds, rounds[5], (rs) => puttingHcp(rs, BASE))!;
     expect(hcpText(m.before!.hcp)).toBe('6.0');
     expect(hcpText(m.after.hcp)).toBe('0.0');
     expect(m.counts).toBe(true);
   });
 
   it('counts fewer when there are fewer rounds', () => {
-    expect(puttingHcp(days(10).map((d) => rnd(d, d, 1)), BASE)!.counting).toBe(3);
+    expect(puttingHcp(days(5).map((d) => rnd(d, d, 1)), BASE)!.counting).toBe(1);
+    expect(puttingHcp(days(9).map((d) => rnd(d, d, 1)), BASE)!.counting).toBe(3);
   });
 
   it('writes plus handicaps with a plus and caps the top', () => {

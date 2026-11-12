@@ -34,7 +34,8 @@ import { StatsFilter } from '../components/StatsFilter';
 import { PracticeStats } from './PracticeStats';
 import { applyFilter, filterLabel, isFiltered, NO_FILTER, type RoundFilter } from '../lib/roundFilter';
 import { Trend } from '../components/Trend';
-import { PuttingHcpCard } from '../components/PuttingHcpCard';
+import { StandCard } from '../components/StandCard';
+import { useCourseRatings } from '../lib/useCourseRatings';
 import { fmtDate, pctText, signed } from '../lib/format';
 import { Bar } from '../components/Bar';
 import {
@@ -44,7 +45,6 @@ import {
   missAnatomy,
   missShapes,
   volatility,
-  courseLabel,
   overall,
   pct,
   roundScale,
@@ -80,6 +80,7 @@ export function Stats({ practice = false }: { practice?: boolean }) {
 
 function RoundStats() {
   const { state } = useApp();
+  const courses = useCourseRatings();
   const [filter, setFilter] = useState<RoundFilter>(NO_FILTER);
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -187,59 +188,18 @@ function RoundStats() {
           {avgScore !== null && avgIfNeutral !== null && (
             <>
               <h2>What you would be shooting</h2>
-              <div className="card">
-                {/* Both numbers, because the gap between them is the whole point and the real
-                    one used to be a figure inside a sentence. */}
-                <div className="shoot-pair">
-                  <span className="shoot-one">
-                    <span className="shoot-for num">{avgScore.toFixed(1)}</span>
-                    <span className="tiny">You shoot</span>
-                  </span>
-                  <span className="shoot-arrow" aria-hidden="true">→</span>
-                  <span className="shoot-one">
-                    <span className="shoot-for num">{avgIfNeutral.toFixed(1)}</span>
-                    <span className="tiny">With tour putting</span>
-                  </span>
-                </div>
-                <p className="small" style={{ margin: '4px 0 12px' }}>
-                  Your scoring average over {withScore.length} scored round
-                  {withScore.length === 1 ? '' : 's'}, and the same rounds with a tour pro's
-                  putting dropped in.{' '}
-                  {avgIfNeutral > avgScore
-                    ? `You putt better than tour, so swapping in their putter would cost you ${(
-                        avgIfNeutral - avgScore
-                      ).toFixed(1)} a round. The putter is already an asset; the strokes are
-                        somewhere else.`
-                    : `Strokes gained is always measured against tour, so read the ${(
-                        avgScore - avgIfNeutral
-                      ).toFixed(1)} as the gap to a pro's putter, not to a decent amateur one.`}
-                </p>
-                {withScore
-                  .slice()
-                  .reverse()
-                  .slice(0, 5)
-                  .map((x) => (
-                    <div className="stat-row" key={x.r.id}>
-                      <span className="k">
-                        {fmtDate(x.r.date)}
-                        {x.r.course ? ` · ${courseLabel(x.r)}` : ''}
-                      </span>
-                      <span className="v num" style={{ whiteSpace: 'nowrap' }}>
-                        {x.r.score! * x.k} <span className="muted">→</span>{' '}
-                        {((x.r.score! + x.s.sg) * x.k).toFixed(1)}
-                      </span>
-                    </div>
-                  ))}
-                <p className="small muted" style={{ margin: '10px 0 0' }}>
-                  {withScore.length > 5 ? `Your last five. The average above uses all ${withScore.length}. ` : ''}
-                  {anyShort ? 'A round shorter than eighteen is scaled up so it compares to one.' : ''}
-                </p>
-              </div>
+              <StandCard
+                rounds={rounds}
+                courses={courses}
+                baseline={state.baseline}
+                shoot={avgScore}
+                withTour={avgIfNeutral}
+                scoredRounds={withScore.length}
+              />
             </>
           )}
 
           <h2>Averages</h2>
-          <PuttingHcpCard rounds={rounds} baseline={state.baseline} />
           <div className="card">
             {/* Each row says what it stands on. A per-round average over three rounds and one
                 over thirty are not the same claim and used to look identical. */}
