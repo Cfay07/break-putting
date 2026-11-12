@@ -26,18 +26,16 @@ export interface PuttingHcp {
   good: number;
   bad: number;
   rounds: number;
-  /** Every round counting, oldest first, so the first one is the next to drop out. */
-  each: { id: string; date: string; hcp: number }[];
 }
 
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
-/** Average of your last ten real rounds, turned into the handicap that putts like it. */
-export function puttingHcp(rounds: Round[], baseline: [number, number][]): PuttingHcp | null {
+/** Average of your last ten real rounds, or all of them, turned into the handicap that putts like it. */
+export function puttingHcp(rounds: Round[], baseline: [number, number][], take = HCP_ROUNDS): PuttingHcp | null {
   const real = rounds
     .filter((r) => r.finished && !r.practice && r.holes.some((h) => h.putts.length))
     .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-HCP_ROUNDS);
+    .slice(-take);
   if (real.length < HCP_MIN_ROUNDS) return null;
   const sg = real.map((r) => per18(r, baseline));
   const avg = mean(sg);
@@ -48,6 +46,5 @@ export function puttingHcp(rounds: Round[], baseline: [number, number][]): Putti
     good: toHcp(mean(above)),
     bad: toHcp(below.length ? mean(below) : avg),
     rounds: real.length,
-    each: real.map((r, i) => ({ id: r.id, date: r.date, hcp: toHcp(sg[i]) })),
   };
 }

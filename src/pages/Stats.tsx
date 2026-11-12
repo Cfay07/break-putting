@@ -239,7 +239,7 @@ function RoundStats() {
           )}
 
           <h2>Averages</h2>
-          <PuttingHcpCard />
+          <PuttingHcpCard rounds={rounds} baseline={state.baseline} />
           <div className="card">
             {/* Each row says what it stands on. A per-round average over three rounds and one
                 over thirty are not the same claim and used to look identical. */}

@@ -1,19 +1,16 @@
 import { useMemo } from 'react';
-import { scopeRounds } from '../lib/practice';
 import { hcpText, puttingHcp } from '../lib/puttingHcp';
-import { fmtDate } from '../lib/format';
-import { useApp } from '../lib/store';
+import type { Round } from '../lib/types';
 
 const LOW = -6;
 const HIGH = 30;
 const at = (h: number) => `${((h - LOW) / (HIGH - LOW)) * 100}%`;
 
-export function PuttingHcpCard() {
-  const { state } = useApp();
-  const putter = state.putters.find((p) => p.active);
-  const scoped = useMemo(() => scopeRounds(state.rounds, putter?.id), [state.rounds, putter?.id]);
-  const h = useMemo(() => puttingHcp(scoped.rounds, state.baseline), [scoped.rounds, state.baseline]);
-  if (!h) return null;
+export function PuttingHcpCard({ rounds, baseline }: { rounds: Round[]; baseline: [number, number][] }) {
+  const h = useMemo(() => puttingHcp(rounds, baseline), [rounds, baseline]);
+  const all = useMemo(() => puttingHcp(rounds, baseline, Infinity), [rounds, baseline]);
+  if (!h || !all) return null;
+  const more = all.rounds > h.rounds;
 
   return (
     <div className="hcp-card">
@@ -21,10 +18,7 @@ export function PuttingHcpCard() {
         <span className="pay-eyebrow">Putting handicap</span>
         <strong className="hcp-big num">{hcpText(h.hcp)}</strong>
       </div>
-      <div className="hcp-scale" role="img" aria-label={`Putting handicap ${hcpText(h.hcp)}. Most rounds putt like a ${hcpText(h.good)} to a ${hcpText(h.bad)}.`}>
-        {h.each.map((r, i) => (
-          <i key={r.id} className={i === 0 ? 'hcp-tab out' : 'hcp-tab'} style={{ left: at(r.hcp) }} />
-        ))}
+      <div className="hcp-scale" role="img" aria-label={`Putting handicap ${hcpText(h.hcp)}. Good days putt like a ${hcpText(h.good)}, bad days like a ${hcpText(h.bad)}.`}>
         <div className="hcp-track" />
         <div className="hcp-band" style={{ left: at(h.good), width: `calc(${at(h.bad)} - ${at(h.good)})` }} />
         <i className="hcp-dot" style={{ left: at(h.hcp) }} />
@@ -37,13 +31,11 @@ export function PuttingHcpCard() {
       <div className="hcp-days">
         <span>Good day <b className="num">{hcpText(h.good)}</b></span>
         <span>Bad day <b className="num">{hcpText(h.bad)}</b></span>
+        {more && <span>All {all.rounds} <b className="num">{hcpText(all.hcp)}</b></span>}
       </div>
-      <p className="hcp-legend">
-        Each tab is a round. The hollow one, {fmtDate(h.each[0].date)}, drops out next.
-      </p>
       <p className="pay-note">
-        Average of your last {h.rounds} rounds{scoped.putterOnly && putter ? ` with the ${putter.name}` : ''}. An estimate, not an
-        official handicap. A good day is your rounds above your own average.
+        {more ? `Your last ${h.rounds} rounds` : `All ${h.rounds} rounds`} in this view. An estimate, not an official
+        handicap. A good day is your rounds above your own average.
       </p>
     </div>
   );
