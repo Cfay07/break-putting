@@ -34,6 +34,9 @@ export interface HcpRound {
   nines: boolean;
   /** Strokes gained putting over eighteen. Putting rounds only. */
   sg?: number;
+  /** Putts to straight after this round, and before it. Putting rounds only. */
+  after?: number;
+  before?: number;
 }
 
 export interface PuttingHcp {
@@ -100,9 +103,25 @@ export function puttingHcp(rounds: Round[], baseline: [number, number][]): Putti
   const real = rounds
     .filter((r) => r.finished && !r.practice && r.holes.some((h) => h.putts.length))
     .sort((a, b) => a.date.localeCompare(b.date));
-  const each = eighteens(real, baseline).slice(-HCP_WINDOW);
+  const all = eighteens(real, baseline);
+  const each = all.slice(-HCP_WINDOW);
   if (each.length < HCP_MIN_ROUNDS) return null;
-  const marked = each.map((r) => ({ id: r.id, date: r.date, nines: r.nines, sg: r.sg, hcp: toHcp(r.sg), counts: true }));
+  // Putts to as it stood after round i: the average over the 20 rounds ending there.
+  const at = (i: number) => {
+    const w = all.slice(Math.max(0, i + 1 - HCP_WINDOW), i + 1);
+    return w.length >= HCP_MIN_ROUNDS ? toHcp(w.reduce((a, r) => a + r.sg, 0) / w.length) : undefined;
+  };
+  const first = all.length - each.length;
+  const marked = each.map((r, k) => ({
+    id: r.id,
+    date: r.date,
+    nines: r.nines,
+    sg: r.sg,
+    hcp: toHcp(r.sg),
+    counts: true,
+    after: at(first + k),
+    before: at(first + k - 1),
+  }));
   return {
     hcp: toHcp(each.reduce((a, r) => a + r.sg, 0) / each.length),
     counting: each.length,

@@ -2128,3 +2128,6 @@ a.hcp-lane { text-decoration: none; -webkit-tap-highlight-color: transparent; }
 a.hcp-lane:active { opacity: 0.6; }
 .hcp-card.light .hcp-chart.game .hcp-pt { background: var(--ink); }
 .hcp-card.light .hcp-chart.game .hcp-you { background: rgba(20, 57, 43, 0.3); }
+.hcp-move { font-size: 11px; font-weight: 700; margin-right: 6px; }
+.hcp-move.up { color: #2f7a4d; }
+.hcp-move.down { color: var(--accent); }

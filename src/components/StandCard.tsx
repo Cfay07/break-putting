@@ -1,16 +1,7 @@
 import { useMemo, useState } from 'react';
 import { fmtDate } from '../lib/format';
 import { gameHcp, ratingGaps } from '../lib/gameHcp';
-import {
-  countingOf,
-  HCP_MIN_ROUNDS,
-  HCP_PER_STROKE,
-  HCP_WINDOW,
-  hcpText,
-  puttingHcp,
-  TOUR_HCP,
-  type HcpRound,
-} from '../lib/puttingHcp';
+import { countingOf, HCP_MIN_ROUNDS, HCP_WINDOW, hcpText, puttingHcp, type HcpRound } from '../lib/puttingHcp';
 import type { Round, SavedCourse } from '../lib/types';
 
 type Scale = (h: number) => string;
@@ -45,15 +36,14 @@ function Lane({ r, you, out, at }: { r: HcpRound; you: number; out: boolean; at:
   );
 }
 
-const SG_EDGE = 6;
-const sgAt = (v: number) => `${((Math.max(-SG_EDGE, Math.min(SG_EDGE, v)) + SG_EDGE) / (2 * SG_EDGE)) * 100}%`;
-/** Strokes gained against tour, moved to a scratch putter, who loses about one a round to tour. */
-const vsScratch = (sgTour: number) => sgTour - TOUR_HCP / HCP_PER_STROKE;
-const signed1 = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}`;
-
-/** A putting round as strokes gained against a scratch putter, on its own scale: one round is not a handicap. */
-function PuttLane({ r, mean, out }: { r: HcpRound; mean: number; out: boolean }) {
+/**
+ * A putting round as your Putts to straight after it, and how far it moved it: the same thing the
+ * round page shows. One round alone is too noisy to be a handicap; where it left you is not.
+ */
+function PuttLane({ r, you, out, at }: { r: HcpRound; you: number; out: boolean; at: Scale }) {
   const open = r.id.split('+').pop()!;
+  const after = r.after ?? you;
+  const move = r.before === undefined ? null : after - r.before;
   return (
     <a className="hcp-lane" href={`#/round/${open}`}>
       <span className="hcp-date">
@@ -62,10 +52,18 @@ function PuttLane({ r, mean, out }: { r: HcpRound; mean: number; out: boolean })
         {out && <em> next out</em>}
       </span>
       <span className="hcp-track">
-        <i className="hcp-you" style={{ left: sgAt(mean) }} />
-        <i className="hcp-pt" style={{ left: sgAt(vsScratch(r.sg ?? 0)) }} />
+        <i className="hcp-you" style={{ left: at(you) }} />
+        <i className="hcp-pt" style={{ left: at(after) }} />
       </span>
-      <b className="num">{signed1(vsScratch(r.sg ?? 0))}</b>
+      <b className="num">
+        {move !== null && Math.abs(move) >= 0.05 && (
+          <small className={move < 0 ? 'hcp-move up' : 'hcp-move down'}>
+            {move < 0 ? '↓' : '↑'}
+            {Math.abs(move).toFixed(1)}
+          </small>
+        )}
+        {hcpText(after)}
+      </b>
     </a>
   );
 }
@@ -116,7 +114,6 @@ export function StandCard({
   const counting =
     shown?.rounds.filter((r) => r.counts).sort((a, b) => a.hcp - b.hcp || b.date.localeCompare(a.date)) ?? [];
   const rest = shown ? shown.rounds.length - counting.length : 0;
-  const meanSg = putting ? vsScratch(putting.rounds.reduce((a, r) => a + (r.sg ?? 0), 0) / putting.rounds.length) : 0;
   const gap = putting && game ? game.hcp - putting.hcp : null;
   // Sized from the two headline numbers, so switching views never moves the line and one
   // freak round cannot squash the rest against an end.
@@ -192,28 +189,14 @@ export function StandCard({
           {kind === 'putting' ? (
             <>
               <div className="hcp-chart putting">
-                {[...shown.rounds.slice(0, SHOWN_PUTTING)]
-                  .sort((x, y) => (y.sg ?? 0) - (x.sg ?? 0))
-                  .map((r) => (
-                    <PuttLane key={r.id} r={r} mean={meanSg} out={r.id === shown.nextOut?.id} />
-                  ))}
-                <div className="hcp-lane hcp-axis">
-                  <span />
-                  <span className="hcp-track">
-                    {[-SG_EDGE, 0, SG_EDGE].map((v) => (
-                      <span key={v} className="hcp-mark" style={{ left: sgAt(v) }}>
-                        {v === 0 ? 'Scratch' : signed1(v).replace('.0', '')}
-                      </span>
-                    ))}
-                  </span>
-                  <span />
-                </div>
+                {shown.rounds.slice(0, SHOWN_PUTTING).map((r) => (
+                  <PuttLane key={r.id} r={r} you={shown.hcp} out={r.id === shown.nextOut?.id} at={at} />
+                ))}
               </div>
               <p className="pay-note">
-                Strokes gained putting against a scratch putter, your newest{' '}
-                {Math.min(SHOWN_PUTTING, shown.rounds.length)} of {shown.rounds.length}
-                {scoped && putter ? ` with the ${putter.name}` : ''}, best first. All {shown.rounds.length} count. The
-                line is your average, {signed1(meanSg)}.
+                Your Putts to after each of your newest {Math.min(SHOWN_PUTTING, shown.rounds.length)} rounds
+                {scoped && putter ? ` with the ${putter.name}` : ''}, newest first, with how far each round moved it.
+                All {shown.rounds.length} of your last rounds count.
                 {shown.nextOut && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
               </p>
               <p className="pay-note">
