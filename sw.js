@@ -1,4 +1,4 @@
-const CACHE = 'break-50a1704d6f83';
+const CACHE = 'break-826918e8113b';
 
 self.addEventListener('install', () => self.skipWaiting());
 
