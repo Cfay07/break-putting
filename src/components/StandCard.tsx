@@ -6,11 +6,12 @@ import type { Round, SavedCourse } from '../lib/types';
 
 type Scale = (h: number) => string;
 
-/** From tour level to 30 by default, stretched to fit any round past either end, in steps of 10. */
+/** From tour level to 30 by default, stretched to fit either headline number, in steps of 10. */
 function scaleFor(values: number[]): { at: Scale; marks: [number, string][] } {
   const lo = Math.min(-6, Math.floor(Math.min(...values) / 2) * 2);
   const hi = Math.max(30, Math.ceil(Math.max(...values) / 10) * 10);
-  const at: Scale = (h) => `${((h - lo) / (hi - lo)) * 100}%`;
+  // A round past either end sits on the edge; its real number is printed beside it.
+  const at: Scale = (h) => `${((Math.max(lo, Math.min(hi, h)) - lo) / (hi - lo)) * 100}%`;
   const marks: [number, string][] = [[lo, hcpText(lo).replace('.0', '')]];
   for (let v = 0; v <= hi; v += 10) marks.push([v, String(v)]);
   return { at, marks };
@@ -61,10 +62,9 @@ export function StandCard({ rounds, courses, baseline, shoot, withTour, scoredRo
     shown?.rounds.filter((r) => r.counts).sort((a, b) => a.hcp - b.hcp || b.date.localeCompare(a.date)) ?? [];
   const rest = shown ? shown.rounds.length - counting.length : 0;
   const gap = putting && game ? game.hcp - putting.hcp : null;
-  const { at, marks } = scaleFor([
-    ...[putting, game].flatMap((x) => (x ? [x.hcp] : [])),
-    ...counting.map((r) => r.hcp),
-  ]);
+  // Sized from the two headline numbers, so switching views never moves the line and one
+  // freak round cannot squash the rest against an end.
+  const { at, marks } = scaleFor([putting, game].flatMap((x) => (x ? [x.hcp] : [])));
 
   return (
     <div className="hcp-card light">
