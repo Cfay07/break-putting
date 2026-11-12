@@ -26,7 +26,7 @@ const diff = (score: number, rating: number, slope: number) =>
 
 /**
  * Each eighteen is (113 / slope) x (score - course rating). Two nines are added together first,
- * scores and ratings, with their slopes averaged. Then the same best 4 of the last 12
+ * scores and ratings, with their slopes averaged. Then the same best 5 of the last 15
  * as the putting handicap, so the two line up.
  */
 export function gameHcp(rounds: Round[], courses: SavedCourse[]): PuttingHcp | null {

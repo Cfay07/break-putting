@@ -29,14 +29,14 @@ describe('putting handicap', () => {
     expect(puttingHcp(rounds, BASE)).toBeNull();
   });
 
-  it('counts the best 4 of the last 12', () => {
-    const rounds = days(16).map((d, i) => rnd(d, d, i % 3));
+  it('counts the best 5 of the last 15', () => {
+    const rounds = days(18).map((d, i) => rnd(d, d, i % 3));
     const h = puttingHcp(rounds, BASE)!;
-    expect(h.rounds).toHaveLength(12);
-    expect(h.counting).toBe(4);
-    expect(h.rounds.filter((r) => r.counts)).toHaveLength(4);
-    expect(h.rounds[0].date).toBe('2026-10-16');
-    expect(h.nextOut?.date).toBe('2026-10-05');
+    expect(h.rounds).toHaveLength(15);
+    expect(h.counting).toBe(5);
+    expect(h.rounds.filter((r) => r.counts)).toHaveLength(5);
+    expect(h.rounds[0].date).toBe('2026-10-18');
+    expect(h.nextOut?.date).toBe('2026-10-04');
   });
 
   it('says what a round did to the handicap', () => {
