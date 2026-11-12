@@ -18,8 +18,8 @@ const rnd = (id: string, date: string, threes: number, extra: Partial<Round> = {
 const days = (n: number) => Array.from({ length: n }, (_, i) => `2026-10-${String(i + 1).padStart(2, '0')}`);
 
 describe('putting handicap', () => {
-  it('reads tour putting as a +6 and a stroke worse as scratch', () => {
-    expect(hcpText(puttingHcp(days(5).map((d) => rnd(d, d, 0)), BASE)!.hcp)).toBe('+6.0');
+  it('reads tour putting as +1 and a stroke worse as scratch', () => {
+    expect(hcpText(puttingHcp(days(5).map((d) => rnd(d, d, 0)), BASE)!.hcp)).toBe('+1.0');
     expect(hcpText(puttingHcp(days(5).map((d) => rnd(d, d, 1)), BASE)!.hcp)).toBe('0.0');
   });
 
@@ -29,25 +29,27 @@ describe('putting handicap', () => {
     expect(puttingHcp(rounds, BASE)).toBeNull();
   });
 
-  it('averages all of the last 20 rather than picking the best', () => {
+  it('counts the best 8 of the last 20, the same rule as Plays to', () => {
     const rounds = days(24).map((d, i) => rnd(d, d, i % 3));
     const h = puttingHcp(rounds, BASE)!;
     expect(h.rounds).toHaveLength(20);
-    expect(h.counting).toBe(20);
-    expect(h.rounds.every((r) => r.counts)).toBe(true);
+    expect(h.counting).toBe(8);
+    expect(h.rounds.filter((r) => r.counts)).toHaveLength(8);
     expect(h.nextOut?.date).toBe('2026-10-05');
   });
 
   it('never reads one hot round as a crazy plus', () => {
     const rounds = [...days(19).map((d) => rnd(d, d, 2)), rnd('2026-10-25', '2026-10-25', 0)];
-    expect(puttingHcp(rounds, BASE)!.hcp).toBeGreaterThan(5);
+    const h = puttingHcp(rounds, BASE)!.hcp;
+    expect(h).toBeGreaterThan(0);
+    expect(h).toBeLessThan(2);
   });
 
   it('says what a round did to the handicap', () => {
     const rounds = days(6).map((d, i) => rnd(d, d, i === 5 ? 0 : 2));
     const m = hcpMove(rounds, rounds[5], (rs) => puttingHcp(rs, BASE))!;
-    expect(hcpText(m.before!.hcp)).toBe('6.0');
-    expect(hcpText(m.after.hcp)).toBe('4.0');
+    expect(hcpText(m.before!.hcp)).toBe('1.0');
+    expect(hcpText(m.after.hcp)).toBe('0.0');
     expect(m.counts).toBe(true);
   });
 
@@ -77,6 +79,6 @@ describe('nine-hole rounds', () => {
     const h = puttingHcp(rounds, BASE)!;
     expect(h.rounds).toHaveLength(5);
     expect(h.rounds[0]).toMatchObject({ date: '2026-10-11', nines: true });
-    expect(hcpText(h.rounds[0].hcp)).toBe('6.0');
+    expect(hcpText(h.rounds[0].hcp)).toBe('1.0');
   });
 });

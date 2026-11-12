@@ -2,12 +2,10 @@ import { holedOut, type Round } from './types';
 import { roundSG } from './sg';
 
 /**
- * Strokes gained here is against tour. Broadie: a tour pro plays to about +6 and putts about one
- * stroke a round better than scratch, one putting stroke per six handicap strokes. Arccos has
- * 11-15 handicaps losing 1.99 a round putting to scratch, which lands on the same line.
+ * Strokes gained here is against tour, and a scratch putter loses about one a round to tour
+ * (Broadie). So a scratch putter's expected putts are tour's plus one.
  */
-export const TOUR_HCP = -6;
-export const HCP_PER_STROKE = 6;
+export const SCRATCH_VS_TOUR = -1;
 export const HCP_WINDOW = 20;
 export const HCP_MIN_ROUNDS = 5;
 
@@ -17,8 +15,12 @@ export const HCP_MIN_ROUNDS = 5;
  */
 export const countingOf = (n: number) => Math.max(1, Math.round(n * 0.4));
 
-/** No ceiling or floor on the average: putting better than tour reads better than +6. */
-const toHcp = (sg: number) => TOUR_HCP - sg * HCP_PER_STROKE;
+/**
+ * A round's putting differential, the same shape as a score differential: your putts minus what a
+ * scratch putter takes from the same first putts, like your score minus the course rating. Tour
+ * putting is about +1. No ceiling or floor.
+ */
+const toHcp = (sgVsTour: number) => -(sgVsTour - SCRATCH_VS_TOUR);
 
 export function hcpText(h: number): string {
   const n = Math.round(h * 10) / 10;
@@ -32,11 +34,6 @@ export interface HcpRound {
   counts: boolean;
   /** Two nine-hole rounds scored as one eighteen. */
   nines: boolean;
-  /** Strokes gained putting over eighteen. Putting rounds only. */
-  sg?: number;
-  /** Putts to straight after this round, and before it. Putting rounds only. */
-  after?: number;
-  before?: number;
 }
 
 export interface PuttingHcp {
@@ -77,7 +74,7 @@ export interface Scored {
   hcp: number;
 }
 
-/** Your best 8 of your last 20 rounds, averaged. Oldest first in. */
+/** Your best 8 of your last 20 rounds, averaged, for Plays to and Putts to alike. Oldest first in. */
 export function bestOf(all: Scored[]): PuttingHcp | null {
   const each = all.slice(-HCP_WINDOW);
   if (each.length < HCP_MIN_ROUNDS) return null;
@@ -93,41 +90,12 @@ export function bestOf(all: Scored[]): PuttingHcp | null {
   };
 }
 
-/**
- * Every one of your last 20 counts here, not the best 8. The six-per-stroke scale is built from
- * averages: players at a handicap lose this much putting on average. One round of putting swings
- * about four strokes either way for everyone, so converting single rounds and picking the best
- * ones crowns lucky days (one hot nine read as +28). Average the strokes gained, convert once.
- */
+/** Exactly the Plays to rule: each round's putting differential, then the best 8 of your last 20. */
 export function puttingHcp(rounds: Round[], baseline: [number, number][]): PuttingHcp | null {
   const real = rounds
     .filter((r) => r.finished && !r.practice && r.holes.some((h) => h.putts.length))
     .sort((a, b) => a.date.localeCompare(b.date));
-  const all = eighteens(real, baseline);
-  const each = all.slice(-HCP_WINDOW);
-  if (each.length < HCP_MIN_ROUNDS) return null;
-  // Putts to as it stood after round i: the average over the 20 rounds ending there.
-  const at = (i: number) => {
-    const w = all.slice(Math.max(0, i + 1 - HCP_WINDOW), i + 1);
-    return w.length >= HCP_MIN_ROUNDS ? toHcp(w.reduce((a, r) => a + r.sg, 0) / w.length) : undefined;
-  };
-  const first = all.length - each.length;
-  const marked = each.map((r, k) => ({
-    id: r.id,
-    date: r.date,
-    nines: r.nines,
-    sg: r.sg,
-    hcp: toHcp(r.sg),
-    counts: true,
-    after: at(first + k),
-    before: at(first + k - 1),
-  }));
-  return {
-    hcp: toHcp(each.reduce((a, r) => a + r.sg, 0) / each.length),
-    counting: each.length,
-    rounds: [...marked].reverse(),
-    nextOut: marked.length === HCP_WINDOW ? marked[0] : null,
-  };
+  return bestOf(eighteens(real, baseline).map((r) => ({ id: r.id, date: r.date, nines: r.nines, hcp: toHcp(r.sg) })));
 }
 
 /** Your handicap without this round and with it, and whether it is one of the rounds counting. */
