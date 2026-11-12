@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { fmtDate } from '../lib/format';
 import { gameHcp, ratingGaps } from '../lib/gameHcp';
-import { countingOf, HCP_MIN_ROUNDS, HCP_WINDOW, hcpText, puttingHcp, type HcpRound } from '../lib/puttingHcp';
+import { countingOf, HCP_WINDOW, hcpText, puttingHcp, type HcpRound } from '../lib/puttingHcp';
 import type { Round, SavedCourse } from '../lib/types';
 
 type Scale = (h: number) => string;
@@ -48,8 +48,6 @@ interface Props {
   everyRound: Round[];
   /** Rate a round with no tee off the back tees. */
   backTees: boolean;
-  /** The putter in the bag. Putting is never read across a putter change. */
-  putter?: { id: string; name: string };
   courses: SavedCourse[];
   baseline: [number, number][];
   shoot: number;
@@ -57,24 +55,10 @@ interface Props {
   scoredRounds: number;
 }
 
-export function StandCard({
-  rounds,
-  everyRound,
-  backTees,
-  putter,
-  courses,
-  baseline,
-  shoot,
-  withTour,
-  scoredRounds,
-}: Props) {
-  // Putting with the putter in the bag once it has five rounds here; a switch changes the stroke.
-  const withPutter = useMemo(() => (putter ? rounds.filter((r) => r.putterId === putter.id) : []), [rounds, putter]);
-  const scoped = withPutter.length >= HCP_MIN_ROUNDS && withPutter.length < rounds.length;
-  const putting = useMemo(
-    () => puttingHcp(scoped ? withPutter : rounds, baseline),
-    [scoped, withPutter, rounds, baseline],
-  );
+export function StandCard({ rounds, everyRound, backTees, courses, baseline, shoot, withTour, scoredRounds }: Props) {
+  // The filter decides the rounds: all rounds means all putters, a putter filter means that putter.
+  const putting = useMemo(() => puttingHcp(rounds, baseline), [rounds, baseline]);
+
   const game = useMemo(() => gameHcp(rounds, courses, everyRound, backTees), [rounds, courses, everyRound, backTees]);
   const gaps = useMemo(
     () => ratingGaps(rounds, courses, everyRound, backTees),
@@ -114,12 +98,16 @@ export function StandCard({
 
       <p className="hcp-how">
         {shoot > withTour
-          ? `A tour pro's putter would save you ${(shoot - withTour).toFixed(1)} a round. `
+          ? `On an average round a tour pro's putter would save you ${(shoot - withTour).toFixed(1)}. `
           : `You putt better than tour, by ${(withTour - shoot).toFixed(1)} a round. `}
+        {putting &&
+          (Math.abs(putting.hcp) < 0.05
+            ? 'On your good days your putting matches a scratch putter. '
+            : `On your good days your putting ${putting.hcp < 0 ? 'saves' : 'costs'} you ${Math.abs(putting.hcp).toFixed(1)} a round against scratch. `)}
         {gap !== null &&
-          (Math.abs(gap) < 0.5
-            ? 'Your putting is right in line with the rest of your game.'
-            : `Your putting plays ${Math.abs(gap).toFixed(1)} ${gap > 0 ? 'better' : 'worse'} than your game.`)}
+          (Math.abs(gap) < 0.05
+            ? 'The rest of your game matches scratch.'
+            : `The rest of your game ${gap > 0 ? 'costs' : 'saves'} about ${Math.abs(gap).toFixed(1)}.`)}
         {!game && ' Plays to needs five rounds on a rated tee.'}
       </p>
 
@@ -165,8 +153,8 @@ export function StandCard({
           </div>
           <p className="pay-note">
             {shown.rounds.length < HCP_WINDOW
-              ? `You have ${shown.rounds.length} ${kind === 'game' ? 'rated ' : ''}rounds${kind === 'putting' && scoped && putter ? ` with the ${putter.name}` : ''}, so your best ${shown.counting} count (40%), shown above. At ${HCP_WINDOW} it becomes your best ${countingOf(HCP_WINDOW)}.`
-              : `Your best ${shown.counting} of your last ${shown.rounds.length}${kind === 'putting' && scoped && putter ? ` with the ${putter.name}` : ''}, shown above.`}
+              ? `You have ${shown.rounds.length} ${kind === 'game' ? 'rated ' : ''}rounds, so your best ${shown.counting} count (40%), shown above. At ${HCP_WINDOW} it becomes your best ${countingOf(HCP_WINDOW)}.`
+              : `Your best ${shown.counting} of your last ${shown.rounds.length}, shown above.`}
             {rest > 0 && ` The other ${rest} were worse and don't count.`}
             {shown.nextOut && !shown.nextOut.counts && ` ${fmtDate(shown.nextOut.date)} is the next round out.`}
             {kind === 'game' &&

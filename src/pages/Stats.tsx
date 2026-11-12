@@ -192,7 +192,6 @@ function RoundStats() {
                 rounds={rounds}
                 everyRound={state.rounds}
                 backTees={!!state.backTees}
-                putter={state.putters.find((p) => p.active)}
                 courses={courses}
                 baseline={state.baseline}
                 shoot={avgScore}
