@@ -45,7 +45,7 @@ import { PuttEditor } from '../components/PuttEditor';
 import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
-import { go, replaceRoute } from '../lib/router';
+import { backLabel, go, previousRoute, replaceRoute } from '../lib/router';
 import { pct, roundStats, suspectHoles } from '../lib/stats';
 import { findRound, useApp } from '../lib/store';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
@@ -81,6 +81,10 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const round = findRound(state, id);
   const tee = round ? teeOf(round, courses) : undefined;
   const practice = !!round?.practice;
+  // Back to wherever the round was opened from: Stats, a moment, a session. A reload has no
+  // trail, so it falls back to the list the round lives in.
+  const from = previousRoute();
+  const back = from && !from.startsWith('/round/') ? from : practice ? '/stats/practice' : '/';
   // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
   const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
   const roundXp = useMemo(() => {
@@ -181,8 +185,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   return (
     <>
       <div style={{ marginBottom: 6 }}>
-        <button className="linkish tiny" onClick={() => go(practice ? '/stats/practice' : '/')}>
-          {practice ? '← Practice stats' : '← Rounds'}
+        <button className="linkish tiny" onClick={() => go(back)}>
+          ← {practice && back === '/stats/practice' ? 'Practice stats' : backLabel(back)}
         </button>
       </div>
       <div className="round-head">
