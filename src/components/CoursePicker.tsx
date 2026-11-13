@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BUILT_IN_COURSES } from '../lib/builtInCourses';
-import { dedupeCourses } from '../lib/gameHcp';
+import { dedupeCourses } from '../lib/courses';
 import { loadCourse, searchCourses, type CourseHit } from '../lib/courseApi';
 import { newId } from '../lib/storage';
 import { useApp } from '../lib/store';

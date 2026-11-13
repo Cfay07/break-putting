@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BUILT_IN_COURSES } from './builtInCourses';
 import { loadCourse, searchCourses } from './courseApi';
-import { sameCourse, words } from './gameHcp';
+import { sameCourse, words } from './courses';
 import { fillFrom, ratedTees } from './openGolf';
 import { useApp } from './store';
 import type { SavedCourse, SavedTee } from './types';

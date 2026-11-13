@@ -34,8 +34,7 @@ import { StatsFilter } from '../components/StatsFilter';
 import { PracticeStats } from './PracticeStats';
 import { applyFilter, filterLabel, isFiltered, NO_FILTER, type RoundFilter } from '../lib/roundFilter';
 import { Trend } from '../components/Trend';
-import { StandCard } from '../components/StandCard';
-import { useCourseRatings } from '../lib/useCourseRatings';
+import { ShootCard } from '../components/ShootCard';
 import { fmtDate, pctText, signed } from '../lib/format';
 import { Bar } from '../components/Bar';
 import {
@@ -80,7 +79,6 @@ export function Stats({ practice = false }: { practice?: boolean }) {
 
 function RoundStats() {
   const { state } = useApp();
-  const courses = useCourseRatings();
   const [filter, setFilter] = useState<RoundFilter>(NO_FILTER);
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -188,15 +186,20 @@ function RoundStats() {
           {avgScore !== null && avgIfNeutral !== null && (
             <>
               <h2>What you would be shooting</h2>
-              <StandCard
-                rounds={rounds}
-                everyRound={state.rounds}
-                backTees={!!state.backTees}
-                courses={courses}
-                baseline={state.baseline}
+              <ShootCard
                 shoot={avgScore}
                 withTour={avgIfNeutral}
-                scoredRounds={withScore.length}
+                anyShort={anyShort}
+                rounds={withScore
+                  .slice()
+                  .reverse()
+                  .map((x) => ({
+                    id: x.r.id,
+                    date: x.r.date,
+                    shot: x.r.score! * x.k,
+                    withTour: (x.r.score! + x.s.sg) * x.k,
+                    short: x.k > 1,
+                  }))}
               />
             </>
           )}
