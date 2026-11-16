@@ -55,6 +55,7 @@ export function backLabel(route: string): string {
   if (route.startsWith('/round/')) return 'Round';
   if (route === '/settings') return 'Settings';
   if (route === '/moments') return 'Moments';
+  if (route === '/team') return 'Team';
   return 'Back';
 }
 

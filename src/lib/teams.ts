@@ -372,3 +372,31 @@ export function rememberJoin(code: string | null) {
     // Private mode: the link itself still works, it just is not remembered.
   }
 }
+
+/** Everyone you share a team with, by id. A player on two of your teams appears twice; either name will do. */
+function namesOf(members: Pick<Member, 'user_id' | 'display_name'>[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const m of members) if (m.display_name && !out.has(m.user_id)) out.set(m.user_id, m.display_name);
+  return out;
+}
+
+/** One post opened from the feed: what it is made of, who posted it, and who tapped Nice. */
+export async function loadTeamRound(user: string, roundId: string) {
+  const [round, who, reactions] = await Promise.all([
+    rows<TeamRound>(`team_rounds?select=*&user_id=eq.${user}&round_id=eq.${encodeURIComponent(roundId)}`),
+    rows<Pick<Member, 'user_id' | 'display_name'>>('team_members?select=user_id,display_name'),
+    rows<Reaction>(`team_reactions?select=post,user_id&post=eq.${encodeURIComponent(`round:${user}:${roundId}`)}`),
+  ]);
+  return { round: round[0] ?? null, names: namesOf(who), reactions };
+}
+
+export async function loadTeamDay(user: string, date: string) {
+  const [sets, who, reactions] = await Promise.all([
+    rows<TeamPracticeRow>(
+      `team_practice?select=user_id,set_id,played_on,title,kind,made,attempts,session&user_id=eq.${user}&played_on=eq.${date}&order=updated_at.asc`,
+    ),
+    rows<Pick<Member, 'user_id' | 'display_name'>>('team_members?select=user_id,display_name'),
+    rows<Reaction>(`team_reactions?select=post,user_id&post=eq.${encodeURIComponent(`practice:${user}:${date}`)}`),
+  ]);
+  return { sets, names: namesOf(who), reactions };
+}

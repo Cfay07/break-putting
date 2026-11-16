@@ -2367,3 +2367,9 @@ a.hcp-lane:active { opacity: 0.6; }
 .legal ul { padding-left: 20px; margin: 6px 0; }
 .legal li { margin: 4px 0; }
 .legal a { color: var(--accent); font-weight: 600; }
+
+/* A feed card opens its post. Pressed state instead of hover: this is a phone. */
+.feed-card.tappable { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 0.08s ease; }
+.feed-card.tappable:active { transform: scale(0.985); }
+.post-title { margin: 2px 0 0; font-size: 22px; line-height: 1.25; }
+.post-nice { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 16px; }

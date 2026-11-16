@@ -18,6 +18,7 @@ import { SharedRound } from './pages/SharedRound';
 import { Stats } from './pages/Stats';
 import { Team } from './pages/Team';
 import { Privacy, Terms } from './pages/Legal';
+import { TeamPracticePage, TeamRoundPage } from './pages/TeamPost';
 import { Track } from './pages/Track';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { bleedSummary } from './lib/bleed';
@@ -291,6 +292,8 @@ export default function App() {
   // /round/<id> and /round/<id>/hole/<n>, so a stat can land on the hole it is talking about
   // rather than the top of the round.
   const joinMatch = route.match(/^\/join\/([A-Za-z0-9]{4,8})$/);
+  const teamRoundMatch = route.match(/^\/team\/round\/([0-9a-f-]{36})\/([^/]+)$/);
+  const teamDayMatch = route.match(/^\/team\/practice\/([0-9a-f-]{36})\/(\d{4}-\d{2}-\d{2})$/);
   const roundMatch = route.match(/^\/round\/([^/]+)(?:\/hole\/(\d+))?$/);
   const practiceMatch = route.match(/^\/practice\/(drill|edit|session|session-edit)\/([^/]+)$/);
   const page = practiceMatch ? (
@@ -333,6 +336,10 @@ export default function App() {
     <Practice />
   ) : route === '/practice/test' ? (
     <Practice openTest />
+  ) : teamRoundMatch ? (
+    <TeamRoundPage key={route} user={teamRoundMatch[1]} roundId={decodeURIComponent(teamRoundMatch[2])} />
+  ) : teamDayMatch ? (
+    <TeamPracticePage key={route} user={teamDayMatch[1]} date={teamDayMatch[2]} />
   ) : route === '/team' || joinMatch ? (
     <Team joinCode={joinMatch?.[1]} />
   ) : route === '/settings' ? (
@@ -359,7 +366,7 @@ export default function App() {
           ? 'Practice'
           : route.startsWith('/practice')
             ? 'Practice'
-            : route === '/team' || joinMatch
+            : route.startsWith('/team') || joinMatch
               ? 'Team'
               : route === '/settings' || route === '/privacy' || route === '/terms'
                 ? 'Settings'
@@ -380,9 +387,13 @@ export default function App() {
             ? '/practice'
             : route.startsWith('/stats')
               ? '/stats'
-              : (route === '/team' && !onTeam) || route === '/privacy' || route === '/terms'
-                ? '/settings'
-                : route;
+              : route.startsWith('/team')
+                ? onTeam
+                  ? '/team'
+                  : '/settings'
+                : route === '/privacy' || route === '/terms'
+                  ? '/settings'
+                  : route;
           const on =
             t.path === '/' ? here === '/' || here === '/moments' || here.startsWith('/round/') : here === t.path;
           return (

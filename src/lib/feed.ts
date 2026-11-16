@@ -59,7 +59,7 @@ export function liveNow(stats: PlayerStats[], members: string[], now = Date.now(
 }
 
 /** The one line worth saying about a round, from the hole detail a teammate can see. */
-function highlightOf(r: TeamRound): string | null {
+export function highlightOf(r: TeamRound): string | null {
   const holed = (r.detail ?? []).filter((h) => h.p === 1 && h.d !== null && h.d >= 15).sort((a, b) => b.d! - a.d!)[0];
   if (holed) return `Holed a ${holed.d}-footer on ${holed.h}.`;
   if (r.three_putts === 0 && (r.holes_played ?? 0) >= 9) return 'No three-putts.';

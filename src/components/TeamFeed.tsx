@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { buildFeed, liveNow, reactionsFor, type Post, type Reaction } from '../lib/feed';
 import { fmtDate, signed } from '../lib/format';
 import { loadFeed, setReaction, type PlayerStats, type TeamRound } from '../lib/teams';
+import { go } from '../lib/router';
 import type { TeamPracticeRow } from '../lib/feed';
 
 const SHOWN = 25;
@@ -111,8 +112,25 @@ function FeedCard({
   onReact: () => void;
 }) {
   const own = post.user === me;
+  // Your own round opens the full round you logged; anyone else's opens what they shared.
+  const href =
+    post.kind === 'round'
+      ? own
+        ? `/round/${post.roundId}`
+        : `/team/round/${post.user}/${encodeURIComponent(post.roundId)}`
+      : `/team/practice/${post.user}/${post.date}`;
+  const open = (e: React.MouseEvent | React.KeyboardEvent) => {
+    if ((e.target as HTMLElement).closest('.feed-react')) return;
+    go(href);
+  };
   return (
-    <article className={post.kind === 'round' && post.hot ? 'feed-card hot' : 'feed-card'}>
+    <article
+      className={post.kind === 'round' && post.hot ? 'feed-card hot tappable' : 'feed-card tappable'}
+      role="link"
+      tabIndex={0}
+      onClick={open}
+      onKeyDown={(e) => e.key === 'Enter' && open(e)}
+    >
       <header className="feed-head">
         <strong>{post.headline}</strong>
         <span>{fmtDate(post.date)}</span>
@@ -159,14 +177,19 @@ function FeedCard({
       )}
 
       <footer className="feed-foot">
-        <button className={react.mine ? 'feed-react on' : 'feed-react'} aria-pressed={react.mine} onClick={onReact}>
+        <button
+          className={react.mine ? 'feed-react on' : 'feed-react'}
+          aria-pressed={react.mine}
+          onClick={(e) => {
+            e.stopPropagation();
+            onReact();
+          }}
+        >
           Nice{react.count ? ` · ${react.count}` : ''}
         </button>
-        {own && post.kind === 'round' && (
-          <a className="feed-open" href={`#/round/${post.roundId}`}>
-            See the round ›
-          </a>
-        )}
+        <span className="feed-open" aria-hidden="true">
+          {post.kind === 'round' ? 'Round' : 'Practice'} ›
+        </span>
       </footer>
     </article>
   );
