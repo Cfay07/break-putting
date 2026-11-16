@@ -73,7 +73,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     () => (round ? momentsOf(round, state.rounds, state.baseline, (p) => makeChanceOf(makeModel, p)) : []),
     [round, state.rounds, state.baseline, makeModel],
   );
-  // Each hole counted once, from its first putt: xP already holds the putts that follow it.
+  // Each hole counted once, from its first putt: xP already holds the putts that follow it. It
+  // reads the break, so it is not putts plus strokes gained and is not meant to be.
   const roundXp = useMemo(() => {
     if (!round || !makeModel.ready) return null;
     let sum = 0;
@@ -130,11 +131,12 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   // putts went, then what only some rounds have (a score, a fitted model).
   const numberTiles: { k: string; v: string; cls?: string; sub?: string }[] = [
     { k: 'Putts', v: String(s.totalPutts) },
-    { k: '1-putts', v: String(s.onePutts) },
-    { k: '3-putts', v: String(s.threePlus), cls: s.threePlus ? 'neg' : undefined },
+    ...(roundXp !== null ? [{ k: 'Expected', v: roundXp.toFixed(1), sub: 'putts, xP' }] : []),
     { k: 'Gained', v: signed(s.sg), cls: s.sg >= 0 ? 'pos' : 'neg' },
     { k: 'Per hole', v: s.puttsPerHole.toFixed(1) },
+    { k: '1-putts', v: String(s.onePutts) },
     { k: '2-putts', v: String(s.twoPutts) },
+    { k: '3-putts', v: String(s.threePlus), cls: s.threePlus ? 'neg' : undefined },
     {
       k: '3 to 10 ft',
       v: pctText(scoringPct),
@@ -144,7 +146,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   ];
   if (round.score !== undefined) numberTiles.push({ k: 'Score', v: String(round.score) });
   if (s.scoredHoles > 0) numberTiles.push({ k: 'Greens', v: String(s.gir), sub: `of ${s.scoredHoles}` });
-  if (roundXp !== null) numberTiles.push({ k: 'Expected', v: roundXp.toFixed(1), sub: 'putts, xP' });
   // Only where the break moves it by a quarter of a stroke: below that it was noise on most rounds.
   if (sgAdjusted !== null && Math.abs(sgAdjusted - s.sg) >= 0.25)
     numberTiles.push({ k: 'With break', v: signed(sgAdjusted), cls: sgAdjusted >= 0 ? 'pos' : 'neg' });
