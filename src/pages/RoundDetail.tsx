@@ -437,10 +437,10 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                   {whyXp && (
                     <p className="why-note">
                       Two different sources in one number, which is worth knowing. The{' '}
-                      <b>level</b> comes from a scratch reference table, not from you: that is what
+                      <b>level</b> comes from PGA Tour averages, not from you: that is what
                       makes strokes gained a comparison rather than a mirror. The{' '}
                       <b>break and slope adjustment</b> is fitted to your own putts. So xP reads
-                      "what a scratch player would expect from here, nudged by how this particular
+                      "what a tour player would expect from here, nudged by how this particular
                       putt behaves for you".
                     </p>
                   )}

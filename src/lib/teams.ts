@@ -60,11 +60,21 @@ export interface TeamRound {
   detail: { h: number; p: number; d: number | null; v: number | null }[] | null;
 }
 
+export interface TeamPlan {
+  team_id: string;
+  paid_until: string;
+  note: string;
+}
+
 export interface TeamView {
   teams: Team[];
   members: Member[];
   stats: PlayerStats[];
+  plans: TeamPlan[];
 }
+
+/** A plan runs through the end of its last day. */
+export const planActive = (plan: TeamPlan | undefined, today: string) => !!plan && plan.paid_until >= today;
 
 async function rpc<T>(fn: string, args: unknown): Promise<T> {
   const res = await table(`rpc/${fn}`, { method: 'POST', body: JSON.stringify(args) });
@@ -82,15 +92,16 @@ async function rows<T>(path: string): Promise<T[]> {
 }
 
 export async function loadTeams(): Promise<TeamView> {
-  if (!currentSession() || !online()) return { teams: [], members: [], stats: [] };
+  if (!currentSession() || !online()) return { teams: [], members: [], stats: [], plans: [] };
   const teams = await rows<Team>('teams?select=id,name,join_code,owner_id,theme&order=created_at.asc');
   rememberOnTeam(teams.length > 0);
-  if (!teams.length) return { teams: [], members: [], stats: [] };
-  const [members, stats] = await Promise.all([
+  if (!teams.length) return { teams: [], members: [], stats: [], plans: [] };
+  const [members, stats, plans] = await Promise.all([
     rows<Member>('team_members?select=team_id,user_id,display_name,role,starred'),
     rows<PlayerStats>('team_stats?select=*'),
+    rows<TeamPlan>('team_plans?select=team_id,paid_until,note'),
   ]);
-  return { teams, members, stats };
+  return { teams, members, stats, plans };
 }
 
 export function createTeam(name: string, display?: string): Promise<Team> {

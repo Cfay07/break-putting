@@ -77,7 +77,7 @@ export function CoachView({
       {leak ? (
         <div className="coach-leak">
           <p className="coach-leak-head">
-            {leak.worst.label}. {Math.abs(leak.worst.per18).toFixed(1)} strokes a round against the baseline.
+            {leak.worst.label}. {Math.abs(leak.worst.per18).toFixed(1)} strokes a round against tour averages.
           </p>
           <p className="coach-leak-sub">
             From {leak.rounds} rounds, {span}.{' '}

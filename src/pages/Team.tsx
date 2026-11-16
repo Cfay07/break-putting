@@ -4,7 +4,7 @@ import { CoachView } from '../components/CoachView';
 import { TeamFeed } from '../components/TeamFeed';
 import { Sheet } from '../components/Sheet';
 import { accountName, currentSession } from '../lib/cloud';
-import { fmtDate } from '../lib/format';
+import { fmtDate, fmtDateLong, today } from '../lib/format';
 import {
   createTeam,
   joinTeam,
@@ -19,9 +19,10 @@ import {
   type PlayerStats,
   type Team as TeamRow,
   type TeamView,
+  planActive,
 } from '../lib/teams';
 
-const EMPTY: TeamView = { teams: [], members: [], stats: [] };
+const EMPTY: TeamView = { teams: [], members: [], stats: [], plans: [] };
 
 /**
  * Ranked on the six-footer. Putts per round is the obvious choice and it is the wrong one:
@@ -473,6 +474,13 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
   const teamMembers = view.members.filter((m) => m.team_id === team.id);
   const coaches = teamMembers.filter((m) => m.role === 'coach');
   const coaching = isOwner || coaches.some((m) => m.user_id === session.userId);
+  const plan = view.plans.find((p) => p.team_id === team.id);
+  const planOn = planActive(plan, today());
+  const planText = !plan
+    ? 'No team plan yet. The Coach view is part of it.'
+    : planOn
+      ? `${plan.note === 'trial' ? 'Free trial' : plan.note === 'pilot' ? 'Pilot' : 'Team plan'} through ${fmtDateLong(plan.paid_until)}.`
+      : `Ended ${fmtDateLong(plan.paid_until)}. The Coach view is off until it is renewed. The feed and leaderboard stay on for players.`;
   const openMember = roster.find((r) => r.member.user_id === open);
   const rank = BOARDS.find((b) => b.key === board)!;
 
@@ -515,7 +523,16 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
         )}
       </div>
 
-      {tab === 'coach' && coaching && (
+      {tab === 'coach' && coaching && !planOn && (
+        <div className="coach-focus" style={{ marginTop: 4 }}>
+          <p className="coach-focus-name">The Coach view is part of the team plan</p>
+          <p className="small muted" style={{ margin: '4px 0 0' }}>
+            {planText}
+          </p>
+        </div>
+      )}
+
+      {tab === 'coach' && coaching && planOn && (
         <CoachView
           key={team.id}
           team={team}
@@ -670,6 +687,15 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
           >
             Send the invite link
           </button>
+
+          {coaching && (
+            <>
+              <div className="field-label">Team plan</div>
+              <p className="small" style={{ margin: 0 }}>
+                {planText}
+              </p>
+            </>
+          )}
 
           {coaches.length > 0 && (
             <>

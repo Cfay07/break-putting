@@ -457,8 +457,9 @@ export interface SessionRun {
 }
 
 /**
- * Scratch-level expected putts. The short end matches what DECADE reports hole for hole; the tail
- * past 30 feet is set to DECADE's implied numbers rather than the flatter published table.
+ * PGA Tour average putts to hole out. Inside 25 feet this matches Yousefi and Swartz (2013), 2012
+ * ShotLink, within 0.02 at 7.5, 12.5, 17.5 and 22.5 ft. Past 30 feet it is not yet traced to a
+ * source: reproductions of Broadie's table disagree there (2.06 or 2.12 at 40 ft). See ROADMAP Phase 5.
  */
 export const DEFAULT_BASELINE: [number, number][] = [
   [1, 1.0], [2, 1.01], [3, 1.04], [4, 1.13], [5, 1.23], [6, 1.34], [7, 1.42], [8, 1.5],

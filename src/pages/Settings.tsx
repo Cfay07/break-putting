@@ -20,14 +20,29 @@ type Open =
   | { k: 'putter'; id: string }
   | { k: 'course'; id: string };
 
-function Row({ title, sub, end, onClick }: { title: ReactNode; sub?: ReactNode; end?: ReactNode; onClick?: () => void }) {
+function Row({
+  title,
+  sub,
+  end,
+  onClick,
+}: {
+  title: ReactNode;
+  sub?: ReactNode;
+  end?: ReactNode;
+  onClick?: () => void;
+}) {
   const inner = (
     <>
       <span className="list-main">
         <span className="list-title">{title}</span>
         {sub && <span className="list-sub">{sub}</span>}
       </span>
-      {end ?? (onClick && <span className="list-chev" aria-hidden="true">›</span>)}
+      {end ??
+        (onClick && (
+          <span className="list-chev" aria-hidden="true">
+            ›
+          </span>
+        ))}
     </>
   );
   return onClick ? (
@@ -61,8 +76,8 @@ function PutterDelete({ id, onDone }: { id: string; onDone: () => void }) {
   if (rounds > 0 && others.length === 0) {
     return (
       <p className="small" style={{ margin: 0 }}>
-        {rounds} {rounds === 1 ? 'round was' : 'rounds were'} putted with this one. Add the putter they belong to
-        first, then delete this one.
+        {rounds} {rounds === 1 ? 'round was' : 'rounds were'} putted with this one. Add the putter they belong to first,
+        then delete this one.
       </p>
     );
   }
@@ -103,7 +118,9 @@ function PutterSheet({ id, onClose }: { id: string; onClose: () => void }) {
   if (!p) return null;
   return (
     <Sheet title={p.name || 'Putter'} onClose={onClose}>
-      <div className="field-label" style={{ marginTop: 0 }}>Name</div>
+      <div className="field-label" style={{ marginTop: 0 }}>
+        Name
+      </div>
       <input
         type="text"
         aria-label="putter name"
@@ -155,8 +172,12 @@ function BaselineSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Expected putts baseline" onClose={onClose}>
       <p className="small muted" style={{ marginTop: 0 }}>
-        Strokes gained compares your hole to these numbers. Edit them if you want a different bar than scratch.
+        Strokes gained compares every hole to these numbers: the average putts a PGA Tour player takes to hole out from
+        each length. Inside 25 feet they match a published study of 2012 tour putting from ShotLink data (Yousefi and
+        Swartz, Advanced Putting Metrics in Golf, 2013) within 0.02 putts. Past 30 feet they are being checked against
+        Mark Broadie's table in Every Shot Counts (2014).
       </p>
+      <p className="small muted">Edit them if you want a different bar.</p>
       <div className="table-wrap">
         <table>
           <thead>
@@ -193,7 +214,7 @@ function BaselineSheet({ onClose }: { onClose: () => void }) {
         style={{ marginTop: 10 }}
         onClick={() => dispatch({ t: 'setBaseline', baseline: DEFAULT_BASELINE })}
       >
-        Reset to scratch
+        Reset to tour averages
       </button>
     </Sheet>
   );
@@ -206,7 +227,11 @@ function CourseSheet({ id, onClose }: { id: string; onClose: () => void }) {
   const tees = [...new Set(c.tees.map((t) => t.name))];
   return (
     <Sheet title={c.name} onClose={onClose}>
-      {c.place && <p className="small muted" style={{ marginTop: 0 }}>{c.place}</p>}
+      {c.place && (
+        <p className="small muted" style={{ marginTop: 0 }}>
+          {c.place}
+        </p>
+      )}
       {tees.length > 0 && (
         <>
           <div className="field-label">Tees</div>
@@ -266,7 +291,9 @@ export function Settings() {
     }
   };
 
-  const putters = state.putters.slice().sort((a, b) => Number(a.retired) - Number(b.retired) || Number(b.active) - Number(a.active));
+  const putters = state.putters
+    .slice()
+    .sort((a, b) => Number(a.retired) - Number(b.retired) || Number(b.active) - Number(a.active));
   const newest = state.rounds.length ? state.rounds.reduce((a, b) => (a.date > b.date ? a : b)).date : null;
 
   return (
@@ -275,13 +302,25 @@ export function Settings() {
       <div className="list">
         {session ? (
           <>
-            <Row title={accountName() || 'Add your name'} sub="Name on every team board" onClick={() => setOpen({ k: 'name' })} />
+            <Row
+              title={accountName() || 'Add your name'}
+              sub="Name on every team board"
+              onClick={() => setOpen({ k: 'name' })}
+            />
             <Row title={session.email} sub={syncedText()} onClick={() => setOpen({ k: 'account' })} />
           </>
         ) : (
-          <Row title="Sign in" sub="Back up your rounds and use them on another phone" onClick={() => setOpen({ k: 'account' })} />
+          <Row
+            title="Sign in"
+            sub="Back up your rounds and use them on another phone"
+            onClick={() => setOpen({ k: 'account' })}
+          />
         )}
-        <Row title="Team" sub={session ? 'Your team board, or join one with a code' : 'Sign in first to join a team'} onClick={() => go('/team')} />
+        <Row
+          title="Team"
+          sub={session ? 'Your team board, or join one with a code' : 'Sign in first to join a team'}
+          onClick={() => go('/team')}
+        />
       </div>
 
       <h2>Your bag</h2>
@@ -290,7 +329,13 @@ export function Settings() {
           <Row
             key={p.id}
             title={p.name}
-            end={p.active ? <span className="list-pill">In the bag</span> : p.retired ? <span className="list-pill off">Retired</span> : undefined}
+            end={
+              p.active ? (
+                <span className="list-pill">In the bag</span>
+              ) : p.retired ? (
+                <span className="list-pill off">Retired</span>
+              ) : undefined
+            }
             onClick={() => setOpen({ k: 'putter', id: p.id })}
           />
         ))}
@@ -317,7 +362,9 @@ export function Settings() {
 
       <h2>Courses</h2>
       {state.courses.length === 0 ? (
-        <p className="small muted">None saved yet. Pick one when you start a round and it gets kept here with its pars.</p>
+        <p className="small muted">
+          None saved yet. Pick one when you start a round and it gets kept here with its pars.
+        </p>
       ) : (
         <div className="list">
           {dedupeCourses([...state.courses, ...BUILT_IN_COURSES])
@@ -336,11 +383,21 @@ export function Settings() {
           onClick={backUp}
         />
         <Row title="Restore from a backup" onClick={() => fileRef.current?.click()} />
-        <Row title="Team practice file" sub="Bring in your team's sheet, PDF or pasted text" onClick={() => setOpen({ k: 'practice' })} />
+        <Row
+          title="Team practice file"
+          sub="Bring in your team's sheet, PDF or pasted text"
+          onClick={() => setOpen({ k: 'practice' })}
+        />
         <Row title="Load an old round" sub="Typed out hole by hole" onClick={() => setOpen({ k: 'oldRound' })} />
-        <Row title="Expected putts baseline" sub="What strokes gained is measured against" onClick={() => setOpen({ k: 'baseline' })} />
+        <Row
+          title="Expected putts baseline"
+          sub="PGA Tour averages, with sources"
+          onClick={() => setOpen({ k: 'baseline' })}
+        />
       </div>
-      <p className="small muted">This phone can lose its storage without warning. Back up after rounds you care about.</p>
+      <p className="small muted">
+        This phone can lose its storage without warning. Back up after rounds you care about.
+      </p>
       <input
         ref={fileRef}
         type="file"
@@ -408,6 +465,10 @@ export function Settings() {
       {/* The open ratings data is ODbL, which requires this credit wherever its numbers are used. */}
       <p className="small muted" style={{ marginTop: 24 }}>
         Some course ratings: © OpenStreetMap contributors (ODbL), via OpenGolfAPI.
+      </p>
+
+      <p className="small muted">
+        <a href="#/privacy">Privacy</a> · <a href="#/terms">Terms</a>
       </p>
 
       <div className="settings-foot">

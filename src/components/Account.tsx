@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   currentSession,
+  deleteAccount,
   online,
   pendingRecovery,
   requestReset,
@@ -12,6 +13,8 @@ import {
 import { lastSyncedAt, resetSyncClock, sync } from '../lib/sync';
 import { claimStored, emptyState, storedOwner } from '../lib/storage';
 import { useApp } from '../lib/store';
+import { rememberOnTeam } from '../lib/teams';
+import { ConfirmButton } from './ConfirmButton';
 import { NameField } from './NameField';
 import { fmtDate } from '../lib/format';
 
@@ -135,6 +138,7 @@ export function Account() {
       safe = false;
     }
     signOut();
+    rememberOnTeam(false);
     resetSyncClock();
     setSession(null);
     setBusy(false);
@@ -142,9 +146,13 @@ export function Account() {
       // Everything is up in the account now, so the copy on the phone is only a way for the
       // next person who signs in to end up looking at it.
       dispatch({ t: 'clearAll' });
-      setNote('Signed out. Your rounds are saved to your account and cleared off this phone. Sign back in to pull them down.');
+      setNote(
+        'Signed out. Your rounds are saved to your account and cleared off this phone. Sign back in to pull them down.',
+      );
     } else {
-      setNote('Signed out, but this phone could not reach your account first, so your rounds were left on it. Sign back in and sync when you have signal.');
+      setNote(
+        'Signed out, but this phone could not reach your account first, so your rounds were left on it. Sign back in and sync when you have signal.',
+      );
     }
   };
 
@@ -176,8 +184,36 @@ export function Account() {
         </div>
         {note && <p className="small muted">{note}</p>}
         <p className="small muted">
-          Rounds are written to this phone first and sent up afterwards, so logging never waits on
-          a signal.{!online() && ' You are offline right now.'}
+          Rounds are written to this phone first and sent up afterwards, so logging never waits on a signal.
+          {!online() && ' You are offline right now.'}
+        </p>
+        <div className="settings-foot">
+          <ConfirmButton
+            className="text-btn text-danger"
+            label="Delete my account"
+            confirmLabel="Tap again to delete your account for good"
+            onConfirm={() =>
+              void (async () => {
+                setBusy(true);
+                try {
+                  await deleteAccount();
+                  rememberOnTeam(false);
+                  resetSyncClock();
+                  setSession(null);
+                  setNote(
+                    'Account deleted, with everything stored in it and everything your teams could see. The rounds on this phone are still here until you clear them.',
+                  );
+                } catch (e) {
+                  setNote(e instanceof Error ? e.message : 'Could not delete the account.');
+                } finally {
+                  setBusy(false);
+                }
+              })()
+            }
+          />
+        </div>
+        <p className="small muted">
+          <a href="#/privacy">Privacy</a> · <a href="#/terms">Terms</a>
         </p>
       </>
     );
@@ -190,12 +226,7 @@ export function Account() {
           You came in from a reset link. Pick a new password and you will be signed in with it.
         </p>
         <div className="field-label">New password</div>
-        <input
-          type="password"
-          autoComplete="new-password"
-          value={fresh}
-          onChange={(e) => setFresh(e.target.value)}
-        />
+        <input type="password" autoComplete="new-password" value={fresh} onChange={(e) => setFresh(e.target.value)} />
         <button
           className="btn btn-primary btn-wide"
           style={{ marginTop: 12 }}
@@ -212,23 +243,16 @@ export function Account() {
   return (
     <>
       <p className="small muted">
-        Without an account your rounds live on this phone only. Sign in and they back up and follow
-        you to a new phone.
+        Without an account your rounds live on this phone only. Sign in and they back up and follow you to a new phone.
       </p>
       {!storedOwner() && state.rounds.length > 0 && (
         <p className="small muted">
-          This phone has {state.rounds.length}{' '}
-          {state.rounds.length === 1 ? 'round' : 'rounds'} on it that are not tied to any account
-          yet. Signing in adds them to whichever account you use.
+          This phone has {state.rounds.length} {state.rounds.length === 1 ? 'round' : 'rounds'} on it that are not tied
+          to any account yet. Signing in adds them to whichever account you use.
         </p>
       )}
       <div className="field-label">Email</div>
-      <input
-        type="email"
-        autoComplete="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+      <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       <div className="field-label">Password</div>
       <input
         type="password"

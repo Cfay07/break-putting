@@ -154,14 +154,11 @@ export function pendingRecovery(): string | null {
 /** Ask Supabase to email a reset link back to this app. */
 export async function requestReset(email: string): Promise<void> {
   const redirect = `${window.location.origin}${window.location.pathname}`;
-  const res = await fetch(
-    `${URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirect)}`,
-    {
-      method: 'POST',
-      headers: { apikey: ANON, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    },
-  );
+  const res = await fetch(`${URL}/auth/v1/recover?redirect_to=${encodeURIComponent(redirect)}`, {
+    method: 'POST',
+    headers: { apikey: ANON, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
   if (!res.ok) {
     const data = (await res.json().catch(() => null)) as TokenResponse | null;
     throw new Error(data?.msg || data?.message || `Could not send the email (${res.status}).`);
@@ -200,19 +197,13 @@ export function signOut(): void {
 }
 
 async function refresh(session: Session): Promise<Session> {
-  const s = sessionFrom(
-    await auth('token?grant_type=refresh_token', { refresh_token: session.refreshToken }),
-  );
+  const s = sessionFrom(await auth('token?grant_type=refresh_token', { refresh_token: session.refreshToken }));
   keepSession(s);
   return s;
 }
 
 /** A table call that renews an expired token once before giving up. */
-export async function table(
-  path: string,
-  init: RequestInit = {},
-  retry = true,
-): Promise<Response> {
+export async function table(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
   let session = currentSession();
   if (!session) throw new Error('Not signed in.');
   if (session.expiresAt < Date.now() + 60_000 && session.refreshToken) {
@@ -252,4 +243,14 @@ export async function anonRpc<T>(fn: string, args: unknown): Promise<T> {
 
 export function online(): boolean {
   return typeof navigator === 'undefined' || navigator.onLine;
+}
+
+/** Deletes the account and everything stored under it. The copy on this phone is left alone. */
+export async function deleteAccount(): Promise<void> {
+  const res = await table('rpc/delete_my_account', { method: 'POST', body: '{}' });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? 'Could not delete the account.');
+  }
+  signOut();
 }

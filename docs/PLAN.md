@@ -97,6 +97,23 @@ sits at the top of every player's Practice.
 - A paid-until date per team, coach features behind it, invoices for schools.
 - Privacy policy and terms.
 
+Where it stands, 2026-11-16:
+
+- **Baseline:** named in Settings as PGA Tour averages. Inside 25 ft it matches Yousefi and Swartz
+  (2013, 2012 ShotLink) within 0.02 putts at 7.5, 12.5, 17.5 and 22.5 ft, checked from the paper.
+  Past 30 ft is not traced: reproductions of Broadie's table in Every Shot Counts disagree (40 ft
+  is 2.06 in the app, 2.12 elsewhere). Open until someone reads the table in the book.
+- **No signal:** done. The service worker caches the page and its files on the first visit, so a
+  phone that adds the app and goes straight to the course opens it offline. Logging was already
+  phone-first.
+- **Database tier:** not done. Needs Conor to upgrade the database plan (about $25 a month).
+- **Team plans:** done in the app. `team_plans` holds a paid-until date per team that only the
+  server can write. New teams get 30 days. The Coach view and setting the week need an active
+  plan; the feed and leaderboard never do. Carthage is a pilot through 2027-06-30. Invoices are
+  not built: the first one can be sent by hand.
+- **Privacy and terms:** done, at #/privacy and #/terms, plus Delete my account in the account
+  sheet. Worth a read by someone who knows school contracts before the first paid team.
+
 ### Later, only once a team uses it weekly
 
 - Putts-only round entry for teams whose scores live in another app.

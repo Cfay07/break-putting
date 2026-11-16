@@ -17,6 +17,7 @@ import { Settings } from './pages/Settings';
 import { SharedRound } from './pages/SharedRound';
 import { Stats } from './pages/Stats';
 import { Team } from './pages/Team';
+import { Privacy, Terms } from './pages/Legal';
 import { Track } from './pages/Track';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { bleedSummary } from './lib/bleed';
@@ -324,6 +325,10 @@ export default function App() {
     <Team joinCode={joinMatch?.[1]} />
   ) : route === '/settings' ? (
     <Settings />
+  ) : route === '/privacy' ? (
+    <Privacy />
+  ) : route === '/terms' ? (
+    <Terms />
   ) : route === '/moments' ? (
     <MomentsPage />
   ) : (
@@ -344,7 +349,7 @@ export default function App() {
             ? 'Practice'
             : route === '/team' || joinMatch
               ? 'Team'
-              : route === '/settings'
+              : route === '/settings' || route === '/privacy' || route === '/terms'
                 ? 'Settings'
                 : route === '/moments'
                   ? 'Moments'
@@ -363,7 +368,7 @@ export default function App() {
             ? '/practice'
             : route.startsWith('/stats')
               ? '/stats'
-              : route === '/team' && !onTeam
+              : (route === '/team' && !onTeam) || route === '/privacy' || route === '/terms'
                 ? '/settings'
                 : route;
           const on =

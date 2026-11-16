@@ -13,7 +13,7 @@ function SpotRow({ k, t }: { k: string; t: SpotTally }) {
       <span className="k">{k}</span>
       <span className="v num">
         {pct(t.made, t.attempts)}% of {t.attempts}
-        <span className="small muted"> · scratch {pct(t.scratch, t.attempts)}%</span>
+        <span className="small muted"> · tour {pct(t.scratch, t.attempts)}%</span>
       </span>
     </div>
   );
@@ -37,7 +37,7 @@ export function SpotVsMixed() {
         </div>
       ))}
       <p className="small muted" style={{ margin: '8px 0 0' }}>
-        Putts from 3 to 10 ft. Scratch is what a scratch golfer holes from the same putts, so a mix of distances is a
+        Putts from 3 to 10 ft. Tour is what a PGA Tour player holes from the same putts, so a mix of distances is a
         fair fight. Mixed means the weekly test and practice rounds, and it is the one the course sees.
       </p>
     </>

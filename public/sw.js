@@ -1,6 +1,26 @@
 const CACHE = 'break-__BUILD__';
 
-self.addEventListener('install', () => self.skipWaiting());
+// Cache the page and every file it loads before taking over. Without this, a phone that adds the
+// app to its home screen and goes straight to a course with no signal opens a blank page: the
+// first visit's files were fetched before the worker existed, so none of them were kept.
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then(async (cache) => {
+        const res = await fetch('./', { cache: 'no-store' });
+        if (!res.ok) return;
+        const html = await res.clone().text();
+        await cache.put('./', res);
+        const files = [...html.matchAll(/(?:src|href)="\.?\/?((?:assets\/)[^"]+|[^"]+\.(?:png|webmanifest))"/g)].map(
+          (m) => `./${m[1]}`,
+        );
+        await cache.addAll([...new Set(files)]);
+      })
+      .catch(() => undefined)
+      .then(() => self.skipWaiting()),
+  );
+});
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(

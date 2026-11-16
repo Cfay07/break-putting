@@ -2364,3 +2364,11 @@ a.hcp-lane:active { opacity: 0.6; }
 .coach-name small { font-size: 12px; font-weight: 500; color: var(--ink-3); }
 .coach-name small.quiet { color: var(--accent); font-weight: 700; }
 .coach-member { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; }
+
+/* Privacy and terms */
+.legal { max-width: 640px; line-height: 1.55; }
+.legal h2 { font-size: 17px; margin: 22px 0 6px; }
+.legal p, .legal li { font-size: 15px; color: var(--ink); }
+.legal ul { padding-left: 20px; margin: 6px 0; }
+.legal li { margin: 4px 0; }
+.legal a { color: var(--accent); font-weight: 600; }

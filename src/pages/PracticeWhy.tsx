@@ -74,7 +74,7 @@ function ZoneCard({
         <>
           <div className="focus-num num">{signedFor(z.sgPerRound, z.sample)}</div>
           <p className="small muted focus-sub">
-            strokes a round against scratch{confidenceOf(z.sample) === 'thin' && ' · thin sample'}
+            strokes a round against tour average{confidenceOf(z.sample) === 'thin' && ' · thin sample'}
           </p>
           <ZoneStats z={z} />
           {close && (
@@ -99,7 +99,7 @@ function ZoneCard({
       {holding ? (
         <>
           <p className="small focus-lean">
-            You beat scratch from here, so there is nothing to fix. The strokes are going somewhere else.
+            You beat tour average from here, so there is nothing to fix. The strokes are going somewhere else.
           </p>
           {toWorst && (
             <button className="btn btn-wide" style={{ marginTop: 12 }} onClick={toWorst}>
@@ -160,7 +160,7 @@ export function ZoneStats({ z }: { z: ZoneRead }) {
       ]
     : [
         { v: `${pct(z.makes, z.attempts)}%`, k: `Holed, ${z.makes} of ${z.attempts}` },
-        { v: `${pct(z.scratchMakes, z.attempts)}%`, k: 'A scratch golfer makes' },
+        { v: `${pct(z.scratchMakes, z.attempts)}%`, k: 'A tour player makes' },
         { v: signedFor(z.sgPerPutt, z.sample), k: 'Per putt' },
       ];
   return (
@@ -202,7 +202,7 @@ export function PracticeWhy() {
       {focus.rounds > 0 && (
         <p className="small muted" style={{ margin: '4px 0 0' }}>
           From {scope}. Distance is already accounted for: every putt is measured against{' '}
-          {scratch ? 'scratch' : 'your baseline'} from the same spot.
+          {scratch ? 'tour average' : 'your baseline'} from the same spot.
         </p>
       )}
 

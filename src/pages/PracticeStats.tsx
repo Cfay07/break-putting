@@ -163,7 +163,7 @@ export function PracticeStats() {
                       {fmtDate(r.date)} · {SURFACE_LABELS[r.practice!.surface]}
                     </strong>
                     <span className="small muted">
-                      {st.holesPlayed} holes · {st.totalPutts} putts · {signed(st.sg)} against scratch
+                      {st.holesPlayed} holes · {st.totalPutts} putts · {signed(st.sg)} against tour average
                     </span>
                   </span>
                   <Chevron />
