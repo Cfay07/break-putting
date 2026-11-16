@@ -45,6 +45,15 @@ export interface Moment {
   viz?: MomentViz;
 }
 
+/** The short tag a moment puts on its scorecard row, and whether it is one to fix. */
+export function scorecardTag(m: Moment): { text: string; fix: boolean } | null {
+  if (m.hole === undefined) return null;
+  if (m.kind === 'longshot') return { text: `${m.stats[0]?.v ?? ''} chance`.trim(), fix: false };
+  if (m.kind === 'lag') return { text: 'Lag', fix: false };
+  if (m.kind === 'gotAway') return { text: 'Got away', fix: true };
+  return { text: m.label, fix: false };
+}
+
 type ChanceOf = (p: Putt) => number | null;
 
 interface Ctx {

@@ -1,14 +1,31 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Moment } from '../lib/moments';
 import { shareMoment } from '../lib/momentShare';
 import type { Round } from '../lib/types';
 import { MomentCard } from './MomentCard';
 
-/** The round's moments under its scorecard: one card at a time, biggest first, dots underneath. */
-export function RoundMoments({ moments, round, baseline }: { moments: Moment[]; round: Round; baseline: [number, number][] }) {
+/** The round's moments at the top of its page: one card at a time, biggest first, dots underneath. */
+export function RoundMoments({
+  moments,
+  round,
+  baseline,
+  focus,
+}: {
+  moments: Moment[];
+  round: Round;
+  baseline: [number, number][];
+  /** A scorecard tag asked for this card; `n` changes on every tap so the same card can be asked twice. */
+  focus?: { index: number; n: number } | null;
+}) {
   const [note, setNote] = useState('');
   const [at, setAt] = useState(0);
   const track = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = track.current;
+    if (!focus || !el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.scrollTo({ left: focus.index * el.clientWidth, behavior: 'smooth' });
+  }, [focus]);
   if (!moments.length) return null;
   const share = (m: Moment) => shareMoment(m, round, baseline).catch((e) => setNote((e as Error).message));
   const goTo = (i: number) => {

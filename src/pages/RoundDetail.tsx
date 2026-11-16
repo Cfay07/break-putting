@@ -1,19 +1,14 @@
 import { useMemo, useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
-import { lagSaves } from '../lib/stats';
 import { holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
-import { BeatBar } from '../components/BeatBar';
-import { CupMap, cupCounts } from '../components/CupMap';
 import {
   fitExecModel,
-  beatSpread,
   difficultyOf,
   roomOf,
   xpotStatus,
   makeChanceOf,
   puttSGAdjusted,
-  roundSGAdjusted,
   verdictOf,
   VERDICT_LABEL,
   xpOf,
@@ -24,19 +19,12 @@ import { currentSession } from '../lib/cloud';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { SURFACE_LABELS } from '../lib/types';
 import { ScoreMark } from '../components/ScoreMark';
-import { DistanceTable } from '../components/DistanceTable';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
-import { LagPanel } from '../components/LagPanel';
-import { PatternPanel } from '../components/PatternPanel';
-import { ReadPanel } from '../components/ReadPanel';
 import { RoundPayoff } from '../components/RoundPayoff';
 import { teeOf } from '../lib/courses';
 import { useCourseRatings } from '../lib/useCourseRatings';
 import { RoundMoments } from '../components/RoundMoments';
-import { momentsOf } from '../lib/moments';
-import { readError } from '../lib/readError';
-import { formOf } from '../lib/form';
-import { FormPanel } from '../components/FormPanel';
+import { momentsOf, scorecardTag } from '../lib/moments';
 import { PutterTag } from '../components/PutterTag';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { Conditions } from '../components/Conditions';
@@ -44,9 +32,9 @@ import { CoursePicker } from '../components/CoursePicker';
 import { PuttEditor } from '../components/PuttEditor';
 import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
-import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
+import { fmtDateLong, puttSequence, signed } from '../lib/format';
 import { backLabel, go, previousRoute, replaceRoute } from '../lib/router';
-import { pct, roundStats, suspectHoles } from '../lib/stats';
+import { roundStats, suspectHoles } from '../lib/stats';
 import { findRound, useApp } from '../lib/store';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
 
@@ -87,44 +75,13 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const back = from && !from.startsWith('/round/') ? from : practice ? '/stats/practice' : '/';
   // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
   const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
-  const roundXp = useMemo(() => {
-    if (!round || !makeModel.ready) return null;
-    let sum = 0;
-    for (const h of round.holes) {
-      if (!h.putts.length) continue;
-      const v = xpOf(makeModel, state.baseline, h.putts[0]);
-      if (v === null) return null;
-      sum += v;
-    }
-    return sum;
-  }, [makeModel, state.baseline, round]);
   const exec = useMemo(
     () => fitExecModel(makeModel, state.rounds),
     [makeModel, state.rounds],
   );
-  const roundXpot = useMemo(() => {
-    if (!round || !makeModel.ready) return null;
-    let sum = 0;
-    for (const h of round.holes) {
-      if (!h.putts.length) continue;
-      const st = xpotStatus(makeModel, exec, state.baseline, h.putts[0]);
-      if (!st.ok) return null;
-      sum += st.xpot;
-    }
-    return sum;
-  }, [makeModel, exec, state.baseline, round]);
-  const beats = useMemo(
-    () => (round ? beatSpread(state.baseline, [round as never]) : null),
-    [state.baseline, round],
-  );
-  const cup = useMemo(() => (round ? cupCounts(round.holes) : null), [round]);
   const moments = useMemo(
     () => (round ? momentsOf(round, state.rounds, state.baseline, (p) => makeChanceOf(makeModel, p)) : []),
     [round, state.rounds, state.baseline, makeModel],
-  );
-  const sgAdjusted = useMemo(
-    () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
-    [makeModel, state.baseline, round],
   );
   // Opened straight from a stat that names a hole, so the link lands where it is pointing.
   const [editHole, setEditHole] = useState<number | null>(openHole ?? null);
@@ -134,9 +91,9 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const [editing, setEditing] = useState(false);
   const [speedSheet, setSpeedSheet] = useState(false);
   const [courseOpen, setCourseOpen] = useState(false);
-  const [whyBreak, setWhyBreak] = useState(false);
   const [whyXp, setWhyXp] = useState(false);
-  const [whyRoundXp, setWhyRoundXp] = useState(false);
+  // A tag on the scorecard opens its moment in the cards at the top.
+  const [focusMoment, setFocusMoment] = useState<{ index: number; n: number } | null>(null);
 
   if (!round) {
     return (
@@ -150,17 +107,19 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   }
 
   const s = roundStats(round, state.baseline);
-  const scoringPct = pct(s.scoring);
   const mismatch = round.recordedPutts && round.recordedPutts !== s.totalPutts;
   const hole = editHole !== null ? round.holes.find((h) => h.hole === editHole) : undefined;
 
   const sgOf = (h: { putts: { d: number }[] }) =>
     h.putts.length ? holeSG(state.baseline, h.putts.map((p) => p.d), h.putts.length) : null;
-  const read = readError([round]);
-  const form = formOf(round, state.baseline);
   const marks = bleedMarks(round);
   const bleeds = bleedsIn(round);
   const suspect = suspectHoles(round);
+  const tags = new Map<number, { index: number; text: string; fix: boolean }>();
+  moments.forEach((m, index) => {
+    const t = scorecardTag(m);
+    if (t && !tags.has(m.hole!)) tags.set(m.hole!, { index, ...t });
+  });
 
   // The relative column runs as a total through the round, the way a leaderboard reads, since
   // par and score already sit side by side to show what each hole cost.
@@ -307,163 +266,37 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         </p>
       )}
 
+      <RoundMoments
+        moments={moments}
+        round={round}
+        baseline={state.baseline}
+        focus={focusMoment}
+      />
+
       <RoundPayoff round={round} />
 
-      <h2>The numbers</h2>
-      <div className="card">
-        <div className="stat-row">
-          <span className="k">Putts</span>
-          <span className="v num">{s.totalPutts}</span>
+      <div className="round-numbers">
+        <div>
+          <span>Putts</span>
+          <strong className="num">{s.totalPutts}</strong>
         </div>
-        {mismatch && (
-          <div className="stat-row">
-            <span className="k">On the card</span>
-            <span className="v num neg">{round.recordedPutts}</span>
-          </div>
-        )}
-        {whyRoundXp && (
-          <p className="why-note">
-            What these holes were worth before you putted them. <b>The putt cards will not add up
-            to it</b>, and they should not: xP is putts to finish the hole from where you stood,
-            so a 22 footer worth 1.90 already contains the three footer it leaves you. Adding that
-            three footer underneath would charge it twice and turn an ordinary two-putt into
-            nearly a stroke gained. Each hole is counted once, from where it started.
-            <br />
-            <br />
-            The per-putt number that <b>does</b> add up is strokes gained, on every card. It
-            credits each putt with what it changed rather than what was left, so the overlap
-            cancels and the putts sum to the hole exactly.
-          </p>
-        )}
-        {roundXp !== null && (
-          <div className="stat-row">
-            <span className="k">
-              Expected putts (xP)
-              <button
-                type="button"
-                className="why"
-                aria-expanded={whyRoundXp}
-                onClick={() => setWhyRoundXp(!whyRoundXp)}
-              >
-                ?
-              </button>
-            </span>
-            <span className="v num">{roundXp.toFixed(2)}</span>
-          </div>
-        )}
-        <div className="stat-row">
-          <span className="k">Strokes gained putting</span>
-          <span className={s.sg >= 0 ? 'v num pos' : 'v num neg'}>{signed(s.sg)}</span>
+        <div>
+          <span>1-putts</span>
+          <strong className="num">{s.onePutts}</strong>
         </div>
-        {/* Only worth a row where the break model actually moves it. Condition-adjusted, never
-            "corrected": it changes the verdict, which is not the same as having earned it. */}
-        {/* A quarter of a stroke. Across 27 rounds the break moves one by 0.14 on average, so a
-            fiftieth-of-a-stroke threshold printed it on twenty rounds where it was noise. */}
-        {sgAdjusted !== null && Math.abs(sgAdjusted - s.sg) >= 0.25 && (
-          <>
-            <div className="stat-row">
-              <span className="k">
-                Counting the break
-                <button
-                  type="button"
-                  className="why"
-                  aria-expanded={whyBreak}
-                  onClick={() => setWhyBreak(!whyBreak)}
-                >
-                  ?
-                </button>
-              </span>
-              <span className={sgAdjusted >= 0 ? 'v num pos' : 'v num neg'}>{signed(sgAdjusted)}</span>
-            </div>
-            {whyBreak && (
-              <p className="why-note">
-                Strokes gained treats every ten footer as the same ten footer. This one reads
-                which way yours broke and whether they ran uphill or down, so a round full of hard
-                putts stops looking like a round full of easy ones. It only appears when the two
-                disagree, and it is still learning: {makeModel.tagged} of your putts carry a break
-                so far.
-              </p>
-            )}
-          </>
-        )}
-        {roundXpot !== null && (
-          <div className="stat-row">
-            <span className="k">After the stroke</span>
-            <span className="v num">{roundXpot.toFixed(2)}</span>
-          </div>
-        )}
-        <div className="stat-row">
-          <span className="k">Putts per hole</span>
-          <span className="v num">{s.puttsPerHole.toFixed(1)}</span>
+        <div>
+          <span>3-putts</span>
+          <strong className={s.threePlus ? 'num neg' : 'num'}>{s.threePlus}</strong>
         </div>
-        <div className="stat-row">
-          <span className="k">1 / 2 / 3+ putts</span>
-          <span className="v num">
-            {s.onePutts} / {s.twoPutts} / <span className={s.threePlus ? 'neg' : ''}>{s.threePlus}</span>
-          </span>
+        <div>
+          <span>Gained</span>
+          <strong className={s.sg >= 0 ? 'num pos' : 'num neg'}>{signed(s.sg)}</strong>
         </div>
-        {s.threePuttHoles.length > 0 && (
-          <div className="stat-row">
-            <span className="k">Three-putt holes</span>
-            <span className="v num neg">{s.threePuttHoles.map((h) => `#${h}`).join(', ')}</span>
-          </div>
-        )}
-        <div className="stat-row">
-          <span className="k">Make % from 3 to 10 ft</span>
-          <span className="v num">
-            {pctText(scoringPct)} <span className="small muted">{s.scoring.makes}/{s.scoring.attempts}</span>
-          </span>
-        </div>
-        <div className="stat-row">
-          <span className="k">Feet of putts holed</span>
-          <span className="v num">{s.makesTotalFeet}</span>
-        </div>
-        {round.score !== undefined && (
-          <div className="stat-row">
-            <span className="k">Score</span>
-            <span className="v num">{round.score}</span>
-          </div>
-        )}
-        {s.scoredHoles > 0 ? (
-          <div className="stat-row">
-            <span className="k">Greens in regulation</span>
-            <span className="v num">
-              {s.gir}
-              <span className="small muted"> of {s.scoredHoles} scored</span>
-            </span>
-          </div>
-        ) : null}
       </div>
-
-      <h2>By distance</h2>
-      <DistanceTable stats={s} countsOnly />
-
-      <h2>Lag control</h2>
-      <LagPanel stats={s} lag={lagSaves([round])} />
-
-      {form && (
-        <>
-          <h2>Form</h2>
-          <FormPanel form={form} />
-        </>
-      )}
-
-      <h2>Misses this round</h2>
-      {read.judged > 0 && <ReadPanel read={read} />}
-      <PatternPanel stats={s} />
-
-      {beats && beats.n >= 6 && (
-        <>
-          <h2>How often you beat the number</h2>
-          <BeatBar spread={beats} compact />
-        </>
-      )}
-
-      {cup && cup.total + cup.unsure > 0 && (
-        <>
-          <h2>Where they went in</h2>
-          <CupMap counts={cup.counts} unsure={cup.unsure} />
-        </>
+      {mismatch && (
+        <p className="small neg" style={{ margin: '6px 0 0' }}>
+          The card says {round.recordedPutts} putts; {s.totalPutts} are logged here.
+        </p>
       )}
 
       <h2>Scorecard</h2>
@@ -480,8 +313,20 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         {playedHoles.map((h) => (
           <button
             key={h.hole}
-            className={h.putts.length >= 3 ? 'sc-row three' : 'sc-row'}
-            onClick={() => {
+            className={[
+              'sc-row',
+              h.putts.length >= 3 ? 'three' : '',
+              tags.get(h.hole) && !tags.get(h.hole)!.fix ? 'tagged' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={(e) => {
+              // The tag opens its moment card; anywhere else on the row edits the hole.
+              const tag = tags.get(h.hole);
+              if (tag && (e.target as HTMLElement).closest('[data-moment]')) {
+                setFocusMoment((f) => ({ index: tag.index, n: (f?.n ?? 0) + 1 }));
+                return;
+              }
               setEditPutt(null);
               setEditHole(h.hole);
             }}
@@ -490,6 +335,11 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             <span className="par-cell">{h.par ?? ''}</span>
             <span className="seq">
               {h.putts.length ? puttSequence(h.putts) : holedOut(h) ? 'chipped in' : '--'}
+              {tags.get(h.hole) && (
+                <span data-moment className={tags.get(h.hole)!.fix ? 'sc-tag fix' : 'sc-tag'}>
+                  {tags.get(h.hole)!.text}
+                </span>
+              )}
             </span>
             <span className="drop-cell">
               {marks.triggers.has(h.hole) ? (
@@ -560,7 +410,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         </p>
       )}
 
-      <RoundMoments moments={moments} round={round} baseline={state.baseline} />
 
       {hole && (
         <Sheet

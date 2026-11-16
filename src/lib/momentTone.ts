@@ -4,20 +4,21 @@
  */
 export type Tone = 'green' | 'clay' | 'paper' | 'slate';
 
+// Green is a highlight, slate a personal best, clay the one to fix. Clay means nothing else.
 const BY_KIND: Record<string, Tone> = {
   ace: 'green',
   albatross: 'green',
   eagle: 'green',
   longshot: 'green',
   chipIn: 'green',
-  fewest: 'clay',
+  fewest: 'slate',
   noThree: 'green',
   perfect: 'paper',
   bestRound: 'slate',
-  clean: 'clay',
+  clean: 'slate',
   onePutts: 'paper',
   streak: 'paper',
-  gotAway: 'paper',
+  gotAway: 'clay',
   lag: 'slate',
 };
 

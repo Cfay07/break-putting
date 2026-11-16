@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { atLeast, momentsOf, oddsText, puttsAtMost, runOf, shapeWords } from './moments';
+import { atLeast, momentsOf, oddsText, puttsAtMost, runOf, scorecardTag, shapeWords } from './moments';
 import type { Hole, Putt, Round } from './types';
 
 const BASE: [number, number][] = [
@@ -106,5 +106,16 @@ describe('the new moments', () => {
     const holes = Array.from({ length: 9 }, (_, i) => hole(i + 1, [[12, true]]));
     const m = momentsOf(rnd('a', '2026-11-01', holes), prior, BASE, chance);
     expect(m.filter((x) => ['fewest', 'onePutts', 'bestRound'].includes(x.kind))).toHaveLength(1);
+  });
+});
+
+describe('scorecard tags', () => {
+  it('put a short tag on the hole a moment happened on, marking the ones to fix', () => {
+    const holes = twoPutts(5);
+    holes[3] = hole(4, [[30, true]]);
+    const shot = momentsOf(rnd('a', '2026-11-01', holes), [], BASE, chance).find((x) => x.kind === 'longshot')!;
+    expect(scorecardTag(shot)).toEqual({ text: `${shot.stats[0].v} chance`, fix: false });
+    expect(scorecardTag({ ...shot, kind: 'gotAway' })).toEqual({ text: 'Got away', fix: true });
+    expect(scorecardTag({ ...shot, hole: undefined })).toBeNull();
   });
 });
