@@ -21,12 +21,9 @@ import { Privacy, Terms } from './pages/Legal';
 import { TeamLivePage, TeamPracticePage, TeamRoundPage } from './pages/TeamPost';
 import { Track } from './pages/Track';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { bleedSummary } from './lib/bleed';
-import { fitMakeModel, makeability } from './lib/makeability';
 import { runLapsed } from './lib/practice';
 import { useRoute } from './lib/router';
-import { courseLabel, overall, roundStats } from './lib/stats';
-import { liveProjection } from './lib/projection';
+import { courseLabel, roundStats } from './lib/stats';
 import {
   joinTeam,
   loadTeams,
@@ -44,51 +41,9 @@ import { resolveDrill } from './lib/drills';
 import { TEST_ID } from './lib/weeklyTest';
 import { accountName, currentSession, online } from './lib/cloud';
 import { syncQuietly } from './lib/sync';
+import { summarise } from './lib/teamSummary';
 import { findRound, liveRound, useApp } from './lib/store';
-import { holeVsPar, holedOut, type AppState } from './lib/types';
-
-/**
- * What this player shares with their teams. Only these numbers leave the device; the rounds
- * themselves stay owner-only in the database.
- */
-function summarise(state: AppState) {
-  const done = state.rounds.filter((r) => r.finished);
-  const o = overall(done, state.baseline);
-  const model = fitMakeModel(done);
-  const live = state.rounds.find((r) => !r.finished);
-  const played = live ? live.holes.filter((h) => h.putts.length > 0).length : 0;
-  return {
-    rounds: done.length,
-    competitive_rounds: done.filter((r) => r.competitive).length,
-    putts_pr: o.puttsPerRound,
-    three_pr: o.threePuttsPerRound,
-    sg_pr: o.sgPerRound,
-    make6: makeability(model, 6),
-    bleed_pr: bleedSummary(done).shotsPerRound,
-    bounce_back: bleedSummary(done).afterRate,
-    scoring_pct: o.scoringPct !== null ? o.scoringPct / 100 : null,
-    last_round: done.length ? done.reduce((a, b) => (b.date > a.date ? b : a)).date : null,
-    live:
-      live && played
-        ? {
-            hole: Math.max(...live.holes.filter((h) => h.putts.length).map((h) => h.hole)),
-            thru: played,
-            course: live.course,
-            started_at: live.updated ?? new Date().toISOString(),
-            putts: live.holes.reduce((n, h) => n + h.putts.length, 0),
-            to_par: live.holes.some((h) => holeVsPar(h) !== undefined)
-              ? live.holes.reduce((n, h) => n + (holeVsPar(h) ?? 0), 0)
-              : null,
-            // Teammates only: the player's own phone never shows it, so it cannot get in their head.
-            proj: liveProjection(live, done),
-            // Hole by hole so far, in the same shape a finished round shares, so a teammate can follow along.
-            holes: live.holes
-              .filter((h) => h.putts.length > 0 || holedOut(h))
-              .map((h) => ({ h: h.hole, p: h.putts.length, d: h.putts[0]?.d ?? null, v: holeVsPar(h) ?? null })),
-          }
-        : null,
-  };
-}
+import { holeVsPar, type AppState } from './lib/types';
 
 const TABS = [
   { path: '/', label: 'Rounds' },
@@ -241,7 +196,9 @@ export default function App() {
   }, [state]);
 
   useEffect(() => {
-    if (!state.rounds.some((r) => r.finished)) return;
+    // Any round at all, live included: a new teammate's first round should show on the live strip
+    // while they play it, not only once they have finished one.
+    if (!state.rounds.length) return;
     const id = setTimeout(() => {
       void publishStats(summarise(state));
       // Bounded on purpose. Anything older than the last fifty deletions went up long ago, and
