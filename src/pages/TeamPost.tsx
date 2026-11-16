@@ -286,7 +286,8 @@ export function TeamLivePage({ user }: { user: string }) {
   const holes = live.holes ?? [];
   const parText = (v: number) => (v === 0 ? 'E' : v > 0 ? `+${v}` : String(v));
   const tiles: { k: string; v: string; cls?: string; sub?: string }[] = [
-    { k: 'Thru', v: String(live.thru) },
+    // Thru is how many holes; the last hole is where they are. They differ on a shotgun start.
+    { k: 'Thru', v: String(live.thru), sub: `last hole ${live.hole}` },
     { k: 'Putts', v: live.putts !== undefined ? String(live.putts) : '--' },
     {
       k: 'To par',
