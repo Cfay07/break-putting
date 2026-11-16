@@ -29,7 +29,11 @@ function whenSynced(): string {
   return fmtDate(at.slice(0, 10));
 }
 
-export function Account() {
+/**
+ * `onSignedIn` runs after the account is in and synced, inside the same error handling, so a
+ * failed follow-up (joining a team) shows its message here. `join` leads with Create account.
+ */
+export function Account({ onSignedIn, join = false }: { onSignedIn?: () => Promise<void>; join?: boolean } = {}) {
   const { state, dispatch } = useApp();
   const [session, setSession] = useState(currentSession);
   const [email, setEmail] = useState('');
@@ -101,6 +105,7 @@ export function Account() {
           ? `Signed in as ${s.email}. The rounds on this phone belonged to a different account, so they were cleared instead of being taken over. Received ${result.pulled}.`
           : `Signed in. Sent ${result.pushed}, received ${result.pulled}.`,
       );
+      if (onSignedIn) await onSignedIn();
     } catch (e) {
       setNote((e as Error).message);
     } finally {
@@ -242,9 +247,12 @@ export function Account() {
 
   return (
     <>
-      <p className="small muted">
-        Without an account your rounds live on this phone only. Sign in and they back up and follow you to a new phone.
-      </p>
+      {!join && (
+        <p className="small muted">
+          Without an account your rounds live on this phone only. Sign in and they back up and follow you to a new
+          phone.
+        </p>
+      )}
       {!storedOwner() && state.rounds.length > 0 && (
         <p className="small muted">
           This phone has {state.rounds.length} {state.rounds.length === 1 ? 'round' : 'rounds'} on it that are not tied
@@ -256,18 +264,34 @@ export function Account() {
       <div className="field-label">Password</div>
       <input
         type="password"
-        autoComplete="current-password"
+        autoComplete={join ? 'new-password' : 'current-password'}
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      <div className="btn-row" style={{ marginTop: 12 }}>
-        <button className="btn btn-primary" disabled={busy} onClick={() => enter('in')}>
-          Sign in
-        </button>
-        <button className="btn" disabled={busy} onClick={() => enter('up')}>
-          Create account
-        </button>
-      </div>
+      {join ? (
+        <>
+          <button
+            className="btn btn-primary btn-wide"
+            style={{ marginTop: 12 }}
+            disabled={busy}
+            onClick={() => enter('up')}
+          >
+            {busy ? 'Joining…' : 'Create account and join'}
+          </button>
+          <button className="btn btn-wide" style={{ marginTop: 8 }} disabled={busy} onClick={() => enter('in')}>
+            I have an account, sign in and join
+          </button>
+        </>
+      ) : (
+        <div className="btn-row" style={{ marginTop: 12 }}>
+          <button className="btn btn-primary" disabled={busy} onClick={() => enter('in')}>
+            Sign in
+          </button>
+          <button className="btn" disabled={busy} onClick={() => enter('up')}>
+            Create account
+          </button>
+        </div>
+      )}
       <button className="linkish tiny" style={{ marginTop: 10 }} disabled={busy} onClick={sendReset}>
         Forgot your password?
       </button>

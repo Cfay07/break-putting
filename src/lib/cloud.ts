@@ -254,3 +254,15 @@ export async function deleteAccount(): Promise<void> {
   }
   signOut();
 }
+
+/** The team behind an invite code, readable before you have an account. Null if no team has it. */
+export async function teamByCode(code: string): Promise<{ name: string; accent: string | null } | null> {
+  const res = await fetch(`${URL}/rest/v1/rpc/team_by_code`, {
+    method: 'POST',
+    headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) throw new Error('Could not look up that invite.');
+  const rows = (await res.json()) as { name: string; accent: string | null }[];
+  return rows[0] ?? null;
+}

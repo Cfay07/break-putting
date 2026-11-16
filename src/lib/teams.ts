@@ -349,3 +349,26 @@ export async function setRole(teamId: string, member: string, role: 'member' | '
     throw new Error(body?.message ?? 'That did not work.');
   }
 }
+
+/**
+ * An invite you opened but have not used yet. Kept so the join still happens if you sign in some
+ * other way first, or close the app halfway through making an account.
+ */
+const PENDING_JOIN = 'break.join';
+
+export function pendingJoin(): string | null {
+  try {
+    return localStorage.getItem(PENDING_JOIN);
+  } catch {
+    return null;
+  }
+}
+
+export function rememberJoin(code: string | null) {
+  try {
+    if (code) localStorage.setItem(PENDING_JOIN, code.toUpperCase());
+    else localStorage.removeItem(PENDING_JOIN);
+  } catch {
+    // Private mode: the link itself still works, it just is not remembered.
+  }
+}

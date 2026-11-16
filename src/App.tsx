@@ -26,7 +26,11 @@ import { runLapsed } from './lib/practice';
 import { useRoute } from './lib/router';
 import { courseLabel, overall, roundStats } from './lib/stats';
 import {
+  joinTeam,
   loadTeams,
+  pendingJoin,
+  rememberJoin,
+  rememberOnTeam,
   onTeamCached,
   publishPractice,
   publishRounds,
@@ -36,7 +40,7 @@ import {
 } from './lib/teams';
 import { resolveDrill } from './lib/drills';
 import { TEST_ID } from './lib/weeklyTest';
-import { currentSession } from './lib/cloud';
+import { accountName, currentSession, online } from './lib/cloud';
 import { syncQuietly } from './lib/sync';
 import { findRound, liveRound, useApp } from './lib/store';
 import { holeVsPar, type AppState } from './lib/types';
@@ -125,7 +129,15 @@ export default function App() {
   useEffect(() => {
     const sync = () => setOnTeam(onTeamCached());
     window.addEventListener('break:team', sync);
-    if (currentSession()) loadTeams().catch(() => undefined);
+    const code = pendingJoin();
+    // An invite opened before signing in some other way: finish it now. Not over a join route,
+    // which handles its own, and not offline, where it would be dropped for nothing.
+    if (currentSession() && code && online() && !window.location.hash.startsWith('#/join/')) {
+      joinTeam(code, accountName())
+        .then(() => rememberOnTeam(true))
+        .catch(() => undefined)
+        .finally(() => rememberJoin(null));
+    } else if (currentSession()) loadTeams().catch(() => undefined);
     return () => window.removeEventListener('break:team', sync);
   }, []);
   const { state, dispatch } = useApp();

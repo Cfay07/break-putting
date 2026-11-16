@@ -3,7 +3,9 @@ import { NameField } from '../components/NameField';
 import { CoachView } from '../components/CoachView';
 import { TeamFeed } from '../components/TeamFeed';
 import { Sheet } from '../components/Sheet';
-import { accountName, currentSession } from '../lib/cloud';
+import { accountName, currentSession, saveAccountName, teamByCode } from '../lib/cloud';
+import { replaceRoute } from '../lib/router';
+import { Account } from '../components/Account';
 import { fmtDate, fmtDateLong, today } from '../lib/format';
 import {
   createTeam,
@@ -20,6 +22,8 @@ import {
   type Team as TeamRow,
   type TeamView,
   planActive,
+  rememberJoin,
+  rememberOnTeam,
 } from '../lib/teams';
 
 const EMPTY: TeamView = { teams: [], members: [], stats: [], plans: [] };
@@ -254,6 +258,70 @@ function PlayerPanel({
   );
 }
 
+/**
+ * Where an invite link lands without an account: whose team it is, then name, email and password
+ * on one screen. One button makes the account, joins the team and opens it.
+ */
+function JoinLanding({ code, onJoined }: { code: string; onJoined: (teamId: string) => Promise<void> }) {
+  const [team, setTeam] = useState<{ name: string; accent: string | null } | null | undefined>(undefined);
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    rememberJoin(code);
+    teamByCode(code)
+      .then(setTeam)
+      .catch(() => setTeam(null));
+  }, [code]);
+
+  if (team === undefined) return <p className="small muted">Looking up your team…</p>;
+  if (team === null) {
+    return (
+      <>
+        <h2 style={{ marginTop: 0 }}>That invite has expired</h2>
+        <p className="small muted">No team uses the code {code.toUpperCase()}. Ask whoever sent it for a new link.</p>
+      </>
+    );
+  }
+
+  return (
+    <div className="join-landing">
+      <div className="team-head">
+        <Crest name={team.name} accent={team.accent || '#14392b'} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <h2 style={{ margin: 0 }}>Join {team.name}</h2>
+          <p className="small muted" style={{ margin: 0 }}>
+            Invite code {code.toUpperCase()}
+          </p>
+        </div>
+      </div>
+      <p className="small" style={{ margin: '12px 0 4px' }}>
+        Log your putts and practice, and see every teammate's rounds in one feed, who is on the course right now, and
+        the leaderboard.
+      </p>
+      <div className="field-label">Your name</div>
+      <input
+        type="text"
+        autoComplete="name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        maxLength={40}
+        placeholder="What your teammates see"
+      />
+      <Account
+        join
+        onSignedIn={async () => {
+          const shown = name.trim();
+          if (shown) await saveAccountName(shown);
+          const t = await joinTeam(code, shown || accountName());
+          rememberJoin(null);
+          rememberOnTeam(true);
+          await onJoined(t.id);
+        }}
+      />
+    </div>
+  );
+}
+
 /** The link a teammate taps to land on the join form with the code filled in. */
 const inviteLink = (code: string) => `${window.location.origin}${window.location.pathname}#/join/${code}`;
 
@@ -318,12 +386,21 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
     setDraftAccent(team?.theme?.accent ?? '#D01C2E');
   }, [team?.id, team?.name, team?.theme?.accent]);
 
-  // Opened from an invite link: land on that team if you are already on it, else on the join form.
+  // Opened from an invite link while signed in: tapping it is the ask, so join and open the team.
   useEffect(() => {
-    if (loading || !joinCode) return;
+    if (loading || !joinCode || !session) return;
     const already = view.teams.find((t) => t.join_code === joinCode.toUpperCase());
-    if (already) setPick(already.id);
-    else if (view.teams.length) setSheet('add');
+    rememberJoin(null);
+    if (already) {
+      setPick(already.id);
+      replaceRoute('/team');
+      return;
+    }
+    void run(async () => {
+      const t = await joinTeam(joinCode, accountName());
+      setPick(t.id);
+      replaceRoute('/team');
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, joinCode]);
 
@@ -358,6 +435,19 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
     }
   };
 
+  if (!session && joinCode) {
+    return (
+      <JoinLanding
+        code={joinCode}
+        onJoined={async (id) => {
+          setPick(id);
+          setLoading(true);
+          await refresh();
+          replaceRoute('/team');
+        }}
+      />
+    );
+  }
   if (!session) {
     return (
       <>
@@ -367,11 +457,6 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
           the bleeding after a three-putt, who is out on the course right now. Teams are private and you join with a
           code.
         </p>
-        {joinCode && (
-          <p className="small" style={{ margin: '0 0 12px' }}>
-            You were invited with code <b>{joinCode.toUpperCase()}</b>. Set up an account, then open the link again.
-          </p>
-        )}
         <a
           className="btn btn-primary btn-wide"
           href="#/settings"
