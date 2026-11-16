@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NameField } from '../components/NameField';
+import { TeamFeed } from '../components/TeamFeed';
 import { Sheet } from '../components/Sheet';
 import { accountName, currentSession } from '../lib/cloud';
 import { fmtDate } from '../lib/format';
@@ -26,7 +27,12 @@ const EMPTY: TeamView = { teams: [], members: [], stats: [] };
  * app knows, so they are the ones worth competing on.
  */
 const BOARDS = [
-  { key: 'sg_pr', label: 'Strokes gained', fmt: (v: number) => (v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1)), lowBetter: false },
+  {
+    key: 'sg_pr',
+    label: 'Strokes gained',
+    fmt: (v: number) => (v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1)),
+    lowBetter: false,
+  },
   { key: 'scoring_pct', label: 'Make % (3-10 ft)', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
   { key: 'make6', label: 'Six-footers', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
   { key: 'three_pr', label: '3-putts per round', fmt: (v: number) => v.toFixed(1), lowBetter: true },
@@ -190,8 +196,7 @@ function PlayerPanel({
         </div>
       ) : (
         <p className="small muted">
-          {name} has not logged a round yet. Their numbers appear here the first time they finish
-          one.
+          {name} has not logged a round yet. Their numbers appear here the first time they finish one.
         </p>
       )}
 
@@ -232,7 +237,10 @@ function PlayerPanel({
   );
 }
 
-export function Team() {
+/** The link a teammate taps to land on the join form with the code filled in. */
+const inviteLink = (code: string) => `${window.location.origin}${window.location.pathname}#/join/${code}`;
+
+export function Team({ joinCode }: { joinCode?: string } = {}) {
   const session = currentSession();
   const [view, setView] = useState<TeamView>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -242,7 +250,8 @@ export function Team() {
   const [board, setBoard] = useState<BoardKey>('sg_pr');
   const [open, setOpen] = useState<string | null>(null);
   const [sheet, setSheet] = useState<'manage' | 'add' | 'teams' | 'board' | null>(null);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(() => joinCode?.toUpperCase() ?? '');
+  const [tab, setTab] = useState<'feed' | 'board'>('feed');
   const [newName, setNewName] = useState('');
   const [copied, setCopied] = useState(false);
   const [draftName, setDraftName] = useState('');
@@ -271,10 +280,7 @@ export function Team() {
   );
 
   const team: TeamRow | undefined = useMemo(
-    () =>
-      view.teams.find((t) => t.id === pick) ??
-      view.teams.find((t) => t.id === starredId) ??
-      view.teams[0],
+    () => view.teams.find((t) => t.id === pick) ?? view.teams.find((t) => t.id === starredId) ?? view.teams[0],
     [view.teams, pick, starredId],
   );
   const accent = team?.theme?.accent || '#14392b';
@@ -295,6 +301,15 @@ export function Team() {
     setDraftAccent(team?.theme?.accent ?? '#D01C2E');
   }, [team?.id, team?.name, team?.theme?.accent]);
 
+  // Opened from an invite link: land on that team if you are already on it, else on the join form.
+  useEffect(() => {
+    if (loading || !joinCode) return;
+    const already = view.teams.find((t) => t.join_code === joinCode.toUpperCase());
+    if (already) setPick(already.id);
+    else if (view.teams.length) setSheet('add');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, joinCode]);
+
   const roster = useMemo(() => {
     if (!team) return [];
     const byUser = new Map(view.stats.map((s) => [s.user_id, s]));
@@ -306,8 +321,7 @@ export function Team() {
         const bv = b.stats?.[board] ?? null;
         // Players with nothing logged sit at the bottom in name order rather than in whatever
         // order the database happened to return them.
-        if (av === null && bv === null)
-          return (a.member.display_name ?? '').localeCompare(b.member.display_name ?? '');
+        if (av === null && bv === null) return (a.member.display_name ?? '').localeCompare(b.member.display_name ?? '');
         if (av === null) return 1;
         if (bv === null) return -1;
         return BOARDS.find((x) => x.key === board)!.lowBetter ? av - bv : bv - av;
@@ -332,11 +346,20 @@ export function Team() {
       <>
         <h2 style={{ marginTop: 0 }}>Teams</h2>
         <p className="small muted" style={{ margin: '0 0 12px' }}>
-          A team puts your putting next to the people you actually play with: who holes the most
-          six-footers, who stops the bleeding after a three-putt, who is out on the course right
-          now. Teams are private and you join with a code.
+          A team puts your putting next to the people you actually play with: who holes the most six-footers, who stops
+          the bleeding after a three-putt, who is out on the course right now. Teams are private and you join with a
+          code.
         </p>
-        <a className="btn btn-primary btn-wide" href="#/settings" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+        {joinCode && (
+          <p className="small" style={{ margin: '0 0 12px' }}>
+            You were invited with code <b>{joinCode.toUpperCase()}</b>. Set up an account, then open the link again.
+          </p>
+        )}
+        <a
+          className="btn btn-primary btn-wide"
+          href="#/settings"
+          style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}
+        >
           Set up an account to join
         </a>
       </>
@@ -408,8 +431,8 @@ export function Team() {
         </button>
       </div>
       <p className="small muted" style={{ marginTop: 10 }}>
-        Teams are private and hold up to {MAX_PLAYERS} players. The code is the only way in, and
-        you can be on {MAX_TEAMS} teams at once.
+        Teams are private and hold up to {MAX_PLAYERS} players. The code is the only way in, and you can be on{' '}
+        {MAX_TEAMS} teams at once.
       </p>
     </>
   );
@@ -421,7 +444,11 @@ export function Team() {
         <p className="small muted" style={{ margin: '0 0 4px' }}>
           Put your putting next to the people you actually play with.
         </p>
-        {err && <p className="small" style={{ color: 'var(--red)' }}>{err}</p>}
+        {err && (
+          <p className="small" style={{ color: 'var(--red)' }}>
+            {err}
+          </p>
+        )}
         {addForm}
       </>
     );
@@ -449,42 +476,67 @@ export function Team() {
       </div>
       <div className="team-rule" />
 
-      {err && <p className="small" style={{ color: 'var(--red)' }}>{err}</p>}
+      {err && (
+        <p className="small" style={{ color: 'var(--red)' }}>
+          {err}
+        </p>
+      )}
 
-      <div className="board-bar">
-        <span className="field-label" style={{ margin: 0 }}>
+      <div className="seg seg-quiet team-tabs" role="group" aria-label="Team view">
+        <button aria-pressed={tab === 'feed'} onClick={() => setTab('feed')}>
+          Feed
+        </button>
+        <button aria-pressed={tab === 'board'} onClick={() => setTab('board')}>
           Leaderboard
-        </span>
-        <button className="pick" onClick={() => setSheet('board')}>
-          {BOARDS.find((b) => b.key === board)!.label}
         </button>
       </div>
 
-      <div className="board">
-        {roster.map(({ member, stats }, i) => {
-          const v = stats?.[board] ?? null;
-          const ranked = v !== null;
-          const mine = member.user_id === session.userId;
-          const name = member.display_name ?? 'Unnamed player';
-          return (
-            <button
-              key={member.user_id}
-              className={`lb-row${mine ? ' me' : ''}${ranked && i === 0 ? ' lead' : ''}`}
-              onClick={() => setOpen(member.user_id)}
-            >
-              <span className="place num">{ranked ? i + 1 : ''}</span>
-              <span className="nm">{name}</span>
-              {stats?.live && <span className="live-dot" aria-label="playing now" />}
-              <span className={ranked ? 'val num' : 'val num none'}>{ranked ? rank.fmt(v) : '--'}</span>
-            </button>
-          );
-        })}
-      </div>
+      {tab === 'feed' && (
+        <TeamFeed
+          key={team.id}
+          members={roster.map((r) => ({ id: r.member.user_id, name: r.member.display_name ?? 'A teammate' }))}
+          stats={view.stats}
+          me={session.userId}
+        />
+      )}
 
-      <p className="small muted" style={{ marginTop: 10 }}>
-        Everyone scored against your baseline, so it is like for like. Tap a player for their full
-        numbers.
-      </p>
+      {tab === 'board' && (
+        <>
+          <div className="board-bar">
+            <span className="field-label" style={{ margin: 0 }}>
+              Leaderboard
+            </span>
+            <button className="pick" onClick={() => setSheet('board')}>
+              {BOARDS.find((b) => b.key === board)!.label}
+            </button>
+          </div>
+
+          <div className="board">
+            {roster.map(({ member, stats }, i) => {
+              const v = stats?.[board] ?? null;
+              const ranked = v !== null;
+              const mine = member.user_id === session.userId;
+              const name = member.display_name ?? 'Unnamed player';
+              return (
+                <button
+                  key={member.user_id}
+                  className={`lb-row${mine ? ' me' : ''}${ranked && i === 0 ? ' lead' : ''}`}
+                  onClick={() => setOpen(member.user_id)}
+                >
+                  <span className="place num">{ranked ? i + 1 : ''}</span>
+                  <span className="nm">{name}</span>
+                  {stats?.live && <span className="live-dot" aria-label="playing now" />}
+                  <span className={ranked ? 'val num' : 'val num none'}>{ranked ? rank.fmt(v) : '--'}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="small muted" style={{ marginTop: 10 }}>
+            Everyone scored against your baseline, so it is like for like. Tap a player for their full numbers.
+          </p>
+        </>
+      )}
 
       {sheet === 'teams' && (
         <Sheet title="Your teams" onClose={() => setSheet(null)}>
@@ -568,6 +620,22 @@ export function Team() {
             }}
           >
             {copied ? 'Copied' : `${team.join_code} · tap to copy`}
+          </button>
+          <button
+            className="btn btn-wide"
+            style={{ marginTop: 8 }}
+            onClick={() => {
+              const url = inviteLink(team.join_code);
+              const text = `Join ${team.name} on BREAK!`;
+              if (navigator.share) void navigator.share({ title: text, text, url }).catch(() => undefined);
+              else {
+                void navigator.clipboard?.writeText(url);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1400);
+              }
+            }}
+          >
+            Send the invite link
           </button>
 
           {isOwner && (

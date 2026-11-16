@@ -1,3 +1,4 @@
+import type { Reaction, TeamPracticeRow } from './feed';
 import { currentSession, online, saveAccountName, table } from './cloud';
 
 export interface TeamTheme {
@@ -82,9 +83,8 @@ async function rows<T>(path: string): Promise<T[]> {
 
 export async function loadTeams(): Promise<TeamView> {
   if (!currentSession() || !online()) return { teams: [], members: [], stats: [] };
-  const teams = await rows<Team>(
-    'teams?select=id,name,join_code,owner_id,theme&order=created_at.asc',
-  );
+  const teams = await rows<Team>('teams?select=id,name,join_code,owner_id,theme&order=created_at.asc');
+  rememberOnTeam(teams.length > 0);
   if (!teams.length) return { teams: [], members: [], stats: [] };
   const [members, stats] = await Promise.all([
     rows<Member>('team_members?select=team_id,user_id,display_name,role,starred'),
@@ -155,9 +155,7 @@ export async function starTeam(teamId: string): Promise<void> {
 /** Publish my own summary. Fire and forget: a failed publish is not worth an error on screen. */
 /** Round list for one player, newest first. */
 export async function loadPlayerRounds(userId: string): Promise<TeamRound[]> {
-  return rows<TeamRound>(
-    `team_rounds?select=*&user_id=eq.${userId}&order=played_on.desc&limit=40`,
-  );
+  return rows<TeamRound>(`team_rounds?select=*&user_id=eq.${userId}&order=played_on.desc&limit=40`);
 }
 
 export async function publishRounds(mine: Omit<TeamRound, 'user_id'>[]): Promise<void> {
@@ -167,9 +165,7 @@ export async function publishRounds(mine: Omit<TeamRound, 'user_id'>[]): Promise
     await table('team_rounds?on_conflict=user_id,round_id', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates' },
-      body: JSON.stringify(
-        mine.map((r) => ({ user_id: session.userId, ...r, updated_at: new Date().toISOString() })),
-      ),
+      body: JSON.stringify(mine.map((r) => ({ user_id: session.userId, ...r, updated_at: new Date().toISOString() }))),
     });
   } catch {
     // next open will try again
@@ -206,5 +202,76 @@ export async function publishStats(mine: Omit<PlayerStats, 'user_id'>): Promise<
     });
   } catch {
     // next open will try again
+  }
+}
+
+/** My practice, for the team feed. Fire and forget, like the rounds. */
+export async function publishPractice(mine: Omit<TeamPracticeRow, 'user_id'>[]): Promise<void> {
+  const session = currentSession();
+  if (!session || !online() || !mine.length) return;
+  try {
+    await table('team_practice?on_conflict=user_id,set_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify(mine.map((p) => ({ user_id: session.userId, ...p, updated_at: new Date().toISOString() }))),
+    });
+  } catch {
+    // next open will try again
+  }
+}
+
+/** Everything the feed is made of. Row security already limits each table to me and my teammates. */
+export async function loadFeed(): Promise<{ rounds: TeamRound[]; practice: TeamPracticeRow[]; reactions: Reaction[] }> {
+  if (!currentSession() || !online()) return { rounds: [], practice: [], reactions: [] };
+  const [rounds, practice, reactions] = await Promise.all([
+    rows<TeamRound>('team_rounds?select=*&order=played_on.desc&limit=60'),
+    rows<TeamPracticeRow>(
+      'team_practice?select=user_id,set_id,played_on,title,kind,made,attempts&order=played_on.desc&limit=200',
+    ),
+    rows<Reaction>('team_reactions?select=post,user_id'),
+  ]);
+  return { rounds, practice, reactions };
+}
+
+export async function setReaction(post: string, on: boolean): Promise<void> {
+  const session = currentSession();
+  if (!session) throw new Error('Not signed in.');
+  const res = on
+    ? await table('team_reactions', { method: 'POST', body: JSON.stringify([{ post, user_id: session.userId }]) })
+    : await table(`team_reactions?post=eq.${encodeURIComponent(post)}&user_id=eq.${session.userId}`, {
+        method: 'DELETE',
+      });
+  if (!res.ok) throw new Error(`Could not save that (${res.status}).`);
+}
+
+export async function unpublishPractice(ids: string[]): Promise<void> {
+  const session = currentSession();
+  if (!session || !online() || !ids.length) return;
+  try {
+    const list = ids.map((id) => `"${id}"`).join(',');
+    await table(`team_practice?user_id=eq.${session.userId}&set_id=in.(${list})`, { method: 'DELETE' });
+  } catch {
+    // next open will try again
+  }
+}
+
+/** Remembered so the Team tab shows on the next open without waiting on the network. */
+const ON_TEAM = 'break.onTeam';
+
+export function onTeamCached(): boolean {
+  try {
+    return localStorage.getItem(ON_TEAM) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function rememberOnTeam(on: boolean) {
+  try {
+    if (on) localStorage.setItem(ON_TEAM, '1');
+    else localStorage.removeItem(ON_TEAM);
+    window.dispatchEvent(new Event('break:team'));
+  } catch {
+    // Private mode: the tab shows once the Team page has loaded this session.
   }
 }

@@ -18,13 +18,24 @@ import { SharedRound } from './pages/SharedRound';
 import { Stats } from './pages/Stats';
 import { Team } from './pages/Team';
 import { Track } from './pages/Track';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { bleedSummary } from './lib/bleed';
 import { fitMakeModel, makeability } from './lib/makeability';
 import { runLapsed } from './lib/practice';
 import { useRoute } from './lib/router';
 import { courseLabel, overall, roundStats } from './lib/stats';
-import { publishRounds, publishStats, unpublishRounds } from './lib/teams';
+import {
+  loadTeams,
+  onTeamCached,
+  publishPractice,
+  publishRounds,
+  publishStats,
+  unpublishPractice,
+  unpublishRounds,
+} from './lib/teams';
+import { resolveDrill } from './lib/drills';
+import { TEST_ID } from './lib/weeklyTest';
+import { currentSession } from './lib/cloud';
 import { syncQuietly } from './lib/sync';
 import { findRound, liveRound, useApp } from './lib/store';
 import { holeVsPar, type AppState } from './lib/types';
@@ -50,14 +61,15 @@ function summarise(state: AppState) {
     bounce_back: bleedSummary(done).afterRate,
     scoring_pct: o.scoringPct !== null ? o.scoringPct / 100 : null,
     last_round: done.length ? done.reduce((a, b) => (b.date > a.date ? b : a)).date : null,
-    live: live && played
-      ? {
-          hole: Math.max(...live.holes.filter((h) => h.putts.length).map((h) => h.hole)),
-          thru: played,
-          course: live.course,
-          started_at: live.updated ?? new Date().toISOString(),
-        }
-      : null,
+    live:
+      live && played
+        ? {
+            hole: Math.max(...live.holes.filter((h) => h.putts.length).map((h) => h.hole)),
+            thru: played,
+            course: live.course,
+            started_at: live.updated ?? new Date().toISOString(),
+          }
+        : null,
   };
 }
 
@@ -66,15 +78,32 @@ const TABS = [
   { path: '/track', label: 'Track' },
   { path: '/stats', label: 'Stats' },
   { path: '/practice', label: 'Practice' },
+  { path: '/team', label: 'Team' },
   { path: '/settings', label: 'Settings' },
 ];
 
-/** Team lives under Settings over the winter, so its page lights the tab it is reached from. */
-const PARENT: Record<string, string> = { '/team': '/settings' };
+/**
+ * Track earns a tab only while a round is going, Team only once you are on one. Off a team it is
+ * a row in Settings, so the tab bar never holds a page with nothing on it.
+ */
+function tabsFor(live: boolean, onTeam: boolean) {
+  return TABS.filter((t) => (t.path !== '/track' || live) && (t.path !== '/team' || onTeam));
+}
 
-/** Track earns a tab only while a round is going. Otherwise it is a dead end. */
-function tabsFor(live: boolean) {
-  return TABS.filter((t) => t.path !== '/track' || live);
+/** The practice sets your team sees: what was rolled and how it went. */
+function practiceForTeam(state: AppState) {
+  return [...state.practice]
+    .filter((s) => s.attempts > 0)
+    .sort((a, b) => (b.updated ?? b.date).localeCompare(a.updated ?? a.date))
+    .slice(0, 50)
+    .map((s) => ({
+      set_id: s.id,
+      played_on: s.date.slice(0, 10),
+      title: resolveDrill(state, s.drill)?.name ?? 'Practice',
+      kind: s.drill === TEST_ID ? ('test' as const) : ('set' as const),
+      made: s.made,
+      attempts: s.attempts,
+    }));
 }
 
 /**
@@ -83,12 +112,20 @@ function tabsFor(live: boolean) {
  * phone, used to show an empty Track tab.
  */
 function afterTrack(state: AppState): string {
-  const newest = (rs: { updated?: string }[]) => rs.reduce((a, r) => ((r.updated ?? '') > a ? (r.updated ?? '') : a), '');
+  const newest = (rs: { updated?: string }[]) =>
+    rs.reduce((a, r) => ((r.updated ?? '') > a ? (r.updated ?? '') : a), '');
   return newest(state.practiceRounds ?? []) > newest(state.rounds) ? '/practice' : '/';
 }
 
 export default function App() {
   const route = useRoute();
+  const [onTeam, setOnTeam] = useState(onTeamCached);
+  useEffect(() => {
+    const sync = () => setOnTeam(onTeamCached());
+    window.addEventListener('break:team', sync);
+    if (currentSession()) loadTeams().catch(() => undefined);
+    return () => window.removeEventListener('break:team', sync);
+  }, []);
   const { state, dispatch } = useApp();
   const live = liveRound(state);
 
@@ -163,6 +200,21 @@ export default function App() {
   }, [hasRun, dispatch]);
 
   useEffect(() => {
+    if (!state.practice.length) return;
+    const id = setTimeout(() => {
+      void unpublishPractice(
+        state.tombstones
+          .filter((t) => t.kind === 'practice')
+          .sort((a, b) => b.at.localeCompare(a.at))
+          .slice(0, 50)
+          .map((t) => t.id),
+      );
+      void publishPractice(practiceForTeam(state));
+    }, 1500);
+    return () => clearTimeout(id);
+  }, [state]);
+
+  useEffect(() => {
     if (!state.rounds.some((r) => r.finished)) return;
     const id = setTimeout(() => {
       void publishStats(summarise(state));
@@ -224,6 +276,7 @@ export default function App() {
 
   // /round/<id> and /round/<id>/hole/<n>, so a stat can land on the hole it is talking about
   // rather than the top of the round.
+  const joinMatch = route.match(/^\/join\/([A-Za-z0-9]{4,8})$/);
   const roundMatch = route.match(/^\/round\/([^/]+)(?:\/hole\/(\d+))?$/);
   const practiceMatch = route.match(/^\/practice\/(drill|edit|session|session-edit)\/([^/]+)$/);
   const page = practiceMatch ? (
@@ -253,7 +306,11 @@ export default function App() {
   ) : roundMatch ? (
     <RoundDetail id={roundMatch[1]} openHole={roundMatch[2] ? Number(roundMatch[2]) : undefined} />
   ) : staleTrack ? (
-    afterTrack(state) === '/practice' ? <Practice /> : <Rounds />
+    afterTrack(state) === '/practice' ? (
+      <Practice />
+    ) : (
+      <Rounds />
+    )
   ) : route === '/track' ? (
     <Track />
   ) : route === '/stats' || route === '/stats/practice' ? (
@@ -262,8 +319,8 @@ export default function App() {
     <Practice />
   ) : route === '/practice/test' ? (
     <Practice openTest />
-  ) : route === '/team' ? (
-    <Team />
+  ) : route === '/team' || joinMatch ? (
+    <Team joinCode={joinMatch?.[1]} />
   ) : route === '/settings' ? (
     <Settings />
   ) : route === '/moments' ? (
@@ -282,15 +339,15 @@ export default function App() {
         ? 'All rounds'
         : route === '/stats/practice'
           ? 'Practice'
-        : route.startsWith('/practice')
-          ? 'Practice'
-          : route === '/team'
-          ? 'Team'
-          : route === '/settings'
-            ? 'Settings'
-            : route === '/moments'
-              ? 'Moments'
-            : 'Putting';
+          : route.startsWith('/practice')
+            ? 'Practice'
+            : route === '/team' || joinMatch
+              ? 'Team'
+              : route === '/settings'
+                ? 'Settings'
+                : route === '/moments'
+                  ? 'Moments'
+                  : 'Putting';
 
   return (
     <div className="app">
@@ -300,13 +357,16 @@ export default function App() {
       </div>
       <main className="main">{page}</main>
       <nav className="nav">
-        {tabsFor(!!live).map((t) => {
+        {tabsFor(!!live, onTeam).map((t) => {
           const here = route.startsWith('/practice')
             ? '/practice'
             : route.startsWith('/stats')
               ? '/stats'
-              : (PARENT[route] ?? route);
-          const on = t.path === '/' ? here === '/' || here === '/moments' || here.startsWith('/round/') : here === t.path;
+              : route === '/team' && !onTeam
+                ? '/settings'
+                : route;
+          const on =
+            t.path === '/' ? here === '/' || here === '/moments' || here.startsWith('/round/') : here === t.path;
           return (
             <a key={t.path} href={`#${t.path}`} className={on ? 'on' : undefined}>
               {t.label}
