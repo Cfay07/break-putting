@@ -85,11 +85,7 @@ export function xpOf(model: MakeModel, baseline: [number, number][], p: Putt): n
  * miss, and it decides nothing of the sort: conditions set the expectation, execution tags record
  * what you did, and neither establishes why the ball stayed out.
  */
-export function difficultyOf(
-  model: MakeModel,
-  baseline: [number, number][],
-  p: Putt,
-): number | null {
+export function difficultyOf(model: MakeModel, baseline: [number, number][], p: Putt): number | null {
   const x = xpOf(model, baseline, p);
   return x === null ? null : x - expectedPutts(baseline, p.d);
 }
@@ -103,11 +99,7 @@ export function difficultyOf(
  * is the hole's whole adjustment, and it is why a lag is now charged for leaving a breaking putt
  * rather than a straight one.
  */
-export function holeAdjustments(
-  model: MakeModel,
-  baseline: [number, number][],
-  putts: Putt[],
-): (number | null)[] {
+export function holeAdjustments(model: MakeModel, baseline: [number, number][], putts: Putt[]): (number | null)[] {
   const cs = putts.map((p) => difficultyOf(model, baseline, p));
   return cs.map((c, i) => {
     if (c === null) return null;
@@ -128,48 +120,6 @@ export function puttSGAdjusted(
   if (i + 1 >= putts.length) return here - 1;
   const next = xpOf(model, baseline, putts[i + 1]);
   return next === null ? null : here - 1 - next;
-}
-
-/** How a putt finished against what it was worth. */
-export type Verdict = 'bailed' | 'robbed' | 'sold';
-
-export const VERDICT_LABEL: Record<Verdict, string> = {
-  bailed: 'Bailed',
-  robbed: 'Robbed',
-  sold: 'Sold',
-};
-
-export const VERDICT_SAYS: Record<Verdict, string> = {
-  bailed: 'owed nothing, got it anyway',
-  robbed: 'nothing wrong with it',
-  sold: 'gave that one away',
-};
-
-/** Half a stroke. Below this a putt did roughly what it was worth and gets no label. */
-const VERDICT_EDGE = 0.5;
-
-/**
- * Bailed, Robbed or Sold, against xP rather than against distance.
- *
- * Robbed and Sold are both misses you should have made; the split is whether the stroke was
- * clean. That split is only available on a putt whose execution was actually looked at, so an
- * unreviewed miss gets no verdict at all rather than being quietly filed as Robbed. A lip-out
- * is the purest Robbed there is, and it still has to have been reviewed to say so.
- */
-export function verdictOf(
-  model: MakeModel,
-  baseline: [number, number][],
-  putts: Putt[],
-  i: number,
-): Verdict | null {
-  const sg = puttSGAdjusted(model, baseline, putts, i);
-  if (sg === null || Math.abs(sg) < VERDICT_EDGE) return null;
-  if (sg > 0) return 'bailed';
-
-  const p = putts[i];
-  // Never infer a clean stroke from an empty set of faults.
-  if (!p.executionAssessed) return null;
-  return faultyOf(p) ? 'sold' : 'robbed';
 }
 
 /**
@@ -286,19 +236,33 @@ export interface ExecModel {
 }
 
 const EMPTY_EXEC: ExecModel = {
-  alpha: 0, beta: 0, nClean: 0, nFaulty: 0, cleanRate: null, faultyRate: null,
-  gap: null, band: null, predictive: false, estimable: false,
-  confounded: false, faultyMakes: 0, cleanMisses: 0,
+  alpha: 0,
+  beta: 0,
+  nClean: 0,
+  nFaulty: 0,
+  cleanRate: null,
+  faultyRate: null,
+  gap: null,
+  band: null,
+  predictive: false,
+  estimable: false,
+  confounded: false,
+  faultyMakes: 0,
+  cleanMisses: 0,
 };
 
 /** A fault anyone actually recorded. Absence is not evidence of a clean stroke. */
 export function faultyOf(p: Putt): boolean {
   return (
-    !!p.push || !!p.pull || !!p.decel || !!p.accel || !!p.wrongWay ||
-    p.strike === 'toe' || p.strike === 'heel' ||
-    // A read that did not match what the putt did is a fault, holed or not. verdictOf has always
-    // counted it; this did not, so a misread putt that dropped was faulty for the label and clean
-    // for the model, which is exactly the case the execution layer most needs to see.
+    !!p.push ||
+    !!p.pull ||
+    !!p.decel ||
+    !!p.accel ||
+    !!p.wrongWay ||
+    p.strike === 'toe' ||
+    p.strike === 'heel' ||
+    // A read that did not match what the putt did is a fault, holed or not. A misread putt that
+    // dropped is exactly the case the execution layer most needs to see.
     (p.brokeAs !== undefined && p.brokeAs !== p.readAs)
   );
 }
@@ -368,11 +332,7 @@ export function fitExecModel(model: MakeModel, rounds: AnyRound[]): ExecModel {
   const faultyRate = rate(faulty);
   const gap = cleanRate - faultyRate;
   const band =
-    1.96 *
-    Math.sqrt(
-      (cleanRate * (1 - cleanRate)) / clean.length +
-        (faultyRate * (1 - faultyRate)) / faulty.length,
-    );
+    1.96 * Math.sqrt((cleanRate * (1 - cleanRate)) / clean.length + (faultyRate * (1 - faultyRate)) / faulty.length);
 
   const offset = rows.map((r) => {
     const chance = makeChanceOf(model, r.p);
@@ -391,7 +351,10 @@ export function fitExecModel(model: MakeModel, rounds: AnyRound[]): ExecModel {
     beta: fit ? fit[1] : 0,
     nClean: clean.length,
     nFaulty: faulty.length,
-    cleanRate, faultyRate, gap, band,
+    cleanRate,
+    faultyRate,
+    gap,
+    band,
     predictive: band < Math.abs(gap),
     estimable: !!fit,
     confounded: false,
@@ -407,12 +370,7 @@ export function fitExecModel(model: MakeModel, rounds: AnyRound[]): ExecModel {
  * interval. Until then the tags have not been shown to predict anything and a number here would
  * be dressing up noise.
  */
-export function xpotOf(
-  model: MakeModel,
-  exec: ExecModel,
-  baseline: [number, number][],
-  p: Putt,
-): number | null {
+export function xpotOf(model: MakeModel, exec: ExecModel, baseline: [number, number][], p: Putt): number | null {
   if (!exec.estimable || !exec.predictive || !assessedOf(p)) return null;
   const chance = makeChanceOf(model, p);
   if (chance === null) return null;
@@ -423,12 +381,7 @@ export function xpotOf(
 }
 
 /** What the stroke cost, in putts. Null wherever the stroke layer cannot speak. */
-export function strokeCostOf(
-  model: MakeModel,
-  exec: ExecModel,
-  baseline: [number, number][],
-  p: Putt,
-): number | null {
+export function strokeCostOf(model: MakeModel, exec: ExecModel, baseline: [number, number][], p: Putt): number | null {
   const after = xpotOf(model, exec, baseline, p);
   const before = xpOf(model, baseline, p);
   return after === null || before === null ? null : after - before;
@@ -487,65 +440,7 @@ export function beatSpread(baseline: [number, number][], rounds: AnyRound[]): Be
   return { bins, n, beat, level, best, worst };
 }
 
-export interface VerdictTally {
-  rows: { verdict: Verdict; n: number; avgFt: number; says: string }[];
-  judged: number;
-  /** Misses that could not be split because nobody judged the stroke. */
-  unjudgedMisses: number;
-}
-
-/**
- * Bailed, Robbed and Sold across every round, with the distance they happened from.
- *
- * The distance is the point. Robbed from three feet and Robbed from thirty are not the same
- * complaint, and a Sold column full of short putts says something a count on its own cannot.
- */
-export function verdictTally(
-  model: MakeModel,
-  baseline: [number, number][],
-  rounds: AnyRound[],
-): VerdictTally {
-  const acc: Record<Verdict, { n: number; ft: number }> = {
-    bailed: { n: 0, ft: 0 },
-    robbed: { n: 0, ft: 0 },
-    sold: { n: 0, ft: 0 },
-  };
-  let judged = 0;
-  let unjudgedMisses = 0;
-  for (const r of rounds) {
-    if (r.deleted) continue;
-    for (const h of r.holes) {
-      h.putts.forEach((p, i) => {
-        const v = verdictOf(model, baseline, h.putts, i);
-        if (!v) {
-          // A miss big enough to earn a label, held back only because the stroke was never judged.
-          const sg = puttSGAdjusted(model, baseline, h.putts, i);
-          if (sg !== null && sg <= -0.5 && !p.executionAssessed) unjudgedMisses++;
-          return;
-        }
-        judged++;
-        acc[v].n += 1;
-        acc[v].ft += p.d;
-      });
-    }
-  }
-  return {
-    judged,
-    unjudgedMisses,
-    rows: (['bailed', 'robbed', 'sold'] as Verdict[])
-      .map((verdict) => ({
-        verdict,
-        n: acc[verdict].n,
-        avgFt: acc[verdict].n ? acc[verdict].ft / acc[verdict].n : 0,
-        says: VERDICT_SAYS[verdict],
-      }))
-      ,
-  };
-}
-
-export type XpotState =
-  | { ok: true; xpot: number; cost: number }
-  | { ok: false; why: string };
+export type XpotState = { ok: true; xpot: number; cost: number } | { ok: false; why: string };
 
 /**
  * One answer to "what does the stroke layer say about this putt", used wherever it appears.
@@ -560,12 +455,7 @@ export type XpotState =
  * the one case where it actually works. A number that refuses has to say why in the same place
  * it refuses, every time.
  */
-export function xpotStatus(
-  model: MakeModel,
-  exec: ExecModel,
-  baseline: [number, number][],
-  p: Putt,
-): XpotState {
+export function xpotStatus(model: MakeModel, exec: ExecModel, baseline: [number, number][], p: Putt): XpotState {
   if (exec.confounded) {
     return {
       ok: false,

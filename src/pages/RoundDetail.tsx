@@ -2,17 +2,7 @@ import { useMemo, useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
-import {
-  fitExecModel,
-  difficultyOf,
-  roomOf,
-  xpotStatus,
-  makeChanceOf,
-  puttSGAdjusted,
-  verdictOf,
-  VERDICT_LABEL,
-  xpOf,
-} from '../lib/xp';
+import { fitExecModel, difficultyOf, roomOf, xpotStatus, makeChanceOf, puttSGAdjusted, xpOf } from '../lib/xp';
 import { drawRoundSheet, pngFile } from '../lib/shareCard';
 import { publishRound, shareUrl } from '../lib/shareLink';
 import { currentSession } from '../lib/cloud';
@@ -38,7 +28,6 @@ import { roundStats, suspectHoles } from '../lib/stats';
 import { findRound, useApp } from '../lib/store';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
 
-
 /**
  * Putting strokes gained on one hole. Half a shot is the line where a hole stops being a bad
  * break and starts being the reason the round went: those get the weight so the eye finds them
@@ -54,13 +43,8 @@ const FAULT_WORDS: [string, string][] = [
 
 function SgCell({ value }: { value: number | null }) {
   if (value === null) return <span className="sg" />;
-  const cls =
-    value <= -0.5 ? 'sg down big' : value < 0 ? 'sg down' : value > 0 ? 'sg up' : 'sg';
-  return (
-    <span className={cls}>
-      {value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2)}
-    </span>
-  );
+  const cls = value <= -0.5 ? 'sg down big' : value < 0 ? 'sg down' : value > 0 ? 'sg up' : 'sg';
+  return <span className={cls}>{value > 0 ? `+${value.toFixed(2)}` : value.toFixed(2)}</span>;
 }
 
 export function RoundDetail({ id, openHole }: { id: string; openHole?: number }) {
@@ -75,10 +59,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const back = from && !from.startsWith('/round/') ? from : practice ? '/stats/practice' : '/';
   // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
   const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
-  const exec = useMemo(
-    () => fitExecModel(makeModel, state.rounds),
-    [makeModel, state.rounds],
-  );
+  const exec = useMemo(() => fitExecModel(makeModel, state.rounds), [makeModel, state.rounds]);
   const moments = useMemo(
     () => (round ? momentsOf(round, state.rounds, state.baseline, (p) => makeChanceOf(makeModel, p)) : []),
     [round, state.rounds, state.baseline, makeModel],
@@ -111,7 +92,13 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const hole = editHole !== null ? round.holes.find((h) => h.hole === editHole) : undefined;
 
   const sgOf = (h: { putts: { d: number }[] }) =>
-    h.putts.length ? holeSG(state.baseline, h.putts.map((p) => p.d), h.putts.length) : null;
+    h.putts.length
+      ? holeSG(
+          state.baseline,
+          h.putts.map((p) => p.d),
+          h.putts.length,
+        )
+      : null;
   const marks = bleedMarks(round);
   const bleeds = bleedsIn(round);
   const suspect = suspectHoles(round);
@@ -170,72 +157,70 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       )}
       <div className="btn-row" style={{ marginTop: 12 }}>
         {!practice && (
-        <button
-          className="btn btn-primary"
-          disabled={sharing}
-          onClick={() => {
-            if (!currentSession()) {
-              setShareNote('Sign in first so the link has somewhere to live.');
-              return;
-            }
-            setSharing(true);
-            setShareNote('Making a link…');
-            const card = pngFile(
-              drawRoundSheet({
-                round,
-                stats: s,
-                baseline: state.baseline,
-                putter: state.putters.find((p) => p.id === round.putterId)?.name,
-              }),
-              `break-${round.date}.png`,
-            );
-            void publishRound(round, state.baseline)
-              .then(async (token) => {
-                const url = shareUrl(token);
-                const title = `${fmtDateLong(round.date)}${round.course ? ` · ${round.course}` : ''}`;
-                // The picture is the hook, the link is the whole round. Send both where the
-                // sheet takes them, and the link alone where it will not.
-                const withCard = { title, text: title, url, files: [card] };
-                if (navigator.canShare?.(withCard)) {
-                  await navigator.share(withCard);
-                } else if (navigator.canShare?.({ title, text: title, url })) {
-                  await navigator.share({ title, text: title, url });
-                } else {
-                  await navigator.clipboard.writeText(url);
-                  setShareNote('Link copied. Anyone with it sees the whole round.');
-                  return;
-                }
-                setShareNote('');
-              })
-              .catch((e) => {
-                const err = e as Error;
-                setShareNote(err.name === 'AbortError' ? '' : err.message);
-              })
-              .finally(() => setSharing(false));
-          }}
-        >
-          {sharing ? 'Sharing…' : 'Share'}
-        </button>
+          <button
+            className="btn btn-primary"
+            disabled={sharing}
+            onClick={() => {
+              if (!currentSession()) {
+                setShareNote('Sign in first so the link has somewhere to live.');
+                return;
+              }
+              setSharing(true);
+              setShareNote('Making a link…');
+              const card = pngFile(
+                drawRoundSheet({
+                  round,
+                  stats: s,
+                  baseline: state.baseline,
+                  putter: state.putters.find((p) => p.id === round.putterId)?.name,
+                }),
+                `break-${round.date}.png`,
+              );
+              void publishRound(round, state.baseline)
+                .then(async (token) => {
+                  const url = shareUrl(token);
+                  const title = `${fmtDateLong(round.date)}${round.course ? ` · ${round.course}` : ''}`;
+                  // The picture is the hook, the link is the whole round. Send both where the
+                  // sheet takes them, and the link alone where it will not.
+                  const withCard = { title, text: title, url, files: [card] };
+                  if (navigator.canShare?.(withCard)) {
+                    await navigator.share(withCard);
+                  } else if (navigator.canShare?.({ title, text: title, url })) {
+                    await navigator.share({ title, text: title, url });
+                  } else {
+                    await navigator.clipboard.writeText(url);
+                    setShareNote('Link copied. Anyone with it sees the whole round.');
+                    return;
+                  }
+                  setShareNote('');
+                })
+                .catch((e) => {
+                  const err = e as Error;
+                  setShareNote(err.name === 'AbortError' ? '' : err.message);
+                })
+                .finally(() => setSharing(false));
+            }}
+          >
+            {sharing ? 'Sharing…' : 'Share'}
+          </button>
         )}
         <button className="btn" onClick={() => setEditing(true)}>
           Edit round
         </button>
       </div>
       {!practice && (
-      <div className="status-tags">
-        <button className="status-tag" onClick={() => setSpeedSheet(true)}>
-          {round.greenSpeed ? <SpeedBars speed={round.greenSpeed} label /> : 'Set green speed'}
-        </button>
-        <button
-          className={round.competitive ? 'status-tag on' : 'status-tag'}
-          aria-pressed={!!round.competitive}
-          onClick={() =>
-            dispatch({ t: 'updateRound', id: round.id, patch: { competitive: !round.competitive } })
-          }
-        >
-          {round.competitive ? 'Competitive' : 'Casual'}
-        </button>
-      </div>
+        <div className="status-tags">
+          <button className="status-tag" onClick={() => setSpeedSheet(true)}>
+            {round.greenSpeed ? <SpeedBars speed={round.greenSpeed} label /> : 'Set green speed'}
+          </button>
+          <button
+            className={round.competitive ? 'status-tag on' : 'status-tag'}
+            aria-pressed={!!round.competitive}
+            onClick={() => dispatch({ t: 'updateRound', id: round.id, patch: { competitive: !round.competitive } })}
+          >
+            {round.competitive ? 'Competitive' : 'Casual'}
+          </button>
+        </div>
       )}
 
       {speedSheet && (
@@ -248,8 +233,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             }}
           />
           <p className="small muted" style={{ marginTop: 10 }}>
-            How the greens rolled that day. Stats can be split by this, so a fast-green round is
-            not averaged in with a slow one.
+            How the greens rolled that day. Stats can be split by this, so a fast-green round is not averaged in with a
+            slow one.
           </p>
 
           <Conditions
@@ -266,12 +251,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         </p>
       )}
 
-      <RoundMoments
-        moments={moments}
-        round={round}
-        baseline={state.baseline}
-        focus={focusMoment}
-      />
+      <RoundMoments moments={moments} round={round} baseline={state.baseline} focus={focusMoment} />
 
       <RoundPayoff round={round} />
 
@@ -302,14 +282,12 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       <h2>Scorecard</h2>
       {suspect.length > 0 && (
         <p className="small neg" style={{ margin: '0 0 8px' }}>
-          Worth a look:{' '}
-          {suspect.map((x) => `hole ${x.hole} (${x.from} ft then ${x.to} ft)`).join(', ')}. Running
-          a putt well past is normal, but a leave that much longer than the putt is usually a
-          mistyped distance. Tap the hole if it needs fixing.
+          Worth a look: {suspect.map((x) => `hole ${x.hole} (${x.from} ft then ${x.to} ft)`).join(', ')}. Running a putt
+          well past is normal, but a leave that much longer than the putt is usually a mistyped distance. Tap the hole
+          if it needs fixing.
         </p>
       )}
       <div className="sc-wrap">
-
         {playedHoles.map((h) => (
           <button
             key={h.hole}
@@ -370,24 +348,19 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           const inBand = round.holes.filter((h) => h.hole >= band.from && h.hole <= band.to);
           // Par only counts holes actually played, so a round finished early doesn't show
           // a full nine's par next to a partial score.
-          const par = inBand.reduce((n, h) => n + (h.strokes !== undefined ? h.par ?? 0 : 0), 0);
+          const par = inBand.reduce((n, h) => n + (h.strokes !== undefined ? (h.par ?? 0) : 0), 0);
           const strokes = inBand.reduce((n, h) => n + (h.strokes ?? 0), 0);
           const putts = inBand.reduce((n, h) => n + h.putts.length, 0);
           const rel = inBand.reduce((n, h) => n + (holeVsPar(h) ?? 0), 0);
           const scored = inBand.some((h) => h.strokes !== undefined);
           return (
-            <div
-              key={band.label}
-              className={band.label === 'Total' ? 'sc-row sc-total sc-grand' : 'sc-row sc-total'}
-            >
+            <div key={band.label} className={band.label === 'Total' ? 'sc-row sc-total sc-grand' : 'sc-row sc-total'}>
               <span className="h" />
               <span className="par-cell">{par || ''}</span>
               <span className="seq band">{band.label}</span>
               <span className="drop-cell" />
               <span className="sc num">{scored ? strokes : ''}</span>
-              <span className={rel < 0 ? 'rel num pos' : 'rel num'}>
-                {scored ? fmtVsPar(rel) : ''}
-              </span>
+              <span className={rel < 0 ? 'rel num pos' : 'rel num'}>{scored ? fmtVsPar(rel) : ''}</span>
               <span className="n num">{putts || ''}</span>
               <SgCell
                 value={inBand.some((h) => h.putts.length) ? inBand.reduce((n, h) => n + (sgOf(h) ?? 0), 0) : null}
@@ -398,18 +371,16 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       </div>
 
       <p className="small muted" style={{ margin: '8px 0 0' }}>
-        The last column is putting strokes gained on that hole, against what the average putt from
-        your first putt's distance is worth. The bold reds are where the round went.
+        The last column is putting strokes gained on that hole, against what the average putt from your first putt's
+        distance is worth. The bold reds are where the round went.
       </p>
 
       {bleeds.length > 0 && (
         <p className="small muted" style={{ marginTop: 8 }}>
-          🩸 is the mistake itself. A dot is a hole it bled into, not a hole that did anything
-          wrong on the green.{' '}
+          🩸 is the mistake itself. A dot is a hole it bled into, not a hole that did anything wrong on the green.{' '}
           {bleeds.map((b) => `Hole ${b.triggerHole}, ${b.why}, ${b.shots} shot${b.shots === 1 ? '' : 's'}`).join('. ')}.
         </p>
       )}
-
 
       {hole && (
         <Sheet
@@ -422,9 +393,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             <>
               <HoleScore
                 hole={hole}
-                onChange={(patch) =>
-                  dispatch({ t: 'setHoleScore', roundId: round.id, hole: hole.hole, patch })
-                }
+                onChange={(patch) => dispatch({ t: 'setHoleScore', roundId: round.id, hole: hole.hole, patch })}
               />
 
               <div className="field-label">Putts</div>
@@ -436,18 +405,15 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                 <div className="putt-cards">
                   {whyXp && (
                     <p className="why-note">
-                      Two different sources in one number, which is worth knowing. The{' '}
-                      <b>level</b> comes from PGA Tour averages, not from you: that is what
-                      makes strokes gained a comparison rather than a mirror. The{' '}
-                      <b>break and slope adjustment</b> is fitted to your own putts. So xP reads
-                      "what a tour player would expect from here, nudged by how this particular
-                      putt behaves for you".
+                      Two different sources in one number, which is worth knowing. The <b>level</b> comes from PGA Tour
+                      averages, not from you: that is what makes strokes gained a comparison rather than a mirror. The{' '}
+                      <b>break and slope adjustment</b> is fitted to your own putts. So xP reads "what a tour player
+                      would expect from here, nudged by how this particular putt behaves for you".
                     </p>
                   )}
                   {hole.putts.map((p, i) => {
                     const xp = xpOf(makeModel, state.baseline, p);
                     const chance = makeChanceOf(makeModel, p);
-                    const verdict = verdictOf(makeModel, state.baseline, hole.putts, i);
                     const xpot = xpotStatus(makeModel, exec, state.baseline, p);
                     // This putt's own adjustment, so the grid reads as xP minus the straight
                     // baseline. The telescoped version belongs to the hole, not to one cell.
@@ -469,9 +435,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                           <span className="pc-n">{i + 1}</span>
                           <span className="pc-d">{p.d} ft</span>
                           <span className="pc-shape">{breakLabel(breakDirsOf(p)) || 'untagged'}</span>
-                          {verdict ? (
-                            <span className={`verdict v-${verdict}`}>{VERDICT_LABEL[verdict]}</span>
-                          ) : null}
                         </span>
 
                         {xp !== null && (
@@ -503,7 +466,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                                 )}
                               </span>
                             </span>
-
                           </span>
                         )}
 
@@ -511,9 +473,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                           <span className="pc-line">
                             <span className="pc-k">
                               The break added
-                              <span className="pc-sub">
-                                {' '}vs the same length straight
-                              </span>
+                              <span className="pc-sub"> vs the same length straight</span>
                             </span>
                             <span className="pc-t pc-adj">
                               {adj > 0 ? '+' : ''}
@@ -531,9 +491,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                           <span className="pc-line">
                             <span className="pc-k">Room to spare</span>
                             <span className="pc-t">
-                              {roomOf(p.cupEntry) === null
-                                ? 'went in on pace'
-                                : `${roomOf(p.cupEntry)!.toFixed(2)} in`}
+                              {roomOf(p.cupEntry) === null ? 'went in on pace' : `${roomOf(p.cupEntry)!.toFixed(2)} in`}
                             </span>
                           </span>
                         )}
@@ -592,11 +550,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                 Add a putt
               </button>
 
-              <button
-                className="btn btn-primary btn-wide"
-                style={{ marginTop: 10 }}
-                onClick={() => setEditHole(null)}
-              >
+              <button className="btn btn-primary btn-wide" style={{ marginTop: 10 }} onClick={() => setEditHole(null)}>
                 Save
               </button>
               <p className="small muted" style={{ margin: '8px 0 0' }}>
@@ -627,10 +581,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                   setEditPutt(null);
                 }}
               />
-              <button
-                className="btn btn-primary btn-wide"
-                onClick={() => setEditPutt(null)}
-              >
+              <button className="btn btn-primary btn-wide" onClick={() => setEditPutt(null)}>
                 Done
               </button>
             </>

@@ -3,15 +3,7 @@ import { bleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
 import { formTrial } from '../lib/formTrial';
 import { formOf, formBand } from '../lib/form';
-import {
-  cupUse,
-  readBias,
-  roomSpare,
-  ROOM_MAX,
-  VERDICT_LABEL,
-  verdictTally,
-  beatSpread,
-} from '../lib/xp';
+import { cupUse, readBias, roomSpare, ROOM_MAX, beatSpread } from '../lib/xp';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
@@ -97,10 +89,6 @@ function RoundStats() {
   const cup = useMemo(() => cupUse(rounds), [rounds]);
   const bias = useMemo(() => readBias(rounds), [rounds]);
   const room = useMemo(() => roomSpare(rounds), [rounds]);
-  const verdicts = useMemo(
-    () => verdictTally(makeModel, state.baseline, rounds),
-    [makeModel, state.baseline, rounds],
-  );
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const read = useMemo(() => readError(rounds), [rounds]);
@@ -135,9 +123,7 @@ function RoundStats() {
         .filter((x) => x.r.score !== undefined),
     [rounds, state.baseline],
   );
-  const avgScore = withScore.length
-    ? withScore.reduce((sum, x) => sum + x.r.score! * x.k, 0) / withScore.length
-    : null;
+  const avgScore = withScore.length ? withScore.reduce((sum, x) => sum + x.r.score! * x.k, 0) / withScore.length : null;
   const avgIfNeutral = withScore.length
     ? withScore.reduce((sum, x) => sum + (x.r.score! + x.s.sg) * x.k, 0) / withScore.length
     : null;
@@ -147,8 +133,8 @@ function RoundStats() {
     return (
       <div className="empty">
         <p>
-          Finish a round and this page turns on: strokes gained, your make rate at every distance,
-          where your misses go, and what a three-putt costs you over the holes that follow.
+          Finish a round and this page turns on: strokes gained, your make rate at every distance, where your misses go,
+          and what a three-putt costs you over the holes that follow.
         </p>
       </div>
     );
@@ -160,7 +146,9 @@ function RoundStats() {
       <button className={isFiltered(filter) ? 'filter-bar on' : 'filter-bar'} onClick={() => setFilterOpen(true)}>
         <span className="filter-bar-k">Showing</span>
         <span className="filter-bar-v">{filterLabel(filter, state.putters)}</span>
-        <span className="filter-bar-n">{rounds.length} {rounds.length === 1 ? 'round' : 'rounds'}</span>
+        <span className="filter-bar-n">
+          {rounds.length} {rounds.length === 1 ? 'round' : 'rounds'}
+        </span>
       </button>
       <SectionNav scope="#stats-root" />
 
@@ -222,8 +210,7 @@ function RoundStats() {
             </div>
             <div className="stat-row">
               <span className="k">
-                Make % from 3 to 10 ft{' '}
-                <SampleTag s={sample(o.pooled.scoring.attempts, 50, 'putts')} />
+                Make % from 3 to 10 ft <SampleTag s={sample(o.pooled.scoring.attempts, 50, 'putts')} />
               </span>
               <span className="v num">{pctText(o.scoringPct)}</span>
             </div>
@@ -251,10 +238,10 @@ function RoundStats() {
 
           {vol && (
             <p className="small muted" style={{ marginTop: 8 }}>
-              Swing is how far a normal round lands from your average. Your average is{' '}
-              {signed(vol.mean)} strokes gained, so most rounds fall between {signed(vol.mean - vol.sd)} and{' '}
-              {signed(vol.mean + vol.sd)}. Your best was {signed(vol.best)} and your worst {signed(vol.worst)}.
-              A swing that wide is why one round tells you almost nothing.
+              Swing is how far a normal round lands from your average. Your average is {signed(vol.mean)} strokes
+              gained, so most rounds fall between {signed(vol.mean - vol.sd)} and {signed(vol.mean + vol.sd)}. Your best
+              was {signed(vol.best)} and your worst {signed(vol.worst)}. A swing that wide is why one round tells you
+              almost nothing.
             </p>
           )}
 
@@ -266,9 +253,24 @@ function RoundStats() {
 
           <h2>Am I improving</h2>
           {[
-            { title: 'Putts per round', values: o.points.map((p) => p.stats.totalPutts * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
-            { title: '3-putts per round', values: o.points.map((p) => p.stats.threePlus * p.scale), invert: true, fmt: (v: number) => v.toFixed(0) },
-            { title: 'Strokes gained per round', values: o.points.map((p) => p.stats.sg * p.scale), invert: false, fmt: (v: number) => signed(v) },
+            {
+              title: 'Putts per round',
+              values: o.points.map((p) => p.stats.totalPutts * p.scale),
+              invert: true,
+              fmt: (v: number) => v.toFixed(0),
+            },
+            {
+              title: '3-putts per round',
+              values: o.points.map((p) => p.stats.threePlus * p.scale),
+              invert: true,
+              fmt: (v: number) => v.toFixed(0),
+            },
+            {
+              title: 'Strokes gained per round',
+              values: o.points.map((p) => p.stats.sg * p.scale),
+              invert: false,
+              fmt: (v: number) => signed(v),
+            },
             {
               title: 'Make % from 3 to 10 ft',
               values: o.points.map((p) => pct(p.stats.scoring) ?? 0),
@@ -291,19 +293,16 @@ function RoundStats() {
           ))}
           {anyShort && (
             <p className="small muted" style={{ marginTop: 10 }}>
-              A short round is scaled up here, so it sits next to an eighteen fairly. Open the
-              round itself to see what it actually was.
+              A short round is scaled up here, so it sits next to an eighteen fairly. Open the round itself to see what
+              it actually was.
             </p>
           )}
-
 
           {form && (
             <>
               <h2>Form</h2>
               <div className="stat-row">
-                <span className="k">
-                  Does Form say anything strokes gained does not
-                </span>
+                <span className="k">Does Form say anything strokes gained does not</span>
                 <span className="v small muted">
                   {trial.verdict === 'waiting'
                     ? `${trial.judged} of ${trial.needed} rounds judged`
@@ -313,29 +312,25 @@ function RoundStats() {
               <p className="why-note">
                 {trial.verdict === 'waiting' ? (
                   <>
-                    Form only earns its place if it ranks rounds differently from strokes gained.
-                    The test needs <b>{trial.needed} rounds</b> with enough tagged putts to unlock
-                    the process layer, and <b>{trial.judged}</b> have it. Until then this is an
-                    open question, not a passed one.
+                    Form only earns its place if it ranks rounds differently from strokes gained. The test needs{' '}
+                    <b>{trial.needed} rounds</b> with enough tagged putts to unlock the process layer, and{' '}
+                    <b>{trial.judged}</b> have it. Until then this is an open question, not a passed one.
                   </>
                 ) : trial.verdict === 'retire' ? (
                   <>
-                    <b>Form is a second name for strokes gained.</b> r = {trial.r?.toFixed(3)}{' '}
-                    across {trial.judged} judged rounds, and {trial.moved} change position. The
-                    threshold was written down before the answer was known, and this clears it.
-                    It should go the way expected makes went.
+                    <b>Form is a second name for strokes gained.</b> r = {trial.r?.toFixed(3)} across {trial.judged}{' '}
+                    judged rounds, and {trial.moved} change position. The threshold was written down before the answer
+                    was known, and this clears it. It should go the way expected makes went.
                   </>
                 ) : trial.verdict === 'keep' ? (
                   <>
-                    <b>Form earns its place.</b> r = {trial.r?.toFixed(3)} across {trial.judged}{' '}
-                    judged rounds, with {trial.moved} changing position. It is measuring something
-                    strokes gained is not.
+                    <b>Form earns its place.</b> r = {trial.r?.toFixed(3)} across {trial.judged} judged rounds, with{' '}
+                    {trial.moved} changing position. It is measuring something strokes gained is not.
                   </>
                 ) : (
                   <>
-                    <b>Undecided.</b> r = {trial.r?.toFixed(3)} across {trial.judged} judged
-                    rounds. Between the two thresholds, so the 50/50 blend gets one attempt at
-                    reweighting before anyone reaches for delete.
+                    <b>Undecided.</b> r = {trial.r?.toFixed(3)} across {trial.judged} judged rounds. Between the two
+                    thresholds, so the 50/50 blend gets one attempt at reweighting before anyone reaches for delete.
                   </>
                 )}
               </p>
@@ -364,63 +359,36 @@ function RoundStats() {
                       {form.measured === 1 ? '' : 's'}
                     </span>
                   </span>
-                  <span className="v num">
-                    {form.process === null ? '--' : form.process.toFixed(1)}
-                  </span>
+                  <span className="v num">{form.process === null ? '--' : form.process.toFixed(1)}</span>
                 </div>
                 <div className="stat-row">
                   <span className="k">
                     How they finished
-                    <span className="small muted">
-                      {' '}
-                      · strokes gained, on this scale · {form.rounds} rounds
-                    </span>
+                    <span className="small muted"> · strokes gained, on this scale · {form.rounds} rounds</span>
                   </span>
                   <span className="v num">{form.outcome.toFixed(1)}</span>
                 </div>
               </div>
               <p className="small muted" style={{ margin: '8px 0 0' }}>
-                Those two are averaged over different rounds, so do not read them against each
-                other: only {form.measured} of {form.rounds} rounds carried enough tagged putts to
-                score how you hit them, while how they finished covers all {form.rounds}. The
-                untagged ones score on the finish alone, which is what the faint rail on the
-                rounds list means. Open any round to see what built its number.
+                Those two are averaged over different rounds, so do not read them against each other: only{' '}
+                {form.measured} of {form.rounds} rounds carried enough tagged putts to score how you hit them, while how
+                they finished covers all {form.rounds}. The untagged ones score on the finish alone, which is what the
+                faint rail on the rounds list means. Open any round to see what built its number.
               </p>
             </>
           )}
 
-          {(spread.n > 0 || verdicts.judged > 0) && (
+          {spread.n > 0 && (
             <>
               <h2>How often you beat the number</h2>
               {spread.n > 0 && (
                 <>
                   <Why lead="One bar per hole, against what its first putt was worth.">
-                    Left of zero cost you, right of zero you took it. This charted expected putts once
-                    and that sorted holes in almost the order their length does, so it drew what the
-                    course handed you rather than what you did with it.
+                    Left of zero cost you, right of zero you took it. This charted expected putts once and that sorted
+                    holes in almost the order their length does, so it drew what the course handed you rather than what
+                    you did with it.
                   </Why>
                   <BeatBar spread={spread} />
-                </>
-              )}
-              {verdicts.judged > 0 && (
-                <>
-                  <div className="field-label">What it earned you</div>
-                  <div className="board">
-                    {verdicts.rows.map((row) => (
-                      <div className="lb-row" key={row.verdict}>
-                        <span className={`verdict v-${row.verdict}`}>{VERDICT_LABEL[row.verdict]}</span>
-                        <span className="nm">
-                          <span className="small muted">{row.says}</span>
-                          <span className="putt-xp">from {row.avgFt.toFixed(1)} ft on average</span>
-                        </span>
-                        <span className="val num">{row.n}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <Why lead="Against what the putt was worth, not against its length.">
-                    Robbed and Sold are both misses you should have made, split on whether the stroke
-                    was clean.
-                  </Why>
                 </>
               )}
             </>
@@ -429,31 +397,27 @@ function RoundStats() {
           <h2>By distance</h2>
           <DistanceTable stats={o.pooled} rounds={o.rounds} sgPerRound={o.bucketSgPerRound} />
           <p className="small muted" style={{ marginTop: 6 }}>
-            Made and % count every putt as it happened. Each row is rounded to two decimals, so
-            adding them by eye can land a hundredth off the total{anyShort ? '. Short rounds are scaled up here the same way as in Averages' : ''}.
+            Made and % count every putt as it happened. Each row is rounded to two decimals, so adding them by eye can
+            land a hundredth off the total
+            {anyShort ? '. Short rounds are scaled up here the same way as in Averages' : ''}.
           </p>
 
           {/* The denominator for everything above it. A make rate reads as a problem until you
               know how far away the putts were. */}
           {o.pooled.girProximity !== null && o.pooled.gir >= 10 && (
             <p className="small muted" style={{ marginTop: 10 }}>
-              <strong>On greens you hit:</strong> your first putt averages{' '}
-              {o.pooled.girProximity.toFixed(1)} ft
-              {o.pooled.girProximityMedian !== null
-                ? `, median ${o.pooled.girProximityMedian.toFixed(1)} ft`
-                : ''}
-              , and {Math.round((o.pooled.girInside10 / o.pooled.gir) * 100)}% finish inside 10
-              feet, over {o.pooled.gir} greens. Hitting from further out and hitting it worse both
-              move this the same way, so read it as why your putts are the length they are, not as
-              a verdict on your irons.
+              <strong>On greens you hit:</strong> your first putt averages {o.pooled.girProximity.toFixed(1)} ft
+              {o.pooled.girProximityMedian !== null ? `, median ${o.pooled.girProximityMedian.toFixed(1)} ft` : ''}, and{' '}
+              {Math.round((o.pooled.girInside10 / o.pooled.gir) * 100)}% finish inside 10 feet, over {o.pooled.gir}{' '}
+              greens. Hitting from further out and hitting it worse both move this the same way, so read it as why your
+              putts are the length they are, not as a verdict on your irons.
             </p>
           )}
-
 
           <p className="act">Why you miss</p>
           {strike.length > 0 && (
             <>
-          <h2>Where on the face</h2>
+              <h2>Where on the face</h2>
               <StrikePanel rows={strike} />
             </>
           )}
@@ -474,48 +438,35 @@ function RoundStats() {
             <>
               <div className="field-label">Too much break or not enough</div>
               <Why lead="One axis for every putt that turns.">
-                A miss finishing high and a make entering on the high side say the same thing:
-                more break than it took. Until the cup existed only the misses could speak, which
-                is the tail of the pattern rather than the pattern.
+                A miss finishing high and a make entering on the high side say the same thing: more break than it took.
+                Until the cup existed only the misses could speak, which is the tail of the pattern rather than the
+                pattern.
               </Why>
               <div className="biasbar">
-                <span
-                  className="bias-seg over"
-                  style={{ width: `${(bias.over / bias.n) * 100}%` }}
-                />
-                <span
-                  className="bias-seg agreed"
-                  style={{ width: `${(bias.agreed / bias.n) * 100}%` }}
-                />
-                <span
-                  className="bias-seg under"
-                  style={{ width: `${(bias.under / bias.n) * 100}%` }}
-                />
+                <span className="bias-seg over" style={{ width: `${(bias.over / bias.n) * 100}%` }} />
+                <span className="bias-seg agreed" style={{ width: `${(bias.agreed / bias.n) * 100}%` }} />
+                <span className="bias-seg under" style={{ width: `${(bias.under / bias.n) * 100}%` }} />
               </div>
               <div className="stat-row">
                 <span className="k">Too much break</span>
                 <span className="v num">
-                  {Math.round((bias.over / bias.n) * 100)}%
-                  <span className="small muted"> · {bias.over}</span>
+                  {Math.round((bias.over / bias.n) * 100)}%<span className="small muted"> · {bias.over}</span>
                 </span>
               </div>
               <div className="stat-row">
                 <span className="k">Line and break agreed</span>
                 <span className="v num">
-                  {Math.round((bias.agreed / bias.n) * 100)}%
-                  <span className="small muted"> · {bias.agreed}</span>
+                  {Math.round((bias.agreed / bias.n) * 100)}%<span className="small muted"> · {bias.agreed}</span>
                 </span>
               </div>
               <div className="stat-row">
                 <span className="k">Not enough break</span>
                 <span className="v num">
-                  {Math.round((bias.under / bias.n) * 100)}%
-                  <span className="small muted"> · {bias.under}</span>
+                  {Math.round((bias.under / bias.n) * 100)}%<span className="small muted"> · {bias.under}</span>
                 </span>
               </div>
               <p className="note">
                 {bias.fromMisses} from misses, {bias.fromMakes} from cup entries.
-
               </p>
             </>
           )}
@@ -532,7 +483,10 @@ function RoundStats() {
                 <span className="k">Centre cut</span>
                 <span className="v num">
                   {cup.n ? Math.round((cup.centre / cup.n) * 100) : 0}%
-                  <span className="small muted"> · {cup.centre} of {cup.n}</span>
+                  <span className="small muted">
+                    {' '}
+                    · {cup.centre} of {cup.n}
+                  </span>
                 </span>
               </div>
               <div className="stat-row">
@@ -575,16 +529,14 @@ function RoundStats() {
                     </div>
                   )}
                   <Why lead="Pure geometry, so there is no sample to wait for.">
-                    A ball dead through the front had {ROOM_MAX.toFixed(2)} inches of error either
-                    way; one off the lip had none. Nothing is fitted, nothing can confound it, and
-                    it is as true on the first putt as the thousandth. It says nothing about pace
-                    or whether the read was right: entry point is a joint result of line, speed
-                    and break, so a back door can come from too much pace or from a putt that took
-                    the break late.
+                    A ball dead through the front had {ROOM_MAX.toFixed(2)} inches of error either way; one off the lip
+                    had none. Nothing is fitted, nothing can confound it, and it is as true on the first putt as the
+                    thousandth. It says nothing about pace or whether the read was right: entry point is a joint result
+                    of line, speed and break, so a back door can come from too much pace or from a putt that took the
+                    break late.
                   </Why>
                 </>
               )}
-
             </>
           )}
 
@@ -599,8 +551,8 @@ function RoundStats() {
           <h2>Lag control</h2>
           <LagPanel stats={o.pooled} lag={lag} />
           <p className="small muted" style={{ margin: '8px 0 0' }}>
-            Typical leave is every lag you hit. The comeback is only the ones that finished{' '}
-            {DANGER_FROM}+ feet away, which is why it is the bigger number.
+            Typical leave is every lag you hit. The comeback is only the ones that finished {DANGER_FROM}+ feet away,
+            which is why it is the bigger number.
           </p>
 
           {lag.bySource.some((b) => b.threePutts > 0) && (
@@ -640,13 +592,13 @@ function RoundStats() {
               <div className="card">
                 <div className="shoot-for num neg">{bleed.shotsPerRound?.toFixed(1)}</div>
                 <p className="small" style={{ margin: '4px 0 0' }}>
-                  Shots a round you drop on the holes that follow a putting mistake. That is on
-                  top of what the mistake itself already cost you.
+                  Shots a round you drop on the holes that follow a putting mistake. That is on top of what the mistake
+                  itself already cost you.
                 </p>
                 <p className="small muted" style={{ margin: '6px 0 0' }}>
-                  A mistake is a three-putt, or a putt missed from three to six feet, whatever the
-                  hole ended up scoring. The bleeding runs until you bounce back, meaning the
-                  first hole after it you play at par or better.
+                  A mistake is a three-putt, or a putt missed from three to six feet, whatever the hole ended up
+                  scoring. The bleeding runs until you bounce back, meaning the first hole after it you play at par or
+                  better.
                 </p>
 
                 {bleed.afterRate !== null && bleed.normalRate !== null && (
@@ -700,15 +652,13 @@ function RoundStats() {
             </>
           )}
 
-
           <p className="act">When it changes</p>
           {speeds.length > 1 && (
             <>
               <h2>By green speed</h2>
               <SpeedPanel splits={speeds} />
               <p className="small muted" style={{ margin: '8px 0 0' }}>
-                Per eighteen holes. If the miss line swings between bands, the greens moved your
-                miss and not your read.
+                Per eighteen holes. If the miss line swings between bands, the greens moved your miss and not your read.
               </p>
             </>
           )}
@@ -720,43 +670,43 @@ function RoundStats() {
             </p>
           )}
           <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Putter</th>
-                <th>Putts</th>
-                <th>3P</th>
-                <th>3-10 ft</th>
-                <th>SG</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.putters.map((p) => {
-                const sub = overall(
-                  rounds.filter((r) => r.putterId === p.id),
-                  state.baseline,
-                );
-                if (!sub.rounds) return null;
-                return (
-                  <tr key={p.id}>
-                    <td>
-                      {p.name}
-                      <span className="small muted" style={{ display: 'block' }}>
-                        {sub.rounds} {sub.rounds === 1 ? 'round' : 'rounds'}
-                        {p.active ? ' · in the bag' : ''}
-                      </span>
-                    </td>
-                    <td>{sub.puttsPerRound?.toFixed(1)}</td>
-                    <td>{sub.threePuttsPerRound?.toFixed(1)}</td>
-                    <td>{pctText(sub.scoringPct)}</td>
-                    <td className={(sub.sgPerRound ?? 0) >= 0 ? 'pos' : 'neg'}>
-                      {signedFor(sub.sgPerRound ?? 0, sample(sub.rounds, 5, 'rounds'))}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            <table>
+              <thead>
+                <tr>
+                  <th>Putter</th>
+                  <th>Putts</th>
+                  <th>3P</th>
+                  <th>3-10 ft</th>
+                  <th>SG</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.putters.map((p) => {
+                  const sub = overall(
+                    rounds.filter((r) => r.putterId === p.id),
+                    state.baseline,
+                  );
+                  if (!sub.rounds) return null;
+                  return (
+                    <tr key={p.id}>
+                      <td>
+                        {p.name}
+                        <span className="small muted" style={{ display: 'block' }}>
+                          {sub.rounds} {sub.rounds === 1 ? 'round' : 'rounds'}
+                          {p.active ? ' · in the bag' : ''}
+                        </span>
+                      </td>
+                      <td>{sub.puttsPerRound?.toFixed(1)}</td>
+                      <td>{sub.threePuttsPerRound?.toFixed(1)}</td>
+                      <td>{pctText(sub.scoringPct)}</td>
+                      <td className={(sub.sgPerRound ?? 0) >= 0 ? 'pos' : 'neg'}>
+                        {signedFor(sub.sgPerRound ?? 0, sample(sub.rounds, 5, 'rounds'))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           <p className="act">What now</p>
@@ -768,7 +718,6 @@ function RoundStats() {
             taggedRounds={taggedRounds}
           />
         </>
-
       )}
     </div>
   );

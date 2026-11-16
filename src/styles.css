@@ -1026,12 +1026,6 @@ button.pick:active { background-color: #f4f1e8; }
 .cup-read { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--ink); }
 /* xP under a putt row. Quiet: the adjustment is context, never a headline. */
 .putt-xp { display: block; font-size: 11px; color: var(--ink-3); margin-top: 2px; font-variant-numeric: tabular-nums; }
-/* Bailed, Robbed, Sold. A label on the putt, never a score. */
-.verdict { display: inline-block; font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase;
-  font-weight: 700; padding: 2px 5px; border-radius: 3px; margin-right: 6px; color: #fff; vertical-align: 1px; }
-.v-bailed { background: var(--good, #15603b); }
-.v-robbed { background: #b5603a; }
-.v-sold { background: #6e1a12; }
 
 /* The putt card. One per putt on a hole: what it was worth, what happened, what it cost. */
 .putt-cards { display: flex; flex-direction: column; gap: 8px; }
