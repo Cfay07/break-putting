@@ -33,7 +33,16 @@ function whenSynced(): string {
  * `onSignedIn` runs after the account is in and synced, inside the same error handling, so a
  * failed follow-up (joining a team) shows its message here. `join` leads with Create account.
  */
-export function Account({ onSignedIn, join = false }: { onSignedIn?: () => Promise<void>; join?: boolean } = {}) {
+export function Account({
+  onSignedIn,
+  join = false,
+  missing,
+}: {
+  onSignedIn?: () => Promise<void>;
+  join?: boolean;
+  /** Set when the page around this form still needs something; stops the account being made. */
+  missing?: string;
+} = {}) {
   const { state, dispatch } = useApp();
   const [session, setSession] = useState(currentSession);
   const [email, setEmail] = useState('');
@@ -79,6 +88,10 @@ export function Account({ onSignedIn, join = false }: { onSignedIn?: () => Promi
   };
 
   const enter = async (mode: 'in' | 'up') => {
+    if (missing) {
+      setNote(missing);
+      return;
+    }
     if (!email.trim() || password.length < 6) {
       setNote('Email, and a password of at least six characters.');
       return;

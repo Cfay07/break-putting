@@ -6,6 +6,8 @@ import { Sheet } from '../components/Sheet';
 import { accountName, currentSession, saveAccountName, teamByCode } from '../lib/cloud';
 import { replaceRoute } from '../lib/router';
 import { Account } from '../components/Account';
+import { useApp } from '../lib/store';
+import { newId } from '../lib/storage';
 import { fmtDate, fmtDateLong, today } from '../lib/format';
 import {
   createTeam,
@@ -263,8 +265,10 @@ function PlayerPanel({
  * on one screen. One button makes the account, joins the team and opens it.
  */
 function JoinLanding({ code, onJoined }: { code: string; onJoined: (teamId: string) => Promise<void> }) {
+  const { state, dispatch } = useApp();
   const [team, setTeam] = useState<{ name: string; accent: string | null } | null | undefined>(undefined);
   const [name, setName] = useState('');
+  const [putter, setPutter] = useState('');
 
   useEffect(() => {
     rememberJoin(code);
@@ -307,10 +311,26 @@ function JoinLanding({ code, onJoined }: { code: string; onJoined: (teamId: stri
         maxLength={40}
         placeholder="What your teammates see"
       />
+      <div className="field-label">Your putter</div>
+      <input
+        type="text"
+        value={putter}
+        onChange={(e) => setPutter(e.target.value)}
+        maxLength={40}
+        placeholder="Scotty Cameron Newport 2"
+      />
       <Account
         join
+        missing={!name.trim() ? 'Add your name first.' : !putter.trim() ? 'Add your putter first.' : undefined}
         onSignedIn={async () => {
           const shown = name.trim();
+          // A putter already on this phone under the same name is reused rather than doubled.
+          const known = state.putters.find(
+            (p) => !p.retired && p.name.trim().toLowerCase() === putter.trim().toLowerCase(),
+          );
+          const id = known?.id ?? newId();
+          if (!known) dispatch({ t: 'addPutter', id, name: putter.trim() });
+          dispatch({ t: 'setActivePutter', id });
           if (shown) await saveAccountName(shown);
           const t = await joinTeam(code, shown || accountName());
           rememberJoin(null);
