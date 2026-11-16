@@ -18,7 +18,7 @@ import { SharedRound } from './pages/SharedRound';
 import { Stats } from './pages/Stats';
 import { Team } from './pages/Team';
 import { Privacy, Terms } from './pages/Legal';
-import { TeamPracticePage, TeamRoundPage } from './pages/TeamPost';
+import { TeamLivePage, TeamPracticePage, TeamRoundPage } from './pages/TeamPost';
 import { Track } from './pages/Track';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { bleedSummary } from './lib/bleed';
@@ -45,7 +45,7 @@ import { TEST_ID } from './lib/weeklyTest';
 import { accountName, currentSession, online } from './lib/cloud';
 import { syncQuietly } from './lib/sync';
 import { findRound, liveRound, useApp } from './lib/store';
-import { holeVsPar, type AppState } from './lib/types';
+import { holeVsPar, holedOut, type AppState } from './lib/types';
 
 /**
  * What this player shares with their teams. Only these numbers leave the device; the rounds
@@ -81,6 +81,10 @@ function summarise(state: AppState) {
               : null,
             // Teammates only: the player's own phone never shows it, so it cannot get in their head.
             proj: liveProjection(live, done),
+            // Hole by hole so far, in the same shape a finished round shares, so a teammate can follow along.
+            holes: live.holes
+              .filter((h) => h.putts.length > 0 || holedOut(h))
+              .map((h) => ({ h: h.hole, p: h.putts.length, d: h.putts[0]?.d ?? null, v: holeVsPar(h) ?? null })),
           }
         : null,
   };
@@ -300,6 +304,7 @@ export default function App() {
   // rather than the top of the round.
   const joinMatch = route.match(/^\/join\/([A-Za-z0-9]{4,8})$/);
   const teamRoundMatch = route.match(/^\/team\/round\/([0-9a-f-]{36})\/([^/]+)$/);
+  const teamLiveMatch = route.match(/^\/team\/live\/([0-9a-f-]{36})$/);
   const teamDayMatch = route.match(/^\/team\/practice\/([0-9a-f-]{36})\/(\d{4}-\d{2}-\d{2})$/);
   const roundMatch = route.match(/^\/round\/([^/]+)(?:\/hole\/(\d+))?$/);
   const practiceMatch = route.match(/^\/practice\/(drill|edit|session|session-edit)\/([^/]+)$/);
@@ -345,6 +350,8 @@ export default function App() {
     <Practice openTest />
   ) : teamRoundMatch ? (
     <TeamRoundPage key={route} user={teamRoundMatch[1]} roundId={decodeURIComponent(teamRoundMatch[2])} />
+  ) : teamLiveMatch ? (
+    <TeamLivePage key={route} user={teamLiveMatch[1]} />
   ) : teamDayMatch ? (
     <TeamPracticePage key={route} user={teamDayMatch[1]} date={teamDayMatch[2]} />
   ) : route === '/team' || joinMatch ? (

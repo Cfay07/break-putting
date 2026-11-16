@@ -49,6 +49,7 @@ export interface PlayerStats {
     putts?: number;
     to_par?: number | null;
     proj?: { putts: number; toPar: number | null; score: number | null } | null;
+    holes?: NonNullable<TeamRound['detail']>;
   } | null;
   updated_at?: string;
 }
@@ -418,4 +419,15 @@ export async function loadBoard(): Promise<{ rounds: TeamRound[]; practice: Team
     rows<TeamPracticeRow>('team_practice?select=user_id,set_id,played_on,title,kind,made,attempts&limit=5000'),
   ]);
   return { rounds, practice };
+}
+
+/** One teammate's live round, read fresh each time the live page polls. */
+export async function loadLive(user: string) {
+  const [stat, who] = await Promise.all([
+    rows<Pick<PlayerStats, 'user_id' | 'live'>>(`team_stats?select=user_id,live&user_id=eq.${user}`),
+    rows<Pick<Member, 'user_id' | 'display_name'>>(
+      `team_members?select=user_id,display_name&user_id=eq.${user}&limit=1`,
+    ),
+  ]);
+  return { live: stat[0]?.live ?? null, name: who[0]?.display_name ?? null };
 }

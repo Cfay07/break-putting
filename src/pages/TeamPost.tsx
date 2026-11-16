@@ -4,7 +4,7 @@ import { buildFeed, reactionsFor, type Reaction, type TeamPracticeRow } from '..
 import { fmtDateLong, signed } from '../lib/format';
 import { backLabel, go, previousRoute } from '../lib/router';
 import { expectedPutts } from '../lib/sg';
-import { loadTeamDay, loadTeamRound, setReaction, type TeamRound } from '../lib/teams';
+import { loadLive, loadTeamDay, loadTeamRound, setReaction, type TeamRound } from '../lib/teams';
 import { DEFAULT_BASELINE } from '../lib/types';
 
 const me = () => currentSession()?.userId ?? '';
@@ -116,28 +116,7 @@ export function TeamRoundPage({ user, roundId }: { user: string; roundId: string
 
       <h2>Scorecard</h2>
       {holes.length ? (
-        <div className="sc-wrap">
-          {holes.map((h) => {
-            const sg = h.p > 0 && h.d ? expectedPutts(DEFAULT_BASELINE, h.d) - h.p : null;
-            return (
-              <div key={h.h} className={h.p >= 3 ? 'sc-row three' : 'sc-row'}>
-                <span className="h">{h.h}</span>
-                <span className="seq">
-                  {h.p === 0 ? 'no putts logged' : h.d ? `${h.d} ft${h.p === 1 ? ', holed' : ''}` : '--'}
-                </span>
-                <span className={h.v !== null && h.v < 0 ? 'rel num pos' : 'rel num'}>{vsPar(h.v)}</span>
-                <span className="n num">{h.p || ''}</span>
-                <span
-                  className={
-                    sg === null ? 'sg' : sg <= -0.5 ? 'sg down big' : sg < 0 ? 'sg down' : sg > 0 ? 'sg up' : 'sg'
-                  }
-                >
-                  {sg === null ? '' : sg > 0 ? `+${sg.toFixed(2)}` : sg.toFixed(2)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        <HoleRows holes={holes} />
       ) : (
         <p className="small muted">This round was shared before hole detail was. It shows on their next round.</p>
       )}
@@ -229,6 +208,142 @@ function ErrorState({ text }: { text: string }) {
     <>
       <Back />
       <p className="small muted">{text}</p>
+    </>
+  );
+}
+
+type SharedHole = NonNullable<TeamRound['detail']>[number];
+
+/** The shared scorecard: first putt, score against par, putts, and strokes gained on the hole. */
+function HoleRows({ holes }: { holes: SharedHole[] }) {
+  return (
+    <div className="sc-wrap">
+      {holes.map((h) => {
+        const sg = h.p > 0 && h.d ? expectedPutts(DEFAULT_BASELINE, h.d) - h.p : null;
+        return (
+          <div key={h.h} className={h.p >= 3 ? 'sc-row three' : 'sc-row'}>
+            <span className="h">{h.h}</span>
+            <span className="seq">
+              {h.p === 0 ? 'no putts logged' : h.d ? `${h.d} ft${h.p === 1 ? ', holed' : ''}` : '--'}
+            </span>
+            <span className={h.v !== null && h.v < 0 ? 'rel num pos' : 'rel num'}>{vsPar(h.v)}</span>
+            <span className="n num">{h.p || ''}</span>
+            <span
+              className={sg === null ? 'sg' : sg <= -0.5 ? 'sg down big' : sg < 0 ? 'sg down' : sg > 0 ? 'sg up' : 'sg'}
+            >
+              {sg === null ? '' : sg > 0 ? `+${sg.toFixed(2)}` : sg.toFixed(2)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** How often the live page asks again. A hole takes ten minutes; twenty seconds is plenty. */
+const LIVE_POLL_MS = 20_000;
+/** Same cut-off as the live strip: nothing logged in three hours and the round is not live. */
+const LIVE_HOURS = 3;
+
+const minsAgo = (iso: string) => Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+
+/**
+ * A teammate's round while they play it. Rebuilt every poll from what their phone last sent:
+ * the holes so far, the totals, and where it is heading. Never shown to the player themself.
+ */
+export function TeamLivePage({ user }: { user: string }) {
+  const [data, setData] = useState<Awaited<ReturnType<typeof loadLive>> | null>(null);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    const pull = () =>
+      loadLive(user)
+        .then((d) => alive && (setData(d), setErr('')))
+        .catch((e) => alive && setErr(e instanceof Error ? e.message : 'Could not load the round.'));
+    void pull();
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') void pull();
+    }, LIVE_POLL_MS);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [user]);
+
+  if (user === me()) return <ErrorState text="Your own round is on the Track tab." />;
+  if (err && !data) return <ErrorState text={err} />;
+  if (!data) return <p className="small muted">Loading the round…</p>;
+
+  const name = data.name ?? 'A teammate';
+  const live = data.live;
+  const stale = !live || Date.now() - Date.parse(live.started_at) > LIVE_HOURS * 3600_000;
+  if (stale)
+    return (
+      <ErrorState text={`${name} is not on the course right now. Their round shows in the feed once it is finished.`} />
+    );
+
+  const holes = live.holes ?? [];
+  const parText = (v: number) => (v === 0 ? 'E' : v > 0 ? `+${v}` : String(v));
+  const tiles: { k: string; v: string; cls?: string; sub?: string }[] = [
+    { k: 'Thru', v: String(live.thru) },
+    { k: 'Putts', v: live.putts !== undefined ? String(live.putts) : '--' },
+    {
+      k: 'To par',
+      v: live.to_par !== undefined && live.to_par !== null ? parText(live.to_par) : '--',
+      cls: live.to_par !== undefined && live.to_par !== null && live.to_par < 0 ? 'pos' : undefined,
+    },
+    { k: '1-putts', v: String(holes.filter((h) => h.p === 1).length) },
+  ];
+
+  return (
+    <>
+      <Back />
+      <div className="live-head">
+        <span className="feed-live-dot">Live</span>
+        <span className="small muted">
+          Updated {minsAgo(live.started_at) === 0 ? 'just now' : `${minsAgo(live.started_at)} min ago`}
+          {err ? ' · reconnecting' : ''}
+        </span>
+      </div>
+      <h2 className="post-title">
+        {name}
+        {live.course ? ` at ${live.course}` : ''}
+      </h2>
+
+      {live.proj && (
+        <div className="live-proj">
+          <span className="live-proj-k">On pace for</span>
+          <span className="live-proj-v num">
+            {live.proj.putts} putts
+            {live.proj.score !== null && live.proj.toPar !== null
+              ? ` · ${live.proj.score} (${parText(live.proj.toPar)})`
+              : live.proj.toPar !== null
+                ? ` · ${parText(live.proj.toPar)}`
+                : ''}
+          </span>
+          <span className="live-proj-n">
+            Their last twenty rounds blended with today. Today counts for more with every hole.
+          </span>
+        </div>
+      )}
+
+      <div className="round-numbers">
+        {tiles.map((t) => (
+          <div key={t.k}>
+            <span>{t.k}</span>
+            <strong className={t.cls ? `num ${t.cls}` : 'num'}>{t.v}</strong>
+            <small>{t.sub ?? ''}</small>
+          </div>
+        ))}
+      </div>
+
+      <h2>So far</h2>
+      {holes.length ? (
+        <HoleRows holes={[...holes].sort((a, b) => b.h - a.h)} />
+      ) : (
+        <p className="small muted">Their phone has not sent hole detail yet. It shows after the next hole they log.</p>
+      )}
     </>
   );
 }

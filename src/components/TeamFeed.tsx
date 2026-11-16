@@ -68,7 +68,7 @@ export function TeamFeed({
   return (
     <section className="feed">
       {live.map((l) => (
-        <div key={l.user} className="feed-live">
+        <button key={l.user} className="feed-live" onClick={() => go(`/team/live/${l.user}`)}>
           <span className="feed-live-dot">Live</span>
           <span className="feed-live-main">
             <strong>
@@ -91,7 +91,7 @@ export function TeamFeed({
               </span>
             )}
           </span>
-        </div>
+        </button>
       ))}
 
       {err && <p className="small neg">{err}</p>}

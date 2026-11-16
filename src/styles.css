@@ -2407,3 +2407,14 @@ a.hcp-lane:active { opacity: 0.6; }
 .lb-row > .nm .live-dot { display: inline-block; margin-left: 6px; vertical-align: 2px; }
 
 .feed-live-proj { margin-top: 2px; font-size: 13px; font-weight: 700; color: #e8935f; }
+
+/* The live strip opens the live page */
+button.feed-live { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; }
+button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; color: rgba(247, 245, 238, 0.6); }
+.live-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.live-head .feed-live-dot { color: var(--accent); }
+.live-head .feed-live-dot::before { background: var(--accent); }
+.live-proj { display: grid; gap: 2px; margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: var(--ink); color: var(--paper); }
+.live-proj-k { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #e8935f; }
+.live-proj-v { font-size: 26px; font-weight: 900; letter-spacing: -0.01em; }
+.live-proj-n { font-size: 12px; color: #a9c2b5; }
