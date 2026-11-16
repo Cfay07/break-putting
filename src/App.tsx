@@ -101,6 +101,7 @@ function practiceForTeam(state: AppState) {
       played_on: s.date.slice(0, 10),
       title: resolveDrill(state, s.drill)?.name ?? 'Practice',
       kind: s.drill === TEST_ID ? ('test' as const) : ('set' as const),
+      session: s.session ?? null,
       made: s.made,
       attempts: s.attempts,
     }));

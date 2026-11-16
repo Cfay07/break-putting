@@ -39,7 +39,73 @@ export const STARTERS: SessionDef[] = [
   },
 ];
 
-export const isStarter = (id: string) => STARTERS.some((s) => s.id === id);
+/**
+ * What a coach can set as the week's practice, one per stretch of the green. Ids stay fixed: they
+ * are stored on the team and on every set rolled inside them.
+ */
+export const FOCUS: (SessionDef & { band: FocusBand })[] = [
+  {
+    id: 'focus-short',
+    band: 'short',
+    name: 'Inside six feet',
+    source: 'mine',
+    blocks: [
+      { drill: 'firm-3', minutes: 5 },
+      { drill: 'clock-4', minutes: 5 },
+      { drill: 'mix-short', minutes: 5 },
+    ],
+  },
+  {
+    id: 'focus-mid',
+    band: 'mid',
+    name: 'Six to ten feet',
+    source: 'mine',
+    blocks: [
+      { drill: 'ten-6', minutes: 5 },
+      { drill: 'ladder-6-10', minutes: 5 },
+      { drill: 'mix-mid', minutes: 5 },
+    ],
+  },
+  {
+    id: 'focus-makeable',
+    band: 'makeable',
+    name: 'Eleven to twenty feet',
+    source: 'mine',
+    blocks: [
+      { drill: 'twelve', minutes: 5 },
+      { drill: 'mix-long', minutes: 5 },
+      { drill: 'downhill-10', minutes: 5 },
+    ],
+  },
+  {
+    id: 'focus-lag',
+    band: 'lag',
+    name: 'Twenty to forty feet',
+    source: 'mine',
+    blocks: [
+      { drill: 'twenty-thirty', minutes: 5 },
+      { drill: 'two-putt-ladder', minutes: 5 },
+      { drill: 'lag-ladder', minutes: 5 },
+    ],
+  },
+  {
+    id: 'focus-long',
+    band: 'long',
+    name: 'Over forty feet',
+    source: 'mine',
+    blocks: [
+      { drill: 'back-edge', minutes: 5 },
+      { drill: 'same-time', minutes: 5 },
+      { drill: 'lag-ladder', minutes: 5 },
+    ],
+  },
+];
+
+export type FocusBand = 'short' | 'mid' | 'makeable' | 'lag' | 'long';
+
+export const findFocus = (id: string | null | undefined) => FOCUS.find((f) => f.id === id);
+
+export const isStarter = (id: string) => STARTERS.some((s) => s.id === id) || FOCUS.some((s) => s.id === id);
 
 /** Set by a Start button so the session opens straight onto its first drill. Start means start. */
 const OPEN_FIRST = 'break.openFirst';

@@ -19,7 +19,7 @@ export interface Member {
   team_id: string;
   user_id: string;
   display_name: string | null;
-  role: 'owner' | 'member';
+  role: 'owner' | 'member' | 'coach';
   /** The team this player lands on. At most one of their rows carries it. */
   starred: boolean;
 }
@@ -273,5 +273,68 @@ export function rememberOnTeam(on: boolean) {
     window.dispatchEvent(new Event('break:team'));
   } catch {
     // Private mode: the tab shows once the Team page has loaded this session.
+  }
+}
+
+export interface Focus {
+  team_id: string;
+  session: string;
+  set_at: string;
+}
+
+/** Four months, so a coach opening this over the winter still sees the fall season's leak. */
+export async function loadCoach(teamId: string): Promise<{
+  rounds: TeamRound[];
+  practice: TeamPracticeRow[];
+  focus: Focus | null;
+}> {
+  const since = new Date(Date.now() - 120 * 86_400_000).toISOString().slice(0, 10);
+  const [rounds, practice, focus] = await Promise.all([
+    rows<TeamRound>(`team_rounds?select=*&played_on=gte.${since}&order=played_on.desc&limit=1000`),
+    rows<TeamPracticeRow>(
+      `team_practice?select=user_id,set_id,played_on,title,kind,made,attempts,session&played_on=gte.${since}&limit=2000`,
+    ),
+    rows<Focus>(`team_focus?select=team_id,session,set_at&team_id=eq.${teamId}`),
+  ]);
+  return { rounds, practice, focus: focus[0] ?? null };
+}
+
+/** The week's practice for every team you are on. Practice shows the starred team's. */
+export async function loadFocus(): Promise<(Focus & { team: string })[]> {
+  if (!currentSession() || !online()) return [];
+  const [focus, teams, members] = await Promise.all([
+    rows<Focus>('team_focus?select=team_id,session,set_at'),
+    rows<Pick<Team, 'id' | 'name'>>('teams?select=id,name'),
+    rows<Pick<Member, 'team_id' | 'user_id' | 'starred'>>('team_members?select=team_id,user_id,starred'),
+  ]);
+  const me = currentSession()!.userId;
+  const starred = members.find((m) => m.user_id === me && m.starred)?.team_id;
+  return focus
+    .map((f) => ({ ...f, team: teams.find((t) => t.id === f.team_id)?.name ?? 'Your team' }))
+    .sort((a, b) => Number(b.team_id === starred) - Number(a.team_id === starred) || b.set_at.localeCompare(a.set_at));
+}
+
+export async function setFocus(teamId: string, session: string): Promise<void> {
+  const res = await table('team_focus?on_conflict=team_id', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify({
+      team_id: teamId,
+      session,
+      set_by: currentSession()!.userId,
+      set_at: new Date().toISOString(),
+    }),
+  });
+  if (!res.ok) throw new Error('Only the owner or a coach can set the week.');
+}
+
+export async function setRole(teamId: string, member: string, role: 'member' | 'coach'): Promise<void> {
+  const res = await table('rpc/set_member_role', {
+    method: 'POST',
+    body: JSON.stringify({ t: teamId, member, new_role: role }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? 'That did not work.');
   }
 }

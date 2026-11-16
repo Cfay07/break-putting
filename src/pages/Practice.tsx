@@ -3,6 +3,7 @@ import { Chevron } from '../components/Chevron';
 import { DrillLogger } from '../components/DrillLogger';
 import { DrillPreview } from '../components/DrillPreview';
 import { Sheet } from '../components/Sheet';
+import { TeamWeek } from '../components/TeamWeek';
 import { useNow } from '../components/useNow';
 import { distanceText, fits, fitToRoom, resolveDrill, type Fitted } from '../lib/drills';
 import { fmtDate, today } from '../lib/format';
@@ -55,8 +56,8 @@ function RoomSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Room to putt" onClose={onClose}>
       <p className="small muted" style={{ marginTop: 0 }}>
-        The longest putt you have room for {surface === 'indoor' ? 'indoors' : 'on the green you use'}. Every
-        drill fits itself to it: a station past it moves in.
+        The longest putt you have room for {surface === 'indoor' ? 'indoors' : 'on the green you use'}. Every drill fits
+        itself to it: a station past it moves in.
       </p>
       <div className="step-row">
         <span className="step-k">
@@ -263,6 +264,8 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
         </a>
       )}
 
+      <TeamWeek />
+
       <section className="today-card">
         <span className="target-eyebrow">
           {testIsTarget ? 'Your target' : `Today · ${plan.length * BLOCK_MIN} min · from your rounds`}
@@ -272,8 +275,8 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
           <>
             <p>
               Fixed. Since {fmtDate(setOn!)}: {progress.after.made} of {progress.after.attempts} on the course, against{' '}
-              {progress.before.made} of {progress.before.attempts} before. That gap is past chance. It does not prove the
-              drills did it.
+              {progress.before.made} of {progress.before.attempts} before. That gap is past chance. It does not prove
+              the drills did it.
             </p>
             <button className="today-start" onClick={markFixed}>
               Next target
@@ -297,7 +300,9 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
                       <span className="plan-n">{i + 1}</span>
                       <button className="plan-main" onClick={() => setPreview({ drill: d })}>
                         <strong>{d.name}</strong>
-                        <span>{[distanceText(d), d.beat ? 'with the beat' : '', lastOf(d.id)].filter(Boolean).join(' · ')}</span>
+                        <span>
+                          {[distanceText(d), d.beat ? 'with the beat' : '', lastOf(d.id)].filter(Boolean).join(' · ')}
+                        </span>
                       </button>
                       <span className="today-min">{BLOCK_MIN} min</span>
                     </li>
@@ -315,7 +320,8 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
                 )}
                 {surface === 'indoor' && target.kind === 'slice' && (
                   <p className="today-note">
-                    A flat mat trains start line and speed. The read needs real slope, so on a sloped green switch to Green.
+                    A flat mat trains start line and speed. The read needs real slope, so on a sloped green switch to
+                    Green.
                   </p>
                 )}
                 <button className="today-start" onClick={startPlan}>
@@ -352,10 +358,10 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
               test.thisWeek
                 ? `This week: ${test.thisWeek.made} of ${test.thisWeek.attempts}. Next one ${fmtDate(nextTestDay(date))}.`
                 : testGoing
-                ? `Stopped at ball ${testGoing.balls.length + 1}. It picks up from there.`
-                : lastTest && test.best
-                ? `18 putts · 6 min · ${lastTest.made} last time, best ${test.best.made}`
-                : '18 putts · 6 min · sets the number to beat'
+                  ? `Stopped at ball ${testGoing.balls.length + 1}. It picks up from there.`
+                  : lastTest && test.best
+                    ? `18 putts · 6 min · ${lastTest.made} last time, best ${test.best.made}`
+                    : '18 putts · 6 min · sets the number to beat'
             }
             onOpen={() => setPreview({ drill: testRun, once: true })}
             onStart={test.thisWeek ? undefined : () => setRolling({ drill: testRun, once: true })}

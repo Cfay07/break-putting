@@ -9,6 +9,8 @@ export interface TeamPracticeRow {
   kind: 'test' | 'set';
   made: number;
   attempts: number;
+  /** The session it was rolled in, so the coach can see who did the week's practice. */
+  session?: string | null;
 }
 
 export interface Reaction {

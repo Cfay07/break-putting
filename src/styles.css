@@ -2316,3 +2316,51 @@ a.hcp-lane:active { opacity: 0.6; }
 }
 .feed-react.on { background: #14392b; border-color: #14392b; color: #f7f5ee; }
 .feed-open { font-size: 14px; font-weight: 700; color: var(--accent); text-decoration: none; }
+
+/* The week's practice, on Practice */
+.team-week {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 14px 16px 16px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ink);
+}
+.team-week-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.team-week-name { font-size: 20px; font-weight: 900; letter-spacing: -0.01em; }
+.team-week-sub { font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+
+/* Coach view */
+.coach .field-label:first-child { margin-top: 4px; }
+.coach-leak { padding: 16px; border-radius: 14px; background: var(--ink); color: var(--paper); }
+.coach-leak-head { margin: 0; font-size: 20px; font-weight: 900; line-height: 1.25; letter-spacing: -0.01em; }
+.coach-leak-sub { margin: 6px 0 12px; font-size: 13px; color: #cfdcd4; }
+.coach-leak .small.muted { color: #a9c2b5; }
+.coach-bands { display: grid; gap: 2px; }
+.coach-band { display: flex; justify-content: space-between; padding: 7px 0; border-top: 1px solid rgba(242, 239, 230, 0.16); font-size: 14px; color: #cfdcd4; }
+.coach-band.worst { color: #e8935f; font-weight: 800; }
+.coach-focus { padding: 14px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+.coach-focus .btn-primary { margin-top: 12px; }
+.coach-focus-name { margin: 0; font-size: 18px; font-weight: 900; }
+.coach-focus-did { margin: 10px 0 0; font-size: 14px; font-weight: 700; }
+.coach-week { display: flex; gap: 22px; }
+.coach-week span { display: flex; flex-direction: column; font-size: 12px; color: var(--ink-2); }
+.coach-week b { font-size: 22px; font-weight: 800; color: var(--ink); line-height: 1.1; }
+.coach-table { border-radius: 12px; background: var(--card); border: 1px solid var(--line); overflow: hidden; }
+.coach-row {
+  display: grid;
+  grid-template-columns: 1fr 48px 48px 48px 44px;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+.coach-row > span:not(:first-child) { text-align: right; }
+.coach-row-head { border-top: 0; font-size: 11px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; }
+.coach-name { display: flex; flex-direction: column; min-width: 0; font-weight: 700; }
+.coach-name small { font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.coach-name small.quiet { color: var(--accent); font-weight: 700; }
+.coach-member { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; }

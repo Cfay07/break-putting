@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NameField } from '../components/NameField';
+import { CoachView } from '../components/CoachView';
 import { TeamFeed } from '../components/TeamFeed';
 import { Sheet } from '../components/Sheet';
 import { accountName, currentSession } from '../lib/cloud';
@@ -7,6 +8,7 @@ import { fmtDate } from '../lib/format';
 import {
   createTeam,
   joinTeam,
+  setRole,
   leaveTeam,
   loadTeams,
   saveTheme,
@@ -135,11 +137,14 @@ function PlayerPanel({
   stats,
   accent,
   onClose,
+  onMakeCoach,
 }: {
   member: Member;
   stats: PlayerStats | undefined;
   accent: string;
   onClose: () => void;
+  /** Owner only, and never on the owner: a coach leaves the boards and gets the Coach view. */
+  onMakeCoach?: () => void;
 }) {
   const name = member.display_name ?? 'Unnamed player';
   const [rounds, setRounds] = useState<TeamRound[] | null>(null);
@@ -232,6 +237,17 @@ function PlayerPanel({
         </p>
       )}
 
+      {onMakeCoach && (
+        <>
+          <button className="btn btn-wide" style={{ marginTop: 16 }} onClick={onMakeCoach}>
+            Make {name} a coach
+          </button>
+          <p className="small muted" style={{ margin: '6px 0 0' }}>
+            A coach sees the Coach view, sets the week's practice, and comes off the leaderboard.
+          </p>
+        </>
+      )}
+
       {openRound && <RoundCard round={openRound} onClose={() => setOpenRound(null)} />}
     </Sheet>
   );
@@ -251,7 +267,7 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
   const [open, setOpen] = useState<string | null>(null);
   const [sheet, setSheet] = useState<'manage' | 'add' | 'teams' | 'board' | null>(null);
   const [code, setCode] = useState(() => joinCode?.toUpperCase() ?? '');
-  const [tab, setTab] = useState<'feed' | 'board'>('feed');
+  const [tab, setTab] = useState<'feed' | 'board' | 'coach'>('feed');
   const [newName, setNewName] = useState('');
   const [copied, setCopied] = useState(false);
   const [draftName, setDraftName] = useState('');
@@ -314,7 +330,7 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
     if (!team) return [];
     const byUser = new Map(view.stats.map((s) => [s.user_id, s]));
     return view.members
-      .filter((m) => m.team_id === team.id)
+      .filter((m) => m.team_id === team.id && m.role !== 'coach')
       .map((m) => ({ member: m, stats: byUser.get(m.user_id) }))
       .sort((a, b) => {
         const av = a.stats?.[board] ?? null;
@@ -454,6 +470,9 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
     );
   }
 
+  const teamMembers = view.members.filter((m) => m.team_id === team.id);
+  const coaches = teamMembers.filter((m) => m.role === 'coach');
+  const coaching = isOwner || coaches.some((m) => m.user_id === session.userId);
   const openMember = roster.find((r) => r.member.user_id === open);
   const rank = BOARDS.find((b) => b.key === board)!;
 
@@ -489,12 +508,26 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
         <button aria-pressed={tab === 'board'} onClick={() => setTab('board')}>
           Leaderboard
         </button>
+        {coaching && (
+          <button aria-pressed={tab === 'coach'} onClick={() => setTab('coach')}>
+            Coach
+          </button>
+        )}
       </div>
+
+      {tab === 'coach' && coaching && (
+        <CoachView
+          key={team.id}
+          team={team}
+          players={roster.map((r) => ({ id: r.member.user_id, name: r.member.display_name ?? 'Unnamed player' }))}
+          stats={view.stats}
+        />
+      )}
 
       {tab === 'feed' && (
         <TeamFeed
           key={team.id}
-          members={roster.map((r) => ({ id: r.member.user_id, name: r.member.display_name ?? 'A teammate' }))}
+          members={teamMembers.map((m) => ({ id: m.user_id, name: m.display_name ?? 'A teammate' }))}
           stats={view.stats}
           me={session.userId}
         />
@@ -638,6 +671,26 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
             Send the invite link
           </button>
 
+          {coaches.length > 0 && (
+            <>
+              <div className="field-label">Coaches</div>
+              {coaches.map((c) => (
+                <div key={c.user_id} className="coach-member">
+                  <span>{c.display_name ?? 'Unnamed coach'}</span>
+                  {isOwner && (
+                    <button
+                      className="btn btn-ghost"
+                      disabled={busy}
+                      onClick={() => void run(() => setRole(team.id, c.user_id, 'member'))}
+                    >
+                      Make a player
+                    </button>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+
           {isOwner && (
             <>
               <div className="field-label">Team page</div>
@@ -697,6 +750,15 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
           stats={openMember.stats}
           accent={accent}
           onClose={() => setOpen(null)}
+          onMakeCoach={
+            isOwner && openMember.member.role !== 'owner'
+              ? () =>
+                  void run(async () => {
+                    await setRole(team.id, openMember.member.user_id, 'coach');
+                    setOpen(null);
+                  })
+              : undefined
+          }
         />
       )}
     </div>
