@@ -1,5 +1,5 @@
 import { Sheet } from './Sheet';
-import { distanceText, familyOf, scoringLabel, type Fitted } from '../lib/drills';
+import { ballsText, distanceText, familyOf, scoringLabel, type Fitted } from '../lib/drills';
 import { historyOf } from '../lib/practice';
 import { ON_MISS_TEXT, setScore } from '../lib/practiceView';
 import { useApp } from '../lib/store';
@@ -17,7 +17,7 @@ export function DrillPreview({ drill, onStart, onClose }: { drill: Fitted; onSta
   return (
     <Sheet title={drill.name} onClose={onClose}>
       <p className="small muted" style={{ margin: 0 }}>
-        {[distanceText(drill), scoringLabel(drill), drill.minutes ? `${drill.minutes} min` : ''].filter(Boolean).join(' · ')}
+        {[distanceText(drill), ballsText(drill), scoringLabel(drill), drill.minutes ? `${drill.minutes} min` : ''].filter(Boolean).join(' · ')}
       </p>
       <p style={{ margin: '12px 0 0' }}>
         {drill.how}

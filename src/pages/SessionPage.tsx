@@ -1,5 +1,5 @@
 import { BackLink } from '../components/BackLink';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { DrillLogger } from '../components/DrillLogger';
 import { useNow } from '../components/useNow';
@@ -10,17 +10,21 @@ import { go } from '../lib/router';
 import { usePractice } from '../lib/usePractice';
 import { SURFACE_LABELS } from '../lib/types';
 import { CHECK_AFTER, TARGET_SESSION, useTarget } from '../lib/useTarget';
+import { clearOpenFirst, opensFirst } from '../lib/starters';
 
 export function SessionPage({ id }: { id: string }) {
   const { state, dispatch, surface, room } = usePractice();
   const target = useTarget();
   const session = state.sessions.find((x) => x.id === id);
   const run = state.run?.session === id ? state.run : undefined;
-  // The target's session opens straight onto the drill you are on: Start means start.
+  // A session started with one tap opens straight onto the drill you are on: Start means start.
   const [open, setOpen] = useState<number | null>(() =>
-    id === TARGET_SESSION && run && session && run.block < session.blocks.length && !run.done[run.block] ? run.block : null,
+    (id === TARGET_SESSION || opensFirst(id)) && run && session && run.block < session.blocks.length && !run.done[run.block]
+      ? run.block
+      : null,
   );
   const now = useNow(!!run, 1000);
+  useEffect(() => clearOpenFirst(), []);
 
   if (!session) {
     return (

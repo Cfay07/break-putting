@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { loadTempo, saveTempo, startTempo } from '../lib/tempo';
 import { ASK_AGAIN_AFTER, LEVEL_STEP, levels, markOf, readyToMove, setsAt, withLevel } from '../lib/levels';
 import { candidates, pickStroke, TUNE_DRILL, tuneArms, tuneVerdict } from '../lib/tempoTune';
-import { distanceText, familyOf, scoringLabel, type Fitted } from '../lib/drills';
+import { ballsText, distanceText, familyOf, scoringLabel, type Fitted } from '../lib/drills';
 import { today } from '../lib/format';
 import { historyOf, type DrillHistory } from '../lib/practice';
 import { setScore, verdict } from '../lib/practiceView';
@@ -35,6 +35,48 @@ function DoneLogger({ drill, onSave }: LoggerProps) {
           Done
         </button>
       </div>
+    </div>
+  );
+}
+
+/** A set across more than one distance, broken out, and where the misses piled up. */
+function ByDistance({ set }: { set: PracticeSet }) {
+  const rows = (set.stations ?? []).filter((st) => st.attempts > 0);
+  const merged = new Map<string, { d: number; lag: boolean; made: number; attempts: number }>();
+  for (const st of rows) {
+    const lag = st.mode !== 'make';
+    const key = `${st.d}-${lag}`;
+    const m = merged.get(key) ?? { d: st.d, lag, made: 0, attempts: 0 };
+    m.made += st.made;
+    m.attempts += st.attempts;
+    merged.set(key, m);
+  }
+  const list = [...merged.values()].sort((a, b) => Number(a.lag) - Number(b.lag) || a.d - b.d);
+  if (list.length < 2) return null;
+  const worst = [...list].sort((a, b) => b.attempts - b.made - (a.attempts - a.made))[0];
+  const misses = worst.attempts - worst.made;
+  return (
+    <div className="by-distance">
+      {list.map((r) => (
+        <div key={`${r.d}-${r.lag}`} className="by-row">
+          <span className="by-d">{r.lag ? `${r.d} ft lag` : `${r.d} ft`}</span>
+          <span className="by-bar">
+            <i
+              className={r.made === r.attempts ? 'all' : r.made / r.attempts < 0.5 ? 'low' : undefined}
+              style={{ width: `${Math.max(4, (r.made / r.attempts) * 100)}%` }}
+            />
+          </span>
+          <span className="by-s num">
+            {r.made} of {r.attempts}
+          </span>
+        </div>
+      ))}
+      {misses > 0 && (
+        <p className="by-next">
+          Next time: {misses === 1 ? 'your miss' : `${misses} of your misses`} came from {worst.d} ft
+          {worst.lag ? ' (lag)' : ''}. Start there.
+        </p>
+      )}
     </div>
   );
 }
@@ -151,7 +193,7 @@ export function DrillLogger({
         <div>
           <h3 style={{ margin: 0 }}>{drill.name}</h3>
           <span className="tiny">
-            {[distanceText(drill), scoringLabel(drill)].filter(Boolean).join(' · ')}
+            {[distanceText(drill), ballsText(drill), scoringLabel(drill)].filter(Boolean).join(' · ')}
           </span>
         </div>
         <span className="runner-top-end">
@@ -211,6 +253,7 @@ export function DrillLogger({
               ))}
             </div>
           )}
+          <ByDistance set={saved.set} />
           <div className="runner-actions">
             {once ? (
               <button className="btn btn-primary btn-wide" onClick={onClose}>

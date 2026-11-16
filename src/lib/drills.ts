@@ -370,13 +370,33 @@ export function distanceText(drill: Pick<DrillDef, 'stations'>): string {
   return `${Math.min(...ds)} to ${Math.max(...ds)} ft`;
 }
 
-/** The scoring in words, by what the balls are actually judged on. */
+/** What the balls are judged on, in the words a golfer would use. */
 export function scoringLabel(d: Pick<DrillDef, 'scoring' | 'stations'>): string {
-  if (d.scoring !== 'count' || !d.stations.length) return SCORING_LABELS[d.scoring];
+  if (d.scoring !== 'count' || !d.stations.length) return PLAIN[d.scoring];
   const modes = new Set(d.stations.map((s) => s.mode ?? 'make'));
-  if (modes.size === 1 && modes.has('zone')) return 'Inside the zone';
-  if (modes.size === 1 && modes.has('twoputt')) return 'Two-putt or not';
-  return SCORING_LABELS.count;
+  if (modes.size === 1 && modes.has('zone')) {
+    const zones = [...new Set(d.stations.map((s) => s.zoneFt ?? 3))];
+    return zones.length === 1 && zones[0] >= 1 ? `Inside ${zones[0]} ft` : 'Stop it close';
+  }
+  if (modes.size === 1 && modes.has('twoputt')) return 'Two-putts';
+  if (modes.size === 1) return 'Holed';
+  return 'Holed or close';
+}
+
+/** For the drill list and the counter. The editor keeps its own names for the scoring types. */
+const PLAIN: Record<DrillDef['scoring'], string> = {
+  count: 'Holed',
+  ladder: 'How far you get',
+  streak: 'In a row',
+  game: 'Head to head',
+  done: 'Mark it done',
+};
+
+/** How many balls, when the drill has a fixed count. */
+export function ballsText(d: Pick<DrillDef, 'scoring' | 'stations'>): string {
+  if (d.scoring !== 'count') return '';
+  const n = d.stations.reduce((sum, st) => sum + st.balls, 0);
+  return n ? `${n} putts` : '';
 }
 
 export const SCORING_LABELS: Record<DrillDef['scoring'], string> = {

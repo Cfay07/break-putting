@@ -1,6 +1,6 @@
 import { BackLink } from '../components/BackLink';
 import { Chevron } from '../components/Chevron';
-import { allDrills, distanceText, fits, scoringLabel } from '../lib/drills';
+import { allDrills, ballsText, distanceText, fits, fitToRoom, scoringLabel } from '../lib/drills';
 import { usePractice } from '../lib/usePractice';
 import { SURFACE_LABELS, type DrillDef } from '../lib/types';
 
@@ -24,7 +24,7 @@ export function DrillBrowse() {
       </div>
       <h1 className="page-title">Every drill</h1>
       <p className="small muted" style={{ margin: '2px 0 0' }}>
-        {SURFACE_LABELS[surface]}, up to {room} ft. Every drill fits itself to that length. The ones that need a real green are listed last.
+        {SURFACE_LABELS[surface]}, up to {room} ft. Every drill shows the length you will putt in that room. The ones that need a real green are listed last.
       </p>
       {GROUPS.map((g) => {
         const list = drills
@@ -44,7 +44,7 @@ export function DrillBrowse() {
                       {d.from && <span className="small muted"> · edited</span>}
                     </strong>
                     <span className="small muted">
-                      {[distanceText(d), scoringLabel(d), ok ? '' : 'needs a green'].filter(Boolean).join(' · ')}
+                      {[distanceText(fitToRoom(d, room)), ballsText(d), scoringLabel(d), ok ? '' : 'needs a green'].filter(Boolean).join(' · ')}
                     </span>
                   </span>
                   <Chevron />

@@ -10,6 +10,7 @@ import { histories } from '../lib/practice';
 import { clock, setScoreShort } from '../lib/practiceView';
 import { go, replaceRoute } from '../lib/router';
 import { liveRound, makeRound } from '../lib/store';
+import { isStarter, startSession, STARTERS } from '../lib/starters';
 import { CHECK_AFTER, TARGET_SESSION, useTarget } from '../lib/useTarget';
 import { usePractice } from '../lib/usePractice';
 import { SURFACE_LABELS, type SessionDef, type Surface } from '../lib/types';
@@ -112,6 +113,34 @@ function RoundSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
+function QuickRow({
+  name,
+  sub,
+  onOpen,
+  onStart,
+  going,
+}: {
+  name: string;
+  sub: string;
+  onOpen: () => void;
+  onStart?: () => void;
+  going?: boolean;
+}) {
+  return (
+    <div className="quick-row">
+      <button className="quick-main" onClick={onOpen}>
+        <strong>{name}</strong>
+        <span className="small muted">{sub}</span>
+      </button>
+      {onStart && (
+        <button className="quick-start" onClick={onStart}>
+          {going ? 'Back to it' : 'Start'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** `openTest` opens straight onto the weekly test, for links that say "take the test". */
 export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
   const target = useTarget();
@@ -139,7 +168,7 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
   const [opened, setOpened] = useState(false);
   if (openTest && !opened) {
     setOpened(true);
-    setPreview({ drill: testRun, once: true });
+    setRolling({ drill: testRun, once: true });
     queueMicrotask(() => replaceRoute('/practice'));
   }
 
@@ -188,6 +217,25 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
   const recentSessions = [...mySessions].sort((a, b) =>
     (lastRolled.get(b.id) ?? '').localeCompare(lastRolled.get(a.id) ?? ''),
   );
+  // Yours first, by last rolled; the starters fill in so a new player always has something to start.
+  const shown = [...recentSessions, ...STARTERS.filter((x) => !mySessions.some((m) => m.id === x.id))].slice(
+    0,
+    SESSIONS_SHOWN,
+  );
+  const sessionSub = (x: SessionDef) => {
+    const blocks = x.blocks.filter((b) => resolveDrill(state, b.drill)?.putting !== false);
+    const mins = blocks.reduce((n, b) => n + (b.minutes ?? 0), 0);
+    const off = blocks.filter((b) => {
+      const d = resolveDrill(state, b.drill);
+      return d && !fits(d, surface);
+    }).length;
+    const names = blocks
+      .map((b) => resolveDrill(state, b.drill)?.name)
+      .filter(Boolean)
+      .join(', ');
+    return [mins ? `${mins} min` : '', off ? `${off} need a green` : names].filter(Boolean).join(' · ');
+  };
+  const drillCount = target.plan.drills.length;
 
   return (
     <div>
@@ -215,8 +263,10 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
         </a>
       )}
 
-      <div className="target-card">
-        <span className="target-eyebrow">Your target{setOn ? ` · since ${fmtDate(setOn)}` : ''}</span>
+      <section className="today-card">
+        <span className="target-eyebrow">
+          {testIsTarget ? 'Your target' : `Today · ${plan.length * BLOCK_MIN} min · from your rounds`}
+        </span>
         <h3>{title}</h3>
         {progress?.fixed ? (
           <>
@@ -225,7 +275,7 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
               {progress.before.made} of {progress.before.attempts} before. That gap is past chance. It does not prove the
               drills did it.
             </p>
-            <button className="target-next" onClick={markFixed}>
+            <button className="today-start" onClick={markFixed}>
               Next target
             </button>
           </>
@@ -239,161 +289,130 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
                   : `Since ${fmtDate(setOn!)}: ${progress.after.made} of ${progress.after.attempts} on the course, ${progress.before.made} of ${progress.before.attempts} before. Not past chance yet.`}
               </p>
             )}
+            {plan.length > 0 && (
+              <>
+                <ol className="today-plan">
+                  {plan.map((d, i) => (
+                    <li key={d.id}>
+                      <span className="plan-n">{i + 1}</span>
+                      <button className="plan-main" onClick={() => setPreview({ drill: d })}>
+                        <strong>{d.name}</strong>
+                        <span>{[distanceText(d), d.beat ? 'with the beat' : '', lastOf(d.id)].filter(Boolean).join(' · ')}</span>
+                      </button>
+                      <span className="today-min">{BLOCK_MIN} min</span>
+                    </li>
+                  ))}
+                </ol>
+                {canChoose && (
+                  <div className="seg today-style" role="group" aria-label="How you want to practice today">
+                    <button aria-pressed={style === 'reps'} onClick={() => pickStyle('reps')}>
+                      Same putt
+                    </button>
+                    <button aria-pressed={style === 'round'} onClick={() => pickStyle('round')}>
+                      Mixed
+                    </button>
+                  </div>
+                )}
+                {surface === 'indoor' && target.kind === 'slice' && (
+                  <p className="today-note">
+                    A flat mat trains start line and speed. The read needs real slope, so on a sloped green switch to Green.
+                  </p>
+                )}
+                <button className="today-start" onClick={startPlan}>
+                  {runSession?.id === TARGET_SESSION ? 'Back to it' : 'Start'}
+                </button>
+              </>
+            )}
+            {testIsTarget &&
+              (test.thisWeek ? (
+                <p className="target-progress">
+                  This week: {test.thisWeek.made} of {test.thisWeek.attempts}. The next one opens{' '}
+                  {fmtDate(nextTestDay(date))}.
+                </p>
+              ) : (
+                <button className="today-start" onClick={() => setRolling({ drill: testRun, once: true })}>
+                  {testGoing ? `Pick up at ball ${testGoing.balls.length + 1}` : 'Start the test'}
+                </button>
+              ))}
           </>
-        )}
-        {testIsTarget && !test.thisWeek && (
-          <button className="target-next" onClick={() => setPreview({ drill: testRun, once: true })}>
-            {testGoing ? `Pick up at ball ${testGoing.balls.length + 1}` : 'Start the test'}
-          </button>
         )}
         {hasWhy && (
           <a className="target-why" href="#/practice/why">
             Why this ›
           </a>
         )}
-      </div>
+      </section>
 
-      {plan.length > 0 && (
-        <>
-          <h2>Today's {plan.length * BLOCK_MIN} minutes</h2>
-          {canChoose && (
-            <div className="seg seg-quiet plan-style" role="group" aria-label="How you want to practice today">
-              <button aria-pressed={style === 'reps'} onClick={() => pickStyle('reps')}>
-                Reps
-              </button>
-              <button aria-pressed={style === 'round'} onClick={() => pickStyle('round')}>
-                Like a round
-              </button>
-            </div>
-          )}
-          {canChoose && (
-            <p className="small muted" style={{ margin: '6px 0 10px' }}>
-              {style === 'reps'
-                ? 'The same putt over and over until it grooves. Your pick.'
-                : 'Different distances every few balls, the way a round hands them out. Your pick.'}
-            </p>
-          )}
-          <ol className="plan-list">
-            {plan.map((d, i) => (
-              <li key={d.id}>
-                <span className="plan-n">{i + 1}</span>
-                <button className="plan-main" onClick={() => setPreview({ drill: d })}>
-                  <strong>{d.name}</strong>
-                  <span className="small muted">
-                    {[distanceText(d), d.beat ? 'with the beat' : '', lastOf(d.id)].filter(Boolean).join(' · ')}
-                  </span>
-                </button>
-                <span className="small muted">{BLOCK_MIN} min</span>
-              </li>
-            ))}
-          </ol>
-          {surface === 'indoor' && target.kind === 'slice' && (
-            <p className="small muted" style={{ margin: '8px 0 0' }}>
-              A flat mat trains start line and speed. The read needs real slope, so on a sloped green switch to Green.
-            </p>
-          )}
-          <button className="btn btn-primary btn-wide" style={{ marginTop: 12 }} onClick={startPlan}>
-            {runSession?.id === TARGET_SESSION ? 'Back to it' : `Start · ${plan.length * BLOCK_MIN} min`}
-          </button>
-        </>
-      )}
-
-      {!testIsTarget && (
-        <>
-          <h2>Weekly test</h2>
-          <button className="nav-row" onClick={() => setPreview({ drill: testRun, once: true })}>
-            <span className="nav-main">
-              {test.thisWeek ? (
-                <>
-                  <strong>
-                    This week: {test.thisWeek.made} of {test.thisWeek.attempts}
-                  </strong>
-                  <span className="small muted">
-                    {test.best && test.weeks.length > 1 ? `Best ${test.best.made}. ` : ''}The next one opens{' '}
-                    {fmtDate(nextTestDay(date))}.
-                  </span>
-                </>
-              ) : (
-                <>
-                  <strong>Due · 18 putts, about 6 min</strong>
-                  <span className="small muted">
-                    {testGoing
-                      ? `Stopped at ball ${testGoing.balls.length + 1}. It picks up from there.`
-                      : lastTest && test.best
-                      ? `${lastTest.made} of ${lastTest.attempts} last time, best ${test.best.made}`
-                      : 'The first one sets the number to beat.'}
-                  </span>
-                </>
-              )}
-            </span>
-            <Chevron />
-          </button>
-        </>
-      )}
-
-      <h2>Sessions</h2>
-      <div className="row-list">
-        {recentSessions.slice(0, SESSIONS_SHOWN).map((x) => (
-          <SessionRow key={x.id} id={x.id} />
-        ))}
-        {mySessions.length > SESSIONS_SHOWN ? (
-          <a className="nav-row" href="#/practice/sessions">
-            <span className="nav-main">
-              <strong>All {mySessions.length} sessions</strong>
-              <span className="small muted">Or build one</span>
-            </span>
-            <Chevron />
-          </a>
-        ) : (
-          <a className="btn btn-ghost btn-wide" href="#/practice/session-edit/new">
-            Build a session
-          </a>
+      <h2>Run it again</h2>
+      <div className="quick-list">
+        {!testIsTarget && (
+          <QuickRow
+            name="Weekly test"
+            sub={
+              test.thisWeek
+                ? `This week: ${test.thisWeek.made} of ${test.thisWeek.attempts}. Next one ${fmtDate(nextTestDay(date))}.`
+                : testGoing
+                ? `Stopped at ball ${testGoing.balls.length + 1}. It picks up from there.`
+                : lastTest && test.best
+                ? `18 putts · 6 min · ${lastTest.made} last time, best ${test.best.made}`
+                : '18 putts · 6 min · sets the number to beat'
+            }
+            onOpen={() => setPreview({ drill: testRun, once: true })}
+            onStart={test.thisWeek ? undefined : () => setRolling({ drill: testRun, once: true })}
+          />
         )}
+        {shown.map((x) => (
+          <QuickRow
+            key={x.id}
+            name={x.name}
+            sub={sessionSub(x)}
+            onOpen={() => go(`/practice/session/${x.id}`)}
+            onStart={() => startSession(state, dispatch, x, surface)}
+            going={runSession?.id === x.id}
+          />
+        ))}
+        <div className="quick-foot">
+          <a className="linkish" href="#/practice/session-edit/new">
+            Build your own
+          </a>
+          {mySessions.length > SESSIONS_SHOWN && (
+            <a className="linkish" href="#/practice/sessions">
+              All {mySessions.length} sessions ›
+            </a>
+          )}
+        </div>
       </div>
-      {!mySessions.length && (
+      {!mySessions.some((x) => !isStarter(x.id)) && (
         <p className="small muted" style={{ margin: '8px 0 0' }}>
           Your team's practice file comes in from Settings, under Imports.
         </p>
       )}
 
-      <div className="row-list" style={{ marginTop: 24 }}>
+      <h2>Tools</h2>
+      <div className="tool-grid">
+        <a className="tool" href="#/practice/tempo">
+          <strong>Metronome</strong>
+          <span>Your tempo</span>
+        </a>
         {live && !live.practice ? (
-          <div className="nav-row" aria-disabled="true">
-            <span className="nav-main">
-              <strong>Practice round</strong>
-              <span className="small muted">Finish or discard the round you are logging first.</span>
-            </span>
-          </div>
+          <span className="tool" aria-disabled="true">
+            <strong>Play a round</strong>
+            <span>Finish your round first</span>
+          </span>
         ) : live ? (
-          <a className="nav-row" href="#/track">
-            <span className="nav-main">
-              <strong>Back to your practice round</strong>
-              <span className="small muted">{live.holes.filter((h) => h.putts.length).length} holes logged</span>
-            </span>
-            <Chevron />
+          <a className="tool" href="#/track">
+            <strong>Back to it</strong>
+            <span>{live.holes.filter((h) => h.putts.length).length} holes logged</span>
           </a>
         ) : (
-          <button className="nav-row" onClick={() => setRoundOpen(true)}>
-            <span className="nav-main">
-              <strong>Practice round</strong>
-              <span className="small muted">9 to 18 holes, every putt logged</span>
-            </span>
-            <Chevron />
+          <button className="tool" onClick={() => setRoundOpen(true)}>
+            <strong>Play a round</strong>
+            <span>9 to 18 holes</span>
           </button>
         )}
-        <a className="nav-row" href="#/practice/tempo">
-          <span className="nav-main">
-            <strong>Metronome</strong>
-            <span className="small muted">Back, top, hit, at your tempo. Quiet enough for team practice.</span>
-          </span>
-          <Chevron />
-        </a>
-        <a className="nav-row" href="#/practice/drills">
-          <span className="nav-main">
-            <strong>Every drill</strong>
-            <span className="small muted">BREAK!'s, imported, and yours, or build one</span>
-          </span>
-          <Chevron />
+        <a className="tool" href="#/practice/drills">
+          <strong>Every drill</strong>
+          <span>{drillCount} to pick from</span>
         </a>
       </div>
 
