@@ -1,6 +1,7 @@
 import { BUILT_IN_COURSES } from '../lib/builtInCourses';
 import { dedupeCourses } from '../lib/courses';
 import { useRef, useState, type ReactNode } from 'react';
+import { go } from '../lib/router';
 import { Account } from '../components/Account';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { NameField } from '../components/NameField';
@@ -280,9 +281,10 @@ export function Settings() {
         ) : (
           <Row title="Sign in" sub="Back up your rounds and use them on another phone" onClick={() => setOpen({ k: 'account' })} />
         )}
+        <Row title="Team" sub={session ? 'Your team board, or join one with a code' : 'Sign in first to join a team'} onClick={() => go('/team')} />
       </div>
 
-      <h2>Putters</h2>
+      <h2>Your bag</h2>
       <div className="list">
         {putters.map((p) => (
           <Row
@@ -325,19 +327,8 @@ export function Settings() {
             ))}
         </div>
       )}
-      {/* The open ratings data is ODbL, which requires this credit wherever its numbers are used. */}
-      <p className="small muted" style={{ marginTop: 8 }}>
-        Some course ratings: © OpenStreetMap contributors (ODbL), via OpenGolfAPI.
-      </p>
 
-      <h2 id="imports">Imports</h2>
-      <div className="list">
-        <Row title="Team practice file" sub="PDF or pasted text" onClick={() => setOpen({ k: 'practice' })} />
-        <Row title="Load an old round" sub="Typed out hole by hole" onClick={() => setOpen({ k: 'oldRound' })} />
-        <Row title="Expected putts baseline" sub="What strokes gained is measured against" onClick={() => setOpen({ k: 'baseline' })} />
-      </div>
-
-      <h2>Backup</h2>
+      <h2 id="imports">Your data</h2>
       <div className="list">
         <Row
           title="Back up"
@@ -345,6 +336,9 @@ export function Settings() {
           onClick={backUp}
         />
         <Row title="Restore from a backup" onClick={() => fileRef.current?.click()} />
+        <Row title="Team practice file" sub="Bring in your team's sheet, PDF or pasted text" onClick={() => setOpen({ k: 'practice' })} />
+        <Row title="Load an old round" sub="Typed out hole by hole" onClick={() => setOpen({ k: 'oldRound' })} />
+        <Row title="Expected putts baseline" sub="What strokes gained is measured against" onClick={() => setOpen({ k: 'baseline' })} />
       </div>
       <p className="small muted">This phone can lose its storage without warning. Back up after rounds you care about.</p>
       <input
@@ -410,6 +404,11 @@ export function Settings() {
         </div>
       )}
       {restoreNote && <p className="small muted">{restoreNote}</p>}
+
+      {/* The open ratings data is ODbL, which requires this credit wherever its numbers are used. */}
+      <p className="small muted" style={{ marginTop: 24 }}>
+        Some course ratings: © OpenStreetMap contributors (ODbL), via OpenGolfAPI.
+      </p>
 
       <div className="settings-foot">
         <ConfirmButton

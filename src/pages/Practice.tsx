@@ -384,7 +384,7 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
       </div>
       {!mySessions.some((x) => !isStarter(x.id)) && (
         <p className="small muted" style={{ margin: '8px 0 0' }}>
-          Your team's practice file comes in from Settings, under Imports.
+          Your team's practice file comes in from Settings, under Your data.
         </p>
       )}
 
