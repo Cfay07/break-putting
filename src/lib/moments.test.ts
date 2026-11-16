@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { atLeast, momentsOf, oddsText, puttsAtMost, runOf, scorecardTag, shapeWords } from './moments';
+import { atLeast, momentsOf, oddsText, puttsAtMost, rarityText, runOf, scorecardTag, shapeWords } from './moments';
 import type { Hole, Putt, Round } from './types';
 
 const BASE: [number, number][] = [
@@ -117,5 +117,20 @@ describe('scorecard tags', () => {
     expect(scorecardTag(shot)).toEqual({ text: `${shot.stats[0].v} chance`, fix: false });
     expect(scorecardTag({ ...shot, kind: 'gotAway' })).toEqual({ text: 'Got away', fix: true });
     expect(scorecardTag({ ...shot, hole: undefined })).toBeNull();
+  });
+});
+
+describe('how a moment reads', () => {
+  it('writes the headline like a highlight', () => {
+    const holes = twoPutts(5);
+    holes[3] = hole(4, [[30, true]]);
+    const shot = momentsOf(rnd('a', '2026-11-01', holes), [], BASE, chance).find((x) => x.kind === 'longshot')!;
+    expect(shot.headline).toBe('Drained a 30-footer.');
+  });
+
+  it('says how rare in rounds, and leaves special cases as written', () => {
+    expect(rarityText({ odds: '1 in 25' })).toBe('Once every 25 rounds');
+    expect(rarityText({ odds: '1 in 1,000+' })).toBe('Rarer than once in 1,000 rounds');
+    expect(rarityText({ odds: 'First logged' })).toBe('First logged');
   });
 });

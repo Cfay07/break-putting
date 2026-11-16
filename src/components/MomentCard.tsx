@@ -1,4 +1,4 @@
-import type { Moment, MomentViz } from '../lib/moments';
+import { rarityText, type Moment, type MomentViz } from '../lib/moments';
 import { toneOf } from '../lib/momentTone';
 
 function PuttLine({ dirs }: { dirs: string[] }) {
@@ -131,13 +131,14 @@ export function MomentCard({ m, onShare }: { m: Moment; onShare?: () => void }) 
     <article className={`moment tone-${toneOf(m.kind)}${m.low ? ' low' : ''}`}>
       <header className="moment-head">
         <span className="moment-label">{m.label}</span>
-        <span className="moment-odds">{m.odds}</span>
+        {m.tag && <span className="moment-tag">{m.tag}</span>}
       </header>
+      <h3 className="moment-headline">{m.headline}</h3>
       <div className="moment-big">
         <span className="moment-num">{m.big}</span>
         {m.unit && <span className="moment-unit">{m.unit}</span>}
       </div>
-      {m.tag && <span className="moment-tag">{m.tag}</span>}
+      <p className="moment-rarity">{rarityText(m)}</p>
       <p className="moment-line">{m.line}</p>
       {m.viz && (
         <div className="moment-fill">

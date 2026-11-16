@@ -36,6 +36,8 @@ export interface Moment {
   odds: string;
   low?: boolean;
   label: string;
+  /** One line written like a highlight: "Drained a 40-footer." */
+  headline: string;
   tag?: string;
   big: string;
   unit?: string;
@@ -78,6 +80,13 @@ export function oddsText(p: number): string {
   if (n >= 1000) return '1 in 1,000+';
   const r = n < 20 ? Math.round(n) : n < 100 ? Math.round(n / 5) * 5 : Math.round(n / 50) * 50;
   return `1 in ${r.toLocaleString('en-US')}`;
+}
+
+/** How rare, in words a golfer says: "Once every 25 rounds". Special cases pass through as written. */
+export function rarityText(m: Pick<Moment, 'odds' | 'low'>): string {
+  const n = /^1 in ([\d,]+)(\+?)$/.exec(m.odds);
+  if (!n || m.low) return m.odds;
+  return n[2] ? `Rarer than once in ${n[1]} rounds` : `Once every ${n[1]} rounds`;
 }
 
 export function resultWord(vs: number | undefined): string | undefined {
@@ -215,6 +224,7 @@ const scoring: Detector = ({ round, prior }) => {
     p,
     odds: top ? 'Career' : rate.first ? 'First logged' : oddsText(p),
     label: name,
+    headline: ace ? `Holed it from the tee on ${h.hole}.` : `${name} on ${h.hole}.`,
     tag: `Hole ${h.hole} · Par ${h.par ?? ''}`.trim(),
     big: ace ? 'ACE' : String(h.strokes ?? ''),
     unit: ace ? undefined : `ON A PAR ${h.par ?? ''}`.trim(),
@@ -235,6 +245,7 @@ const chipIn: Detector = ({ round, prior }) => {
     p: rate.p,
     odds: rate.first ? 'First logged' : oddsText(rate.p),
     label: 'Chip-in',
+    headline: `Chipped in on ${h.hole}.`,
     tag: word ? `${word} on ${h.hole}` : `Hole ${h.hole}`,
     big: '0',
     unit: 'PUTTS',
@@ -261,6 +272,7 @@ const longshot: Detector = ({ round, prior, baseline, chance }) => {
     p,
     odds: oddsText(p),
     label: 'Long shot',
+    headline: `Drained a ${shot.p.d}-footer.`,
     tag: word ? `${word} on ${shot.h.hole}` : `Hole ${shot.h.hole}`,
     big: String(shot.p.d),
     unit: 'FT',
@@ -292,6 +304,7 @@ const onePutts: Detector = ({ round, chance }) => {
     p,
     odds: oddsText(p),
     label: 'Beat the number',
+    headline: holed === 1 ? `A one-putt in ${fp.length} holes.` : `${holed} one-putts in ${fp.length} holes.`,
     tag: `${fp.length} first putts`,
     big: String(holed),
     unit: holed === 1 ? 'ONE-PUTT' : 'ONE-PUTTS',
@@ -333,6 +346,7 @@ const streak: Detector = ({ round, prior, chance }) => {
     p,
     odds: oddsText(p),
     label: 'Hot stretch',
+    headline: `${best.len} one-putts in a row.`,
     tag: `Holes ${best.from} to ${best.to}`,
     big: String(best.len),
     unit: 'IN A ROW',
@@ -364,6 +378,7 @@ const fewest: Detector = ({ round, prior, chance, three }) => {
     p,
     odds: oddsText(p),
     label: newBest ? 'New best' : 'Few putts',
+    headline: newBest ? 'Fewest putts you have ever had.' : `Only ${mine} putts.`,
     tag: `${n} holes`,
     big: String(mine),
     unit: 'PUTTS',
@@ -411,6 +426,7 @@ const noThree: Detector = ({ round, prior }) => {
     p,
     odds: oddsText(p),
     label: 'Three-putt free',
+    headline: `No three-putt in ${run} rounds.`,
     tag: lastThree ? `Since ${fmtDate(lastThree)}` : 'Every round so far',
     big: String(run),
     unit: 'ROUNDS IN A ROW',
@@ -440,6 +456,7 @@ const perfect: Detector = ({ round, prior, chance }) => {
     p,
     odds: oddsText(p),
     label: 'Automatic',
+    headline: `Every putt inside ${PERFECT_FT} ft dropped.`,
     tag: `Inside ${PERFECT_FT} ft`,
     big: String(short.length),
     unit: `FOR ${short.length}`,
@@ -463,6 +480,7 @@ const bestRound: Detector = ({ round, prior, baseline }) => {
     p,
     odds: oddsText(p),
     label: better ? 'Best in a while' : 'Best ever',
+    headline: better ? 'Best putting round in a while.' : 'Best putting round you have logged.',
     tag: 'Putting',
     big: signed(mine, 1),
     unit: 'STROKES',
@@ -491,6 +509,7 @@ const lag: Detector = ({ round, prior, baseline }) => {
     p,
     odds: oddsText(p),
     label: 'Lag of the round',
+    headline: best.leave <= 1 ? `From ${best.from} feet to a tap-in.` : `From ${best.from} feet to ${best.leave}.`,
     tag: word ? `Hole ${best.h.hole} · ${word}` : `Hole ${best.h.hole}`,
     big: String(best.from),
     unit: `→ ${best.leave} FT`,
@@ -527,6 +546,7 @@ const gotAway: Detector = ({ round, baseline, chance }) => {
     odds: oddsText(p),
     low: true,
     label: 'The one that got away',
+    headline: `Left a ${miss.p.d}-footer out there.`,
     tag: word ? `For ${word.toLowerCase()} on ${miss.h.hole}` : `Hole ${miss.h.hole}`,
     big: String(miss.p.d),
     unit: 'FT',

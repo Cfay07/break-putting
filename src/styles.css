@@ -1728,7 +1728,7 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .moment .moment-odds { background: var(--m-accent); border-color: var(--m-accent); color: var(--m-pill-ink); }
 .moment-tag {
   display: block;
-  margin-top: 8px;
+  text-align: right;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -2242,3 +2242,8 @@ a.hcp-lane:active { opacity: 0.6; }
 }
 .sc-tag.fix { background: #8f4523; color: #f7ece4; }
 .sc-row.tagged { background: rgba(232, 147, 95, 0.12); }
+
+/* A moment reads like a highlight: what happened, the number, how rare. */
+.moment-headline { margin: 10px 0 0; font-size: 24px; font-weight: 900; line-height: 1.12; letter-spacing: -0.02em; color: var(--m-ink); }
+.moment-rarity { margin: 8px 0 0; font-size: 14px; font-weight: 800; color: var(--m-accent-ink); }
+.moment .moment-line { margin: 4px 0 12px; font-size: 13.5px; font-weight: 500; color: var(--m-muted); }

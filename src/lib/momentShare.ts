@@ -1,5 +1,5 @@
 import { fmtDateLong, signed } from './format';
-import type { Moment } from './moments';
+import { rarityText, type Moment } from './moments';
 import { TONE_COLORS, toneOf } from './momentTone';
 import { pngFile } from './shareCard';
 import { roundSG } from './sg';
@@ -62,14 +62,17 @@ export function drawMoment(m: Moment, round: Round, baseline: [number, number][]
   c.fill();
   c.fillStyle = m.low ? '#ffffff' : tone.pillInk;
   c.fillText(chip, PAD + 28, y - 4);
-  c.fillStyle = MUTED;
-  c.font = font(800, 36);
-  c.textAlign = 'right';
-  c.fillText(m.odds.toUpperCase(), W - PAD, y - 4);
-  c.textAlign = 'left';
 
-  y += 80;
-  c.font = font(900, 420);
+  // The headline, the way a highlight is written, then the number under it.
+  y += 120;
+  c.font = font(900, 88);
+  c.fillStyle = PAPER;
+  for (const line of wrap(c, m.headline, W - PAD * 2)) {
+    c.fillText(line, PAD, y);
+    y += 100;
+  }
+  y -= 40;
+  c.font = font(900, 340);
   const num = c.measureText(m.big);
   const numH = num.actualBoundingBoxAscent;
   y += numH;
@@ -86,12 +89,16 @@ export function drawMoment(m: Moment, round: Round, baseline: [number, number][]
     }
   }
 
-  y += 110;
-  c.font = font(700, 54);
-  c.fillStyle = PAPER;
+  y += 100;
+  c.font = font(800, 56);
+  c.fillStyle = ORANGE;
+  c.fillText(rarityText(m), PAD, y);
+  y += 84;
+  c.font = font(600, 44);
+  c.fillStyle = MUTED;
   for (const line of wrap(c, m.line, W - PAD * 2)) {
     c.fillText(line, PAD, y);
-    y += 72;
+    y += 60;
   }
 
   if (m.viz?.t === 'line') {
