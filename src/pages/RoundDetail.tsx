@@ -2,7 +2,16 @@ import { useMemo, useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
-import { fitExecModel, difficultyOf, roomOf, xpotStatus, makeChanceOf, puttSGAdjusted, xpOf } from '../lib/xp';
+import {
+  fitExecModel,
+  difficultyOf,
+  roomOf,
+  xpotStatus,
+  makeChanceOf,
+  puttSGAdjusted,
+  roundSGAdjusted,
+  xpOf,
+} from '../lib/xp';
 import { drawRoundSheet, pngFile } from '../lib/shareCard';
 import { publishRound, shareUrl } from '../lib/shareLink';
 import { currentSession } from '../lib/cloud';
@@ -22,9 +31,9 @@ import { CoursePicker } from '../components/CoursePicker';
 import { PuttEditor } from '../components/PuttEditor';
 import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
-import { fmtDateLong, puttSequence, signed } from '../lib/format';
+import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
 import { backLabel, go, previousRoute, replaceRoute } from '../lib/router';
-import { roundStats, suspectHoles } from '../lib/stats';
+import { pct, roundStats, suspectHoles } from '../lib/stats';
 import { findRound, useApp } from '../lib/store';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
 
@@ -64,6 +73,33 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     () => (round ? momentsOf(round, state.rounds, state.baseline, (p) => makeChanceOf(makeModel, p)) : []),
     [round, state.rounds, state.baseline, makeModel],
   );
+  // Each hole counted once, from its first putt: xP already holds the putts that follow it.
+  const roundXp = useMemo(() => {
+    if (!round || !makeModel.ready) return null;
+    let sum = 0;
+    for (const h of round.holes) {
+      if (!h.putts.length) continue;
+      const v = xpOf(makeModel, state.baseline, h.putts[0]);
+      if (v === null) return null;
+      sum += v;
+    }
+    return sum;
+  }, [makeModel, state.baseline, round]);
+  const roundXpot = useMemo(() => {
+    if (!round || !makeModel.ready) return null;
+    let sum = 0;
+    for (const h of round.holes) {
+      if (!h.putts.length) continue;
+      const st = xpotStatus(makeModel, exec, state.baseline, h.putts[0]);
+      if (!st.ok) return null;
+      sum += st.xpot;
+    }
+    return sum;
+  }, [makeModel, exec, state.baseline, round]);
+  const sgAdjusted = useMemo(
+    () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
+    [makeModel, state.baseline, round],
+  );
   // Opened straight from a stat that names a hole, so the link lands where it is pointing.
   const [editHole, setEditHole] = useState<number | null>(openHole ?? null);
   const [editPutt, setEditPutt] = useState<number | null>(null);
@@ -89,6 +125,30 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
 
   const s = roundStats(round, state.baseline);
   const mismatch = round.recordedPutts && round.recordedPutts !== s.totalPutts;
+  const scoringPct = pct(s.scoring);
+  // The old "The numbers" card, in the recap's tile grid. Rows of four: the count, how the
+  // putts went, then what only some rounds have (a score, a fitted model).
+  const numberTiles: { k: string; v: string; cls?: string; sub?: string }[] = [
+    { k: 'Putts', v: String(s.totalPutts) },
+    { k: '1-putts', v: String(s.onePutts) },
+    { k: '3-putts', v: String(s.threePlus), cls: s.threePlus ? 'neg' : undefined },
+    { k: 'Gained', v: signed(s.sg), cls: s.sg >= 0 ? 'pos' : 'neg' },
+    { k: 'Per hole', v: s.puttsPerHole.toFixed(1) },
+    { k: '2-putts', v: String(s.twoPutts) },
+    {
+      k: '3 to 10 ft',
+      v: pctText(scoringPct),
+      sub: s.scoring.attempts ? `${s.scoring.makes} of ${s.scoring.attempts}` : undefined,
+    },
+    { k: 'Holed', v: String(s.makesTotalFeet), sub: 'feet' },
+  ];
+  if (round.score !== undefined) numberTiles.push({ k: 'Score', v: String(round.score) });
+  if (s.scoredHoles > 0) numberTiles.push({ k: 'Greens', v: String(s.gir), sub: `of ${s.scoredHoles}` });
+  if (roundXp !== null) numberTiles.push({ k: 'Expected', v: roundXp.toFixed(1), sub: 'putts, xP' });
+  // Only where the break moves it by a quarter of a stroke: below that it was noise on most rounds.
+  if (sgAdjusted !== null && Math.abs(sgAdjusted - s.sg) >= 0.25)
+    numberTiles.push({ k: 'With break', v: signed(sgAdjusted), cls: sgAdjusted >= 0 ? 'pos' : 'neg' });
+  if (roundXpot !== null) numberTiles.push({ k: 'After stroke', v: roundXpot.toFixed(1), sub: 'putts' });
   const hole = editHole !== null ? round.holes.find((h) => h.hole === editHole) : undefined;
 
   const sgOf = (h: { putts: { d: number }[] }) =>
@@ -256,23 +316,20 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       <RoundPayoff round={round} />
 
       <div className="round-numbers">
-        <div>
-          <span>Putts</span>
-          <strong className="num">{s.totalPutts}</strong>
-        </div>
-        <div>
-          <span>1-putts</span>
-          <strong className="num">{s.onePutts}</strong>
-        </div>
-        <div>
-          <span>3-putts</span>
-          <strong className={s.threePlus ? 'num neg' : 'num'}>{s.threePlus}</strong>
-        </div>
-        <div>
-          <span>Gained</span>
-          <strong className={s.sg >= 0 ? 'num pos' : 'num neg'}>{signed(s.sg)}</strong>
-        </div>
+        {numberTiles.map((t) => (
+          <div key={t.k}>
+            <span>{t.k}</span>
+            <strong className={t.cls ? `num ${t.cls}` : 'num'}>{t.v}</strong>
+            {/* Every tile keeps the line, filled or not, so the rows stay the same height. */}
+            <small>{t.sub ?? ''}</small>
+          </div>
+        ))}
       </div>
+      {s.threePuttHoles.length > 0 && (
+        <p className="small muted" style={{ margin: '8px 0 0' }}>
+          Three-putts on {s.threePuttHoles.length === 1 ? 'hole' : 'holes'} {s.threePuttHoles.join(', ')}.
+        </p>
+      )}
       {mismatch && (
         <p className="small neg" style={{ margin: '6px 0 0' }}>
           The card says {round.recordedPutts} putts; {s.totalPutts} are logged here.

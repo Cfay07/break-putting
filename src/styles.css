@@ -2216,8 +2216,9 @@ a.hcp-lane:active { opacity: 0.6; }
 .by-next { margin: 8px 0 4px; font-size: 14px; font-weight: 700; line-height: 1.4; }
 
 /* Round page: the numbers in one row, and scorecard tags that open their moment. */
-.round-numbers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 18px; padding: 14px 4px 4px; border-top: 1px solid var(--line); }
-.round-numbers div { display: grid; gap: 4px; }
+.round-numbers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 8px; margin-top: 18px; padding: 14px 4px 4px; border-top: 1px solid var(--line); }
+.round-numbers small { min-height: 14px; font-size: 11px; line-height: 14px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.round-numbers div { display: grid; gap: 4px; align-content: start; }
 .round-numbers span { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
 .round-numbers strong { font-size: 28px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
 .sc-tag {
