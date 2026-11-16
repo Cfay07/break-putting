@@ -26,6 +26,7 @@ import { fitMakeModel, makeability } from './lib/makeability';
 import { runLapsed } from './lib/practice';
 import { useRoute } from './lib/router';
 import { courseLabel, overall, roundStats } from './lib/stats';
+import { liveProjection } from './lib/projection';
 import {
   joinTeam,
   loadTeams,
@@ -74,6 +75,12 @@ function summarise(state: AppState) {
             thru: played,
             course: live.course,
             started_at: live.updated ?? new Date().toISOString(),
+            putts: live.holes.reduce((n, h) => n + h.putts.length, 0),
+            to_par: live.holes.some((h) => holeVsPar(h) !== undefined)
+              ? live.holes.reduce((n, h) => n + (holeVsPar(h) ?? 0), 0)
+              : null,
+            // Teammates only: the player's own phone never shows it, so it cannot get in their head.
+            proj: liveProjection(live, done),
           }
         : null,
   };

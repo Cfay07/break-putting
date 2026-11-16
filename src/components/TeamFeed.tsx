@@ -7,6 +7,8 @@ import type { TeamPracticeRow } from '../lib/feed';
 
 const SHOWN = 25;
 
+const parText = (v: number) => (v === 0 ? 'E' : v > 0 ? `+${v}` : String(v));
+
 /**
  * The team, as it happens: who is on the course right now, then every round and practice day,
  * newest first, each with one tap to say nice. Nobody writes a post; the app makes them.
@@ -73,8 +75,21 @@ export function TeamFeed({
               {names.get(l.user)} · hole {l.hole}
             </strong>
             <span>
-              {l.thru} {l.thru === 1 ? 'hole' : 'holes'} logged{l.course ? ` · ${l.course}` : ''}
+              {l.thru} {l.thru === 1 ? 'hole' : 'holes'} logged
+              {l.putts !== undefined ? ` · ${l.putts} putts` : ''}
+              {l.toPar !== undefined && l.toPar !== null ? `, ${parText(l.toPar)}` : ''}
+              {l.course ? ` · ${l.course}` : ''}
             </span>
+            {l.proj && (
+              <span className="feed-live-proj">
+                On pace for {l.proj.putts} putts
+                {l.proj.score !== null && l.proj.toPar !== null
+                  ? `, ${l.proj.score} (${parText(l.proj.toPar)})`
+                  : l.proj.toPar !== null
+                    ? `, ${parText(l.proj.toPar)}`
+                    : ''}
+              </span>
+            )}
           </span>
         </div>
       ))}

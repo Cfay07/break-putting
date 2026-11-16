@@ -46,6 +46,9 @@ export interface Live {
   hole: number;
   thru: number;
   course?: string;
+  putts?: number;
+  toPar?: number | null;
+  proj?: { putts: number; toPar: number | null; score: number | null } | null;
 }
 
 /** Live means logged in the last three hours. A round abandoned on the 9th green is not live. */
@@ -55,7 +58,15 @@ export function liveNow(stats: PlayerStats[], members: string[], now = Date.now(
   return stats
     .filter((s) => members.includes(s.user_id) && s.live)
     .filter((s) => now - Date.parse(s.live!.started_at) < LIVE_HOURS * 3600_000)
-    .map((s) => ({ user: s.user_id, hole: s.live!.hole, thru: s.live!.thru, course: s.live!.course }));
+    .map((s) => ({
+      user: s.user_id,
+      hole: s.live!.hole,
+      thru: s.live!.thru,
+      course: s.live!.course,
+      putts: s.live!.putts,
+      toPar: s.live!.to_par,
+      proj: s.live!.proj,
+    }));
 }
 
 /** The one line worth saying about a round, from the hole detail a teammate can see. */

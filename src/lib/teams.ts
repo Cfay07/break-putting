@@ -40,7 +40,16 @@ export interface PlayerStats {
   /** Make rate from 3 to 10 feet. */
   scoring_pct: number | null;
   last_round: string | null;
-  live: { hole: number; thru: number; course?: string; started_at: string } | null;
+  live: {
+    hole: number;
+    thru: number;
+    course?: string;
+    started_at: string;
+    /** So far, and where it is heading. Older app versions publish neither. */
+    putts?: number;
+    to_par?: number | null;
+    proj?: { putts: number; toPar: number | null; score: number | null } | null;
+  } | null;
   updated_at?: string;
 }
 

@@ -2405,3 +2405,5 @@ a.hcp-lane:active { opacity: 0.6; }
 .lb-move .down { color: var(--red); }
 .lb-row > .nm small { display: block; font-size: 12px; font-weight: 500; color: var(--ink-3); }
 .lb-row > .nm .live-dot { display: inline-block; margin-left: 6px; vertical-align: 2px; }
+
+.feed-live-proj { margin-top: 2px; font-size: 13px; font-weight: 700; color: #e8935f; }
