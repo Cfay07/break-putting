@@ -400,3 +400,13 @@ export async function loadTeamDay(user: string, date: string) {
   ]);
   return { sets, names: namesOf(who), reactions };
 }
+
+/** Everything the leaderboard ranks on, back to the start of last season so every window has data. */
+export async function loadBoard(): Promise<{ rounds: TeamRound[]; practice: TeamPracticeRow[] }> {
+  if (!currentSession() || !online()) return { rounds: [], practice: [] };
+  const [rounds, practice] = await Promise.all([
+    rows<TeamRound>('team_rounds?select=*&order=played_on.desc&limit=3000'),
+    rows<TeamPracticeRow>('team_practice?select=user_id,set_id,played_on,title,kind,made,attempts&limit=5000'),
+  ]);
+  return { rounds, practice };
+}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NameField } from '../components/NameField';
 import { CoachView } from '../components/CoachView';
+import { Leaderboard } from '../components/Leaderboard';
 import { TeamFeed } from '../components/TeamFeed';
 import { Sheet } from '../components/Sheet';
 import { accountName, currentSession, saveAccountName, teamByCode } from '../lib/cloud';
@@ -35,22 +36,6 @@ const EMPTY: TeamView = { teams: [], members: [], stats: [], plans: [] };
  * every golf app already has it, and it rewards missing greens. These are numbers only this
  * app knows, so they are the ones worth competing on.
  */
-const BOARDS = [
-  {
-    key: 'sg_pr',
-    label: 'Strokes gained',
-    fmt: (v: number) => (v >= 0 ? `+${v.toFixed(1)}` : v.toFixed(1)),
-    lowBetter: false,
-  },
-  { key: 'scoring_pct', label: 'Make % (3-10 ft)', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
-  { key: 'make6', label: 'Six-footers', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
-  { key: 'three_pr', label: '3-putts per round', fmt: (v: number) => v.toFixed(1), lowBetter: true },
-  { key: 'bleed_pr', label: 'Bleed', fmt: (v: number) => `-${v.toFixed(1)}`, lowBetter: true },
-  { key: 'bounce_back', label: 'Bounce back', fmt: (v: number) => `${(v * 100).toFixed(0)}%`, lowBetter: false },
-] as const;
-
-type BoardKey = (typeof BOARDS)[number]['key'];
-
 /** Matches the cap enforced inside join_team. The database is the one that actually holds it. */
 const MAX_PLAYERS = 50;
 
@@ -352,9 +337,8 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [pick, setPick] = useState('');
-  const [board, setBoard] = useState<BoardKey>('sg_pr');
   const [open, setOpen] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<'manage' | 'add' | 'teams' | 'board' | null>(null);
+  const [sheet, setSheet] = useState<'manage' | 'add' | 'teams' | null>(null);
   const [code, setCode] = useState(() => joinCode?.toUpperCase() ?? '');
   const [tab, setTab] = useState<'feed' | 'board' | 'coach'>('feed');
   const [newName, setNewName] = useState('');
@@ -430,17 +414,8 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
     return view.members
       .filter((m) => m.team_id === team.id && m.role !== 'coach')
       .map((m) => ({ member: m, stats: byUser.get(m.user_id) }))
-      .sort((a, b) => {
-        const av = a.stats?.[board] ?? null;
-        const bv = b.stats?.[board] ?? null;
-        // Players with nothing logged sit at the bottom in name order rather than in whatever
-        // order the database happened to return them.
-        if (av === null && bv === null) return (a.member.display_name ?? '').localeCompare(b.member.display_name ?? '');
-        if (av === null) return 1;
-        if (bv === null) return -1;
-        return BOARDS.find((x) => x.key === board)!.lowBetter ? av - bv : bv - av;
-      });
-  }, [view, team, board]);
+      .sort((a, b) => (a.member.display_name ?? '').localeCompare(b.member.display_name ?? ''));
+  }, [view, team]);
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -587,7 +562,6 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
       ? `${plan.note === 'trial' ? 'Free trial' : plan.note === 'pilot' ? 'Pilot' : 'Team plan'} through ${fmtDateLong(plan.paid_until)}.`
       : `Ended ${fmtDateLong(plan.paid_until)}. The Coach view is off until it is renewed. The feed and leaderboard stay on for players.`;
   const openMember = roster.find((r) => r.member.user_id === open);
-  const rank = BOARDS.find((b) => b.key === board)!;
 
   return (
     <div className="team-scope" style={{ '--team': accent } as React.CSSProperties}>
@@ -656,41 +630,16 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
       )}
 
       {tab === 'board' && (
-        <>
-          <div className="board-bar">
-            <span className="field-label" style={{ margin: 0 }}>
-              Leaderboard
-            </span>
-            <button className="pick" onClick={() => setSheet('board')}>
-              {BOARDS.find((b) => b.key === board)!.label}
-            </button>
-          </div>
-
-          <div className="board">
-            {roster.map(({ member, stats }, i) => {
-              const v = stats?.[board] ?? null;
-              const ranked = v !== null;
-              const mine = member.user_id === session.userId;
-              const name = member.display_name ?? 'Unnamed player';
-              return (
-                <button
-                  key={member.user_id}
-                  className={`lb-row${mine ? ' me' : ''}${ranked && i === 0 ? ' lead' : ''}`}
-                  onClick={() => setOpen(member.user_id)}
-                >
-                  <span className="place num">{ranked ? i + 1 : ''}</span>
-                  <span className="nm">{name}</span>
-                  {stats?.live && <span className="live-dot" aria-label="playing now" />}
-                  <span className={ranked ? 'val num' : 'val num none'}>{ranked ? rank.fmt(v) : '--'}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="small muted" style={{ marginTop: 10 }}>
-            Everyone scored against your baseline, so it is like for like. Tap a player for their full numbers.
-          </p>
-        </>
+        <Leaderboard
+          key={team.id}
+          players={roster.map((r) => ({
+            id: r.member.user_id,
+            name: r.member.display_name ?? 'Unnamed player',
+            live: !!r.stats?.live,
+          }))}
+          me={session.userId}
+          onOpen={setOpen}
+        />
       )}
 
       {sheet === 'teams' && (
@@ -732,25 +681,6 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
                 </button>
               </>
             )}
-          </div>
-        </Sheet>
-      )}
-
-      {sheet === 'board' && (
-        <Sheet title="Rank by" onClose={() => setSheet(null)}>
-          <div className="menu">
-            {BOARDS.map((b) => (
-              <button
-                key={b.key}
-                aria-current={b.key === board}
-                onClick={() => {
-                  setBoard(b.key);
-                  setSheet(null);
-                }}
-              >
-                <span className="menu-row">{b.label}</span>
-              </button>
-            ))}
           </div>
         </Sheet>
       )}
