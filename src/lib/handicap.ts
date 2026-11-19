@@ -8,7 +8,7 @@ import type { Round, SavedCourse } from './types';
  *
  * - Each hole is capped at double bogey (the usual simple form of net double bogey).
  * - Differential = (113 / slope) x (adjusted score - course rating).
- * - Two nines played one after another combine into one eighteen.
+ * - A nine counts on its own, with the expected score for the other nine added.
  * - The index averages your lowest differentials from the last 20, with the standard table below
  *   when there are fewer than 20, rounded to a tenth.
  *
@@ -57,26 +57,36 @@ function adjusted(round: Round, courses: SavedCourse[]) {
 
 const diff = (score: number, rating: number, slope: number) => (113 / slope) * (score - rating);
 
-/** Every score that counts, oldest first. Nines pair with the next nine played. */
+/**
+ * What you would be expected to shoot, as a differential, on the nine you did not play. The rules
+ * keep the exact formula unpublished; this line runs through the USGA's own worked example (a 14.0
+ * index adds 8.5) and is the approximation in common use.
+ */
+export const expectedNine = (index: number) => index * 0.52 + 1.2;
+
+/**
+ * Every score that counts, oldest first. A nine counts on the day you play it: its own differential
+ * plus the expected nine from your handicap as it stood then. Pairing nines, the old rule, glued a
+ * 34 to a 42 and buried the 34. Before there is a handicap at all, a nine counts double.
+ */
 export function differentials(rounds: Round[], courses: SavedCourse[]): Differential[] {
   const real = rounds.filter((r) => r.finished && !r.practice).sort((a, b) => a.date.localeCompare(b.date));
   const out: Differential[] = [];
-  let waiting: { id: string; a: NonNullable<ReturnType<typeof adjusted>> } | null = null;
   for (const r of real) {
     const a = adjusted(r, courses);
     if (!a) continue;
     if (!a.nine) {
       out.push({ id: r.id, date: r.date, value: diff(a.score, a.rating, a.slope), nines: false });
-    } else if (waiting) {
-      const w = waiting.a;
-      out.push({
-        id: `${waiting.id}+${r.id}`,
-        date: r.date,
-        value: diff(w.score + a.score, w.rating + a.rating, (w.slope + a.slope) / 2),
-        nines: true,
-      });
-      waiting = null;
-    } else waiting = { id: r.id, a };
+      continue;
+    }
+    const played = diff(a.score, a.rating, a.slope);
+    const before = indexOf(out);
+    out.push({
+      id: r.id,
+      date: r.date,
+      value: played + (before === null ? played : expectedNine(before)),
+      nines: true,
+    });
   }
   return out;
 }

@@ -93,8 +93,8 @@ function afterTrack(state: AppState): string {
 export default function App() {
   const route = useRoute();
   const [onTeam, setOnTeam] = useState(onTeamCached);
-  // A tab tap is a fresh start: the page rebuilds at the top with its filters and sheets cleared,
-  // so Stats never comes back showing whatever was open last time.
+  // Tapping the tab you are already on starts it over: the page rebuilds at the top with its
+  // filters and sheets cleared. Switching tabs never rebuilds the page you are leaving.
   const [tabTap, setTabTap] = useState(0);
   useEffect(() => {
     const sync = () => setOnTeam(onTeamCached());
@@ -381,7 +381,11 @@ export default function App() {
               className={on ? 'on' : undefined}
               onClick={(e) => {
                 e.preventDefault();
-                setTabTap((n) => n + 1);
+                // Another tab: just go there. The tab you are on: start it over at its home view.
+                if (on) {
+                  setTabTap((n) => n + 1);
+                  window.scrollTo(0, 0);
+                }
                 go(t.path);
               }}
             >

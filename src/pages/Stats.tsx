@@ -292,8 +292,8 @@ function RoundStats() {
                     .reduce((a, x) => a + (x?.holes.reduce((n, hole) => n + (hole.strokes ?? 0), 0) ?? 0), 0);
                   return [
                     fmtDate(h.date),
-                    r ? courseLabel(r).replace(/ \(\d+\)$/, '') : '',
-                    ids.length > 1 ? `two nines, ${score}` : String(score),
+                    r ? courseLabel(r) : '',
+                    String(score),
                     `differential ${h.diff.toFixed(1)}`,
                     `handicap ${fmtIndex(h.index)}`,
                   ]

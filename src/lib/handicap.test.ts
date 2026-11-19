@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { differentials, fmtIndex, indexAt, indexMove, indexOf } from './handicap';
+import { differentials, expectedNine, fmtIndex, indexAt, indexMove, indexOf } from './handicap';
 import { backTeeFor } from './courses';
 import type { Round, SavedCourse } from './types';
 
@@ -40,13 +40,27 @@ describe('handicap', () => {
     expect(d.value).toBe(2);
   });
 
-  it('joins two nines into one eighteen', () => {
-    const ds = differentials(
-      [round('a', '2026-10-01', 5, 'Nine', 9), round('b', '2026-10-02', 4, 'Nine', 9)],
-      [course],
+  it('counts a nine on its own, adding the expected nine from the handicap at the time', () => {
+    const eighteens = [5, 4, 4].map((per, i) =>
+      round(
+        `r${i}`,
+        `2026-10-0${i + 1}`,
+        Array(18)
+          .fill(4)
+          .map((s, j) => (j < 2 ? per : s)),
+      ),
     );
-    expect(ds).toHaveLength(1);
-    expect(ds[0]).toMatchObject({ id: 'a+b', nines: true, value: 9 });
+    const nine = round('n', '2026-10-09', 4, 'Nine', 9);
+    const ds = differentials([...eighteens, nine], [course]);
+    expect(ds).toHaveLength(4);
+    const before = indexOf(ds.slice(0, 3))!;
+    expect(ds[3]).toMatchObject({ id: 'n', nines: true });
+    expect(ds[3].value).toBeCloseTo(0 + expectedNine(before));
+  });
+
+  it('counts a nine double before there is any handicap', () => {
+    const [d] = differentials([round('a', '2026-10-01', 5, 'Nine', 9)], [course]);
+    expect(d.value).toBe(18);
   });
 
   it('leaves out a round with no known tee rather than guessing one', () => {

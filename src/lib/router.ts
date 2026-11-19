@@ -5,14 +5,26 @@ export function useRoute(): string {
   useEffect(() => {
     const onHash = () => setRoute(window.location.hash.slice(1) || '/');
     window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    window.addEventListener(ROUTED, onHash);
+    return () => {
+      window.removeEventListener('hashchange', onHash);
+      window.removeEventListener(ROUTED, onHash);
+    };
   }, []);
   return route;
 }
 
+/**
+ * Said the moment the app moves, so the new page renders in the same frame as the tap. Waiting
+ * for the browser's own hashchange left one frame of the old page. The scroll to the top happens
+ * once the new page is drawn (App's layout effect), not here, where it jolted the old one first.
+ */
+const ROUTED = 'break:route';
+const routed = () => window.dispatchEvent(new Event(ROUTED));
+
 export function go(path: string): void {
   window.location.hash = path;
-  window.scrollTo(0, 0);
+  routed();
 }
 
 /**
@@ -21,7 +33,7 @@ export function go(path: string): void {
  */
 export function replaceRoute(path: string): void {
   window.location.replace(`#${path}`);
-  window.scrollTo(0, 0);
+  routed();
 }
 
 const TAB_ROOTS = new Set(['/', '/stats', '/stats/practice', '/practice', '/settings', '/team', '/track']);
