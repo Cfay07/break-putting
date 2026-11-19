@@ -1,3 +1,4 @@
+import { NAMED_NINES } from './builtInCourses';
 import { expectedPutts, puttSG } from './sg';
 import {
   breakBucket,
@@ -602,9 +603,21 @@ export function courseKey(name: string): string {
 }
 
 /** "Ives Grove (Blue/Red)", or "Ives Grove (9)" when you played fewer than eighteen. */
+/**
+ * The nines worth naming with the course. Older rounds split a combo tee at its slash and stored
+ * "Black / Gold" as two nines; when the "nines" are just the tee again, they are the tee.
+ */
+export function ninesOf(r: Round): string {
+  const nines = [r.firstNine, r.secondNine].filter(Boolean).join('/');
+  if (!nines) return '';
+  const flat = (x: string) => x.replace(/\s+/g, '').toLowerCase();
+  if (r.tee && flat(r.tee) === flat(nines) && !NAMED_NINES.has(r.courseId ?? '')) return '';
+  return nines;
+}
+
 export function courseLabel(r: Round): string {
   const parts = [r.course?.trim() || 'Course not named'];
-  const nines = [r.firstNine, r.secondNine].filter(Boolean).join('/');
+  const nines = ninesOf(r);
   if (nines) parts.push(`(${nines})`);
   const played = holesPlayed(r);
   if (played && played < 18) parts.push(`(${played})`);

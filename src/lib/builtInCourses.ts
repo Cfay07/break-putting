@@ -1,6 +1,12 @@
 import type { SavedCourse } from './types';
 
 /**
+ * Courses whose eighteen is two named nines, so "Red/White" is part of where you played. Everywhere
+ * else a slash in a name is a combo tee, like "Black / Gold", and belongs with the tees.
+ */
+export const NAMED_NINES = new Set(['builtin-ives-grove']);
+
+/**
  * Courses the golf course API does not carry. Ives Grove has three nines, so every playable
  * eighteen is one of the six orderings. Pars come off the BlueGolf scorecards, where the Blue nine
  * appears on two different cards with the same numbers.

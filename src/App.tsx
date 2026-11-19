@@ -10,7 +10,7 @@ import { Hands } from './pages/Hands';
 import { PracticeLogPage } from './components/PracticeLog';
 import { PracticeWhy } from './pages/PracticeWhy';
 import { Tempo } from './pages/Tempo';
-import { MomentsPage } from './pages/MomentsPage';
+import { HistoryPage } from './pages/HistoryPage';
 import { Rounds } from './pages/Rounds';
 import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
@@ -22,7 +22,7 @@ import { TeamLivePage, TeamPracticePage, TeamRoundPage } from './pages/TeamPost'
 import { Track } from './pages/Track';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { runLapsed } from './lib/practice';
-import { useRoute } from './lib/router';
+import { go, useRoute } from './lib/router';
 import { courseLabel, roundStats } from './lib/stats';
 import {
   joinTeam,
@@ -93,6 +93,9 @@ function afterTrack(state: AppState): string {
 export default function App() {
   const route = useRoute();
   const [onTeam, setOnTeam] = useState(onTeamCached);
+  // A tab tap is a fresh start: the page rebuilds at the top with its filters and sheets cleared,
+  // so Stats never comes back showing whatever was open last time.
+  const [tabTap, setTabTap] = useState(0);
   useEffect(() => {
     const sync = () => setOnTeam(onTeamCached());
     window.addEventListener('break:team', sync);
@@ -319,8 +322,8 @@ export default function App() {
     <Privacy />
   ) : route === '/terms' ? (
     <Terms />
-  ) : route === '/moments' ? (
-    <MomentsPage />
+  ) : route === '/history' || route === '/moments' ? (
+    <HistoryPage />
   ) : (
     <Rounds />
   );
@@ -341,8 +344,8 @@ export default function App() {
               ? 'Team'
               : route === '/settings' || route === '/privacy' || route === '/terms'
                 ? 'Settings'
-                : route === '/moments'
-                  ? 'Moments'
+                : route === '/history' || route === '/moments'
+                  ? 'History'
                   : 'Putting';
 
   return (
@@ -351,7 +354,9 @@ export default function App() {
         <h1 className="wordmark">BREAK!</h1>
         <span className="sub">{sub}</span>
       </div>
-      <main className="main">{page}</main>
+      <main className="main" key={tabTap}>
+        {page}
+      </main>
       <nav className="nav">
         {tabsFor(!!live, onTeam).map((t) => {
           const here = route.startsWith('/practice')
@@ -366,9 +371,20 @@ export default function App() {
                   ? '/settings'
                   : route;
           const on =
-            t.path === '/' ? here === '/' || here === '/moments' || here.startsWith('/round/') : here === t.path;
+            t.path === '/'
+              ? here === '/' || here === '/moments' || here === '/history' || here.startsWith('/round/')
+              : here === t.path;
           return (
-            <a key={t.path} href={`#${t.path}`} className={on ? 'on' : undefined}>
+            <a
+              key={t.path}
+              href={`#${t.path}`}
+              className={on ? 'on' : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                setTabTap((n) => n + 1);
+                go(t.path);
+              }}
+            >
               {t.label}
               {t.path === '/track' && live && <span className="dot" aria-label="round in progress" />}
             </a>

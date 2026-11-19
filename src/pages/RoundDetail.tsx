@@ -10,6 +10,7 @@ import {
   makeChanceOf,
   puttSGAdjusted,
   roundSGAdjusted,
+  beatSpread,
   xpOf,
 } from '../lib/xp';
 import { drawRoundSheet, pngFile } from '../lib/shareCard';
@@ -22,9 +23,17 @@ import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { RoundPayoff } from '../components/RoundPayoff';
 import { teeOf } from '../lib/courses';
 import { useCourseRatings } from '../lib/useCourseRatings';
-import { RoundMoments } from '../components/RoundMoments';
-import { momentsOf, scorecardTag } from '../lib/moments';
-import { PutterTag } from '../components/PutterTag';
+import { RoundStory, RoundTrophies } from '../components/RoundTrophies';
+import { DistanceTable } from '../components/DistanceTable';
+import { LagPanel } from '../components/LagPanel';
+import { FormPanel } from '../components/FormPanel';
+import { ReadPanel } from '../components/ReadPanel';
+import { PatternPanel } from '../components/PatternPanel';
+import { BeatBar } from '../components/BeatBar';
+import { CupMap, cupCounts } from '../components/CupMap';
+import { formOf } from '../lib/form';
+import { readError } from '../lib/readError';
+import { swingHoles, usual } from '../lib/roundRanks';
 import { GreenSpeedPick } from '../components/GreenSpeedPick';
 import { Conditions } from '../components/Conditions';
 import { CoursePicker } from '../components/CoursePicker';
@@ -33,7 +42,7 @@ import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
 import { backLabel, go, previousRoute, replaceRoute } from '../lib/router';
-import { pct, roundStats, suspectHoles } from '../lib/stats';
+import { lagSaves, ninesOf, pct, roundStats, suspectHoles } from '../lib/stats';
 import { findRound, useApp } from '../lib/store';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
 
@@ -42,6 +51,8 @@ import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
  * break and starts being the reason the round went: those get the weight so the eye finds them
  * without reading every number.
  */
+type RoundTab = 'holes' | 'distance' | 'lag' | 'misses' | 'cup' | 'form';
+
 const FAULT_WORDS: [string, string][] = [
   ['push', 'push'],
   ['pull', 'pull'],
@@ -69,10 +80,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
   const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
   const exec = useMemo(() => fitExecModel(makeModel, state.rounds), [makeModel, state.rounds]);
-  const moments = useMemo(
-    () => (round ? momentsOf(round, state.rounds, state.baseline, (p) => makeChanceOf(makeModel, p)) : []),
-    [round, state.rounds, state.baseline, makeModel],
-  );
   // Each hole counted once, from its first putt: xP already holds the putts that follow it. It
   // reads the break, so it is not putts plus strokes gained and is not meant to be.
   const roundXp = useMemo(() => {
@@ -110,8 +117,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const [speedSheet, setSpeedSheet] = useState(false);
   const [courseOpen, setCourseOpen] = useState(false);
   const [whyXp, setWhyXp] = useState(false);
-  // A tag on the scorecard opens its moment in the cards at the top.
-  const [focusMoment, setFocusMoment] = useState<{ index: number; n: number } | null>(null);
+  // One breakdown at a time under the numbers. Holes first: it is the round itself.
+  const [tab, setTab] = useState<RoundTab>('holes');
 
   if (!round) {
     return (
@@ -129,22 +136,63 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const scoringPct = pct(s.scoring);
   // The old "The numbers" card, in the recap's tile grid. Rows of four: the count, how the
   // putts went, then what only some rounds have (a score, a fitted model).
+  // Your usual sits under the counts, so every number says whether today was good for you.
+  const usualOf = (key: string, fmt: (v: number) => string) => {
+    const u = round.practice ? null : usual(round, state.rounds, state.baseline, key);
+    return u === null ? undefined : `usual ${fmt(u)}`;
+  };
+  const better = (mine: number, key: string, lowBetter: boolean) => {
+    const u = round.practice ? null : usual(round, state.rounds, state.baseline, key);
+    if (u === null || mine === u) return undefined;
+    return (lowBetter ? mine < u : mine > u) ? 'pos' : 'neg';
+  };
   const numberTiles: { k: string; v: string; cls?: string; sub?: string }[] = [
-    { k: 'Putts', v: String(s.totalPutts) },
+    {
+      k: 'Putts',
+      v: String(s.totalPutts),
+      sub: usualOf('putts', (v) => String(Math.round(v))),
+      cls: better(s.totalPutts, 'putts', true),
+    },
     ...(roundXp !== null ? [{ k: 'Expected', v: roundXp.toFixed(1), sub: 'putts, xP' }] : []),
-    { k: 'Gained', v: signed(s.sg), cls: s.sg >= 0 ? 'pos' : 'neg' },
+    ...(practice ? [{ k: 'Gained', v: signed(s.sg), cls: s.sg >= 0 ? 'pos' : 'neg' }] : []),
     { k: 'Per hole', v: s.puttsPerHole.toFixed(1) },
-    { k: '1-putts', v: String(s.onePutts) },
+    {
+      k: '1-putts',
+      v: String(s.onePutts),
+      sub: usualOf('ones', (v) => String(Math.round(v))),
+      cls: better(s.onePutts, 'ones', false),
+    },
     { k: '2-putts', v: String(s.twoPutts) },
-    { k: '3-putts', v: String(s.threePlus), cls: s.threePlus ? 'neg' : undefined },
+    {
+      k: '3-putts',
+      v: String(s.threePlus),
+      sub: usualOf('threes', (v) => String(Math.round(v))),
+      cls: better(s.threePlus, 'threes', true),
+    },
     {
       k: '3 to 10 ft',
       v: pctText(scoringPct),
-      sub: s.scoring.attempts ? `${s.scoring.makes} of ${s.scoring.attempts}` : undefined,
+      sub:
+        usualOf('scoring', (v) => `${Math.round(v * 100)}%`) ??
+        (s.scoring.attempts ? `${s.scoring.makes} of ${s.scoring.attempts}` : undefined),
+      cls: scoringPct === null ? undefined : better(scoringPct / 100, 'scoring', false),
     },
-    { k: 'Holed', v: String(s.makesTotalFeet), sub: 'feet' },
+    {
+      k: 'Holed',
+      v: String(s.makesTotalFeet),
+      sub: usualOf('feet', (v) => `${Math.round(v)} ft`) ?? 'feet',
+      cls: better(s.makesTotalFeet, 'feet', false),
+    },
   ];
-  if (round.score !== undefined) numberTiles.push({ k: 'Score', v: String(round.score) });
+  const longest = Math.max(0, ...round.holes.flatMap((h) => h.putts.filter((p) => p.made).map((p) => p.d)));
+  if (longest)
+    numberTiles.push({
+      k: 'Longest',
+      v: String(longest),
+      sub: usualOf('longest', (v) => `${Math.round(v)} ft`) ?? 'feet holed',
+      cls: better(longest, 'longest', false),
+    });
+  if (practice && round.score !== undefined) numberTiles.push({ k: 'Score', v: String(round.score) });
   if (s.scoredHoles > 0) numberTiles.push({ k: 'Greens', v: String(s.gir), sub: `of ${s.scoredHoles}` });
   // Only where the break moves it by a quarter of a stroke: below that it was noise on most rounds.
   if (sgAdjusted !== null && Math.abs(sgAdjusted - s.sg) >= 0.25)
@@ -163,11 +211,65 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const marks = bleedMarks(round);
   const bleeds = bleedsIn(round);
   const suspect = suspectHoles(round);
-  const tags = new Map<number, { index: number; text: string; fix: boolean }>();
-  moments.forEach((m, index) => {
-    const t = scorecardTag(m);
-    if (t && !tags.has(m.hole!)) tags.set(m.hole!, { index, ...t });
-  });
+  // The hole that made the round and the one that cost it, marked on the card.
+  const swing = swingHoles(round, state.baseline);
+  const tags = new Map<number, { text: string; fix: boolean }>();
+  if (swing && swing.best.sg > 0) tags.set(swing.best.hole, { text: 'Best hole', fix: false });
+  if (swing && swing.worst.sg < 0) tags.set(swing.worst.hole, { text: 'Cost the most', fix: true });
+  const cup = cupCounts(round.holes);
+  const read = readError([round]);
+  const form = round.practice ? null : formOf(round, state.baseline);
+  const beats = beatSpread(state.baseline, [round as never]);
+  const tabs: { key: RoundTab; label: string }[] = [
+    { key: 'holes', label: 'Holes' },
+    { key: 'distance', label: 'By distance' },
+    { key: 'lag', label: 'Lag' },
+    { key: 'misses', label: 'Misses' },
+    ...(cup.total + cup.unsure > 0 ? [{ key: 'cup' as const, label: 'Cup' }] : []),
+    ...(form ? [{ key: 'form' as const, label: 'Form' }] : []),
+  ];
+  const putterName = state.putters.find((p) => p.id === round.putterId)?.name;
+  const nines = ninesOf(round);
+  const share = () => {
+    if (!currentSession()) {
+      setShareNote('Sign in first so the link has somewhere to live.');
+      return;
+    }
+    setSharing(true);
+    setShareNote('Making a link…');
+    const card = pngFile(
+      drawRoundSheet({
+        round,
+        stats: s,
+        baseline: state.baseline,
+        putter: state.putters.find((p) => p.id === round.putterId)?.name,
+      }),
+      `break-${round.date}.png`,
+    );
+    void publishRound(round, state.baseline)
+      .then(async (token) => {
+        const url = shareUrl(token);
+        const title = `${fmtDateLong(round.date)}${round.course ? ` · ${round.course}` : ''}`;
+        // The picture is the hook, the link is the whole round. Send both where the
+        // sheet takes them, and the link alone where it will not.
+        const withCard = { title, text: title, url, files: [card] };
+        if (navigator.canShare?.(withCard)) {
+          await navigator.share(withCard);
+        } else if (navigator.canShare?.({ title, text: title, url })) {
+          await navigator.share({ title, text: title, url });
+        } else {
+          await navigator.clipboard.writeText(url);
+          setShareNote('Link copied. Anyone with it sees the whole round.');
+          return;
+        }
+        setShareNote('');
+      })
+      .catch((e) => {
+        const err = e as Error;
+        setShareNote(err.name === 'AbortError' ? '' : err.message);
+      })
+      .finally(() => setSharing(false));
+  };
 
   // The relative column runs as a total through the round, the way a leaderboard reads, since
   // par and score already sit side by side to show what each hole cost.
@@ -196,93 +298,57 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           ← {practice && back === '/stats/practice' ? 'Practice stats' : backLabel(back)}
         </button>
       </div>
-      <div className="round-head">
-        <h3 style={{ fontSize: 21 }}>{fmtDateLong(round.date)}</h3>
-        <PutterTag putterId={round.putterId} />
+      <div className="round-top">
+        <h3>{fmtDateLong(round.date)}</h3>
+        <div className="round-actions">
+          {!practice && (
+            <button className="status-tag" disabled={sharing} onClick={share}>
+              {sharing ? 'Sharing…' : 'Share'}
+            </button>
+          )}
+          <button className="status-tag" onClick={() => setEditing(true)}>
+            Edit
+          </button>
+        </div>
       </div>
       {practice && (
         <p className="small muted" style={{ margin: '2px 0 0' }}>
           Practice round · {SURFACE_LABELS[round.practice!.surface]}. Never counted in your round stats.
         </p>
       )}
-      {(round.course || round.firstNine) && (
-        <p className="small muted" style={{ margin: '2px 0 0' }}>
-          {[
-            round.course,
-            [round.firstNine, round.secondNine].filter(Boolean).join(' + ') || round.tee,
-            tee?.rating && tee.slope ? `${tee.rating.toFixed(1)} / ${tee.slope}` : '',
-          ]
-            .filter(Boolean)
-            .join(' · ')}
+      {round.course && (
+        <p className="round-course">
+          {round.course}
+          {nines ? ` · ${nines}` : ''}
         </p>
       )}
-      <div className="btn-row" style={{ marginTop: 12 }}>
-        {!practice && (
-          <button
-            className="btn btn-primary"
-            disabled={sharing}
-            onClick={() => {
-              if (!currentSession()) {
-                setShareNote('Sign in first so the link has somewhere to live.');
-                return;
-              }
-              setSharing(true);
-              setShareNote('Making a link…');
-              const card = pngFile(
-                drawRoundSheet({
-                  round,
-                  stats: s,
-                  baseline: state.baseline,
-                  putter: state.putters.find((p) => p.id === round.putterId)?.name,
-                }),
-                `break-${round.date}.png`,
-              );
-              void publishRound(round, state.baseline)
-                .then(async (token) => {
-                  const url = shareUrl(token);
-                  const title = `${fmtDateLong(round.date)}${round.course ? ` · ${round.course}` : ''}`;
-                  // The picture is the hook, the link is the whole round. Send both where the
-                  // sheet takes them, and the link alone where it will not.
-                  const withCard = { title, text: title, url, files: [card] };
-                  if (navigator.canShare?.(withCard)) {
-                    await navigator.share(withCard);
-                  } else if (navigator.canShare?.({ title, text: title, url })) {
-                    await navigator.share({ title, text: title, url });
-                  } else {
-                    await navigator.clipboard.writeText(url);
-                    setShareNote('Link copied. Anyone with it sees the whole round.');
-                    return;
-                  }
-                  setShareNote('');
-                })
-                .catch((e) => {
-                  const err = e as Error;
-                  setShareNote(err.name === 'AbortError' ? '' : err.message);
-                })
-                .finally(() => setSharing(false));
-            }}
-          >
-            {sharing ? 'Sharing…' : 'Share'}
-          </button>
+      <div className="status-tags">
+        {round.tee && !nines && (
+          <span className="status-tag static">
+            {round.tee} tees{tee?.rating && tee.slope ? ` · ${tee.rating.toFixed(1)}/${tee.slope}` : ''}
+          </span>
         )}
-        <button className="btn" onClick={() => setEditing(true)}>
-          Edit round
-        </button>
+        {nines && tee?.rating && tee.slope && (
+          <span className="status-tag static">
+            {tee.rating.toFixed(1)}/{tee.slope}
+          </span>
+        )}
+        {putterName && <span className="status-tag static">{putterName}</span>}
+        {!practice && (
+          <>
+            <button className="status-tag" onClick={() => setSpeedSheet(true)}>
+              {round.greenSpeed ? <SpeedBars speed={round.greenSpeed} label /> : 'Green speed'}
+            </button>
+            <button
+              className={round.competitive ? 'status-tag on' : 'status-tag'}
+              aria-pressed={!!round.competitive}
+              onClick={() => dispatch({ t: 'updateRound', id: round.id, patch: { competitive: !round.competitive } })}
+            >
+              {round.competitive ? 'Tournament' : 'Casual'}
+            </button>
+          </>
+        )}
       </div>
-      {!practice && (
-        <div className="status-tags">
-          <button className="status-tag" onClick={() => setSpeedSheet(true)}>
-            {round.greenSpeed ? <SpeedBars speed={round.greenSpeed} label /> : 'Set green speed'}
-          </button>
-          <button
-            className={round.competitive ? 'status-tag on' : 'status-tag'}
-            aria-pressed={!!round.competitive}
-            onClick={() => dispatch({ t: 'updateRound', id: round.id, patch: { competitive: !round.competitive } })}
-          >
-            {round.competitive ? 'Competitive' : 'Casual'}
-          </button>
-        </div>
-      )}
 
       {speedSheet && (
         <Sheet title="Greens, by stimp" onClose={() => setSpeedSheet(false)}>
@@ -312,9 +378,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         </p>
       )}
 
-      <RoundMoments moments={moments} round={round} baseline={state.baseline} focus={focusMoment} />
-
-      <RoundPayoff round={round} />
+      {!practice && <RoundStory round={round} stats={s} baseline={state.baseline} />}
 
       <div className="round-numbers">
         {numberTiles.map((t) => (
@@ -337,107 +401,138 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         </p>
       )}
 
-      <h2>Scorecard</h2>
-      {suspect.length > 0 && (
-        <p className="small neg" style={{ margin: '0 0 8px' }}>
-          Worth a look: {suspect.map((x) => `hole ${x.hole} (${x.from} ft then ${x.to} ft)`).join(', ')}. Running a putt
-          well past is normal, but a leave that much longer than the putt is usually a mistyped distance. Tap the hole
-          if it needs fixing.
-        </p>
-      )}
-      <div className="sc-wrap">
-        {playedHoles.map((h) => (
+      {!practice && <RoundTrophies round={round} rounds={state.rounds} baseline={state.baseline} />}
+
+      <RoundPayoff round={round} />
+
+      <div className="round-tabs" role="tablist" aria-label="Round breakdowns">
+        {tabs.map((t) => (
           <button
-            key={h.hole}
-            className={[
-              'sc-row',
-              h.putts.length >= 3 ? 'three' : '',
-              tags.get(h.hole) && !tags.get(h.hole)!.fix ? 'tagged' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={(e) => {
-              // The tag opens its moment card; anywhere else on the row edits the hole.
-              const tag = tags.get(h.hole);
-              if (tag && (e.target as HTMLElement).closest('[data-moment]')) {
-                setFocusMoment((f) => ({ index: tag.index, n: (f?.n ?? 0) + 1 }));
-                return;
-              }
-              setEditPutt(null);
-              setEditHole(h.hole);
-            }}
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            className={tab === t.key ? 'chip chip-sel' : 'chip'}
+            onClick={() => setTab(t.key)}
           >
-            <span className="h">{h.hole}</span>
-            <span className="par-cell">{h.par ?? ''}</span>
-            <span className="seq">
-              {h.putts.length ? puttSequence(h.putts) : holedOut(h) ? 'chipped in' : '--'}
-              {tags.get(h.hole) && (
-                <span data-moment className={tags.get(h.hole)!.fix ? 'sc-tag fix' : 'sc-tag'}>
-                  {tags.get(h.hole)!.text}
-                </span>
-              )}
-            </span>
-            <span className="drop-cell">
-              {marks.triggers.has(h.hole) ? (
-                '🩸'
-              ) : marks.bled.has(h.hole) ? (
-                <span className="bled-dot" aria-label="bled into" />
-              ) : (
-                ''
-              )}
-            </span>
-            <ScoreMark strokes={h.strokes} vsPar={holeVsPar(h)} />
-            <span className={(running.get(h.hole) ?? 0) < 0 ? 'rel num pos' : 'rel num'}>
-              {running.has(h.hole) ? fmtVsPar(running.get(h.hole)!) : ''}
-            </span>
-            <span className="n num">{h.putts.length || ''}</span>
-            <SgCell value={sgOf(h)} />
+            {t.label}
           </button>
         ))}
-
-        {(playedHoles.some((h) => h.hole <= 9) && playedHoles.some((h) => h.hole >= 10)
-          ? [
-              { label: 'Out', from: 1, to: 9 },
-              { label: 'In', from: 10, to: 18 },
-              { label: 'Total', from: 1, to: round.holeCount },
-            ]
-          : [{ label: 'Total', from: 1, to: round.holeCount }]
-        ).map((band) => {
-          const inBand = round.holes.filter((h) => h.hole >= band.from && h.hole <= band.to);
-          // Par only counts holes actually played, so a round finished early doesn't show
-          // a full nine's par next to a partial score.
-          const par = inBand.reduce((n, h) => n + (h.strokes !== undefined ? (h.par ?? 0) : 0), 0);
-          const strokes = inBand.reduce((n, h) => n + (h.strokes ?? 0), 0);
-          const putts = inBand.reduce((n, h) => n + h.putts.length, 0);
-          const rel = inBand.reduce((n, h) => n + (holeVsPar(h) ?? 0), 0);
-          const scored = inBand.some((h) => h.strokes !== undefined);
-          return (
-            <div key={band.label} className={band.label === 'Total' ? 'sc-row sc-total sc-grand' : 'sc-row sc-total'}>
-              <span className="h" />
-              <span className="par-cell">{par || ''}</span>
-              <span className="seq band">{band.label}</span>
-              <span className="drop-cell" />
-              <span className="sc num">{scored ? strokes : ''}</span>
-              <span className={rel < 0 ? 'rel num pos' : 'rel num'}>{scored ? fmtVsPar(rel) : ''}</span>
-              <span className="n num">{putts || ''}</span>
-              <SgCell
-                value={inBand.some((h) => h.putts.length) ? inBand.reduce((n, h) => n + (sgOf(h) ?? 0), 0) : null}
-              />
-            </div>
-          );
-        })}
       </div>
 
-      <p className="small muted" style={{ margin: '8px 0 0' }}>
-        The last column is putting strokes gained on that hole, against what the average putt from your first putt's
-        distance is worth. The bold reds are where the round went.
-      </p>
+      {tab === 'distance' && <DistanceTable stats={s} countsOnly />}
+      {tab === 'lag' && <LagPanel stats={s} lag={lagSaves([round])} />}
+      {tab === 'misses' && (
+        <>
+          {read.judged > 0 && <ReadPanel read={read} />}
+          <PatternPanel stats={s} />
+        </>
+      )}
+      {tab === 'cup' && <CupMap counts={cup.counts} unsure={cup.unsure} />}
+      {tab === 'form' && form && <FormPanel form={form} />}
 
-      {bleeds.length > 0 && (
-        <p className="small muted" style={{ marginTop: 8 }}>
-          🩸 is the mistake itself. A dot is a hole it bled into, not a hole that did anything wrong on the green.{' '}
-          {bleeds.map((b) => `Hole ${b.triggerHole}, ${b.why}, ${b.shots} shot${b.shots === 1 ? '' : 's'}`).join('. ')}.
-        </p>
+      {tab === 'holes' && (
+        <>
+          {beats.n >= 6 && <BeatBar spread={beats} compact />}
+          {suspect.length > 0 && (
+            <p className="small neg" style={{ margin: '0 0 8px' }}>
+              Worth a look: {suspect.map((x) => `hole ${x.hole} (${x.from} ft then ${x.to} ft)`).join(', ')}. Running a
+              putt well past is normal, but a leave that much longer than the putt is usually a mistyped distance. Tap
+              the hole if it needs fixing.
+            </p>
+          )}
+          <div className="sc-wrap">
+            {playedHoles.map((h) => (
+              <button
+                key={h.hole}
+                className={[
+                  'sc-row',
+                  h.putts.length >= 3 ? 'three' : '',
+                  tags.get(h.hole) && !tags.get(h.hole)!.fix ? 'tagged' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                onClick={() => {
+                  setEditPutt(null);
+                  setEditHole(h.hole);
+                }}
+              >
+                <span className="h">{h.hole}</span>
+                <span className="par-cell">{h.par ?? ''}</span>
+                <span className="seq">
+                  {h.putts.length ? puttSequence(h.putts) : holedOut(h) ? 'chipped in' : '--'}
+                  {tags.get(h.hole) && (
+                    <span className={tags.get(h.hole)!.fix ? 'sc-tag fix' : 'sc-tag'}>{tags.get(h.hole)!.text}</span>
+                  )}
+                </span>
+                <span className="drop-cell">
+                  {marks.triggers.has(h.hole) ? (
+                    '🩸'
+                  ) : marks.bled.has(h.hole) ? (
+                    <span className="bled-dot" aria-label="bled into" />
+                  ) : (
+                    ''
+                  )}
+                </span>
+                <ScoreMark strokes={h.strokes} vsPar={holeVsPar(h)} />
+                <span className={(running.get(h.hole) ?? 0) < 0 ? 'rel num pos' : 'rel num'}>
+                  {running.has(h.hole) ? fmtVsPar(running.get(h.hole)!) : ''}
+                </span>
+                <span className="n num">{h.putts.length || ''}</span>
+                <SgCell value={sgOf(h)} />
+              </button>
+            ))}
+
+            {(playedHoles.some((h) => h.hole <= 9) && playedHoles.some((h) => h.hole >= 10)
+              ? [
+                  { label: 'Out', from: 1, to: 9 },
+                  { label: 'In', from: 10, to: 18 },
+                  { label: 'Total', from: 1, to: round.holeCount },
+                ]
+              : [{ label: 'Total', from: 1, to: round.holeCount }]
+            ).map((band) => {
+              const inBand = round.holes.filter((h) => h.hole >= band.from && h.hole <= band.to);
+              // Par only counts holes actually played, so a round finished early doesn't show
+              // a full nine's par next to a partial score.
+              const par = inBand.reduce((n, h) => n + (h.strokes !== undefined ? (h.par ?? 0) : 0), 0);
+              const strokes = inBand.reduce((n, h) => n + (h.strokes ?? 0), 0);
+              const putts = inBand.reduce((n, h) => n + h.putts.length, 0);
+              const rel = inBand.reduce((n, h) => n + (holeVsPar(h) ?? 0), 0);
+              const scored = inBand.some((h) => h.strokes !== undefined);
+              return (
+                <div
+                  key={band.label}
+                  className={band.label === 'Total' ? 'sc-row sc-total sc-grand' : 'sc-row sc-total'}
+                >
+                  <span className="h" />
+                  <span className="par-cell">{par || ''}</span>
+                  <span className="seq band">{band.label}</span>
+                  <span className="drop-cell" />
+                  <span className="sc num">{scored ? strokes : ''}</span>
+                  <span className={rel < 0 ? 'rel num pos' : 'rel num'}>{scored ? fmtVsPar(rel) : ''}</span>
+                  <span className="n num">{putts || ''}</span>
+                  <SgCell
+                    value={inBand.some((h) => h.putts.length) ? inBand.reduce((n, h) => n + (sgOf(h) ?? 0), 0) : null}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="small muted" style={{ margin: '8px 0 0' }}>
+            The last column is putting strokes gained on that hole, against what the average putt from your first putt's
+            distance is worth. The bold reds are where the round went.
+          </p>
+
+          {bleeds.length > 0 && (
+            <p className="small muted" style={{ marginTop: 8 }}>
+              🩸 is the mistake itself. A dot is a hole it bled into, not a hole that did anything wrong on the green.{' '}
+              {bleeds
+                .map((b) => `Hole ${b.triggerHole}, ${b.why}, ${b.shots} shot${b.shots === 1 ? '' : 's'}`)
+                .join('. ')}
+              .
+            </p>
+          )}
+        </>
       )}
 
       {hole && (

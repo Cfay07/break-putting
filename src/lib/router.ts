@@ -54,7 +54,7 @@ export function backLabel(route: string): string {
   if (route.startsWith('/practice/drill/')) return 'Drill';
   if (route.startsWith('/round/')) return 'Round';
   if (route === '/settings') return 'Settings';
-  if (route === '/moments') return 'Moments';
+  if (route === '/moments' || route === '/history') return 'History';
   if (route === '/team') return 'Team';
   return 'Back';
 }

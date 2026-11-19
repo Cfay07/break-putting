@@ -2418,3 +2418,57 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .live-proj-k { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #e8935f; }
 .live-proj-v { font-size: 26px; font-weight: 900; letter-spacing: -0.01em; }
 .live-proj-n { font-size: 12px; color: #a9c2b5; }
+
+/* Round page head: date and actions on one line, course under it, one row of matching chips. */
+.round-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.round-top h3 { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.01em; }
+.round-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+.round-actions .status-tag { color: var(--ink); }
+.round-course { margin: 2px 0 0; font-size: 15px; color: var(--ink-2); }
+.status-tag.static { cursor: default; }
+
+/* The round in one card */
+.story { margin-top: 16px; padding: 16px; border-radius: 16px; background: var(--ink); color: var(--paper); }
+.story-nums { display: flex; gap: 22px; }
+.story-nums div { display: grid; gap: 2px; }
+.story-nums span, .story-swing span { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #a9c2b5; }
+.story-nums strong { font-size: 30px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
+.story-nums small { font-size: 13px; color: #a9c2b5; }
+.story .up { color: #8fd1a8; }
+.story .down { color: #f09595; }
+.story-swing { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.story-swing div { display: grid; gap: 2px; padding: 10px; border-radius: 12px; background: rgba(242, 239, 230, 0.08); }
+.story-swing b { font-size: 14px; }
+.story-swing em { font-style: normal; font-weight: 800; }
+
+/* History: this round against every round */
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.section-head a { font-size: 14px; font-weight: 700; color: var(--ink); text-decoration: none; }
+.trophy-row { align-items: center; }
+.trophy-badge {
+  flex: 0 0 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 12px; background: rgba(20, 57, 43, 0.08); color: var(--ink); font-weight: 900; font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.trophy-badge.gold { background: #e8935f; color: #14392b; }
+.lb-row .chev { flex: 0 0 auto; color: var(--ink-3); font-size: 18px; }
+.round-tabs { display: flex; gap: 6px; overflow-x: auto; margin: 22px -16px 12px; padding: 0 16px 2px; scrollbar-width: none; }
+.round-tabs::-webkit-scrollbar { display: none; }
+.round-tabs .chip { flex: 0 0 auto; min-height: 36px; padding: 0 14px; font-size: 14px; border-radius: 18px; }
+
+/* The History tab */
+.trophy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.trophy-card { display: grid; border-radius: 14px; background: var(--ink); color: var(--paper); overflow: hidden; }
+.trophy-grid.low .trophy-card { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+.trophy-open { display: grid; gap: 4px; padding: 12px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.trophy-title { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #e8935f; line-height: 1.3; }
+.trophy-grid.low .trophy-title { color: var(--red); }
+.trophy-open strong { font-size: 24px; font-weight: 900; letter-spacing: -0.01em; line-height: 1.1; }
+.trophy-where { font-size: 12px; color: #a9c2b5; line-height: 1.35; }
+.trophy-grid.low .trophy-where { color: var(--ink-3); }
+.trophy-list { border: 0; border-top: 1px solid rgba(242, 239, 230, 0.14); background: none; color: inherit; font: inherit; font-size: 12px; font-weight: 700; padding: 8px 12px; text-align: left; cursor: pointer; opacity: 0.85; }
+.trophy-grid.low .trophy-list { border-top-color: var(--line); }
+.lb-row .nm small { display: block; font-size: 12px; font-weight: 500; color: var(--ink-3); }
+
+/* Sub-lines on list rows wrap rather than cut a rank off mid-word. */
+.lb-row > .nm small { white-space: normal; overflow: visible; }

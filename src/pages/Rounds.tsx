@@ -117,9 +117,9 @@ export function Rounds() {
           <span className="tiny">Round in progress</span>
           <h3 style={{ marginTop: 4 }}>
             {live.practice ? 'Practice round' : live.course || fmtDate(live.date)} · hole {state.track.hole}
-            {state.track.phase === 'tags' ? ', tagging a miss' : `, putt ${
-              (live.holes.find((h) => h.hole === state.track.hole)?.putts.length ?? 0) + 1
-            }`}
+            {state.track.phase === 'tags'
+              ? ', tagging a miss'
+              : `, putt ${(live.holes.find((h) => h.hole === state.track.hole)?.putts.length ?? 0) + 1}`}
           </h3>
           <div className="btn-row" style={{ marginTop: 10 }}>
             <button className="btn btn-primary" onClick={() => go('/track')}>
@@ -145,8 +145,8 @@ export function Rounds() {
       <div className="list-head">
         <h2>Rounds</h2>
         {finished.length >= 3 && (
-          <a href="#/moments" className="small rounds-moments">
-            Moments
+          <a href="#/history" className="small rounds-moments">
+            History
           </a>
         )}
         {finished.length >= 3 && (
@@ -163,8 +163,7 @@ export function Rounds() {
         <div className="card signin-lead">
           <strong>Your rounds only live on this phone</strong>
           <p className="small" style={{ margin: '4px 0 10px' }}>
-            Make an account and they back up and follow you to a new phone. It takes an email and a
-            password.
+            Make an account and they back up and follow you to a new phone. It takes an email and a password.
           </p>
           <a className="btn btn-primary btn-wide" href="#/settings">
             Set up an account
@@ -175,101 +174,97 @@ export function Rounds() {
       {finished.length === 0 && (
         <div className="empty">
           <p style={{ margin: 0 }}>
-            Nothing here yet. Tap New round, pick your course, then log the distance of every putt
-            as you go. One round turns on your make rates and strokes gained; a handful turns on
-            the rest.
+            Nothing here yet. Tap New round, pick your course, then log the distance of every putt as you go. One round
+            turns on your make rates and strokes gained; a handful turns on the rest.
           </p>
         </div>
       )}
 
       <div className="round-list">
-      {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s, mistakes, bled, form }) => (
-        <button
+        {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s, mistakes, bled, form }) => (
+          <button
             key={r.id}
             className={r.competitive ? 'round-row comp' : 'round-row'}
             onClick={() => go(`/round/${r.id}`)}
           >
-          {/* The leading edge used to be the competitive marker. Form took it, because a colour
+            {/* The leading edge used to be the competitive marker. Form took it, because a colour
               running the height of every card is the one thing you can read down a whole list
               without stopping, and competitive moved to a trophy that needs no learning. */}
-          {form && (
-            <span
-              className="form-rail"
-              // Width, never opacity. Fading an untagged round lightened its colour and so
-              // overrode the ramp: a dark-green 9.1 drawn at 0.75 came out lighter than a
-              // mid-green 6.5 at full strength, which is the one thing the scale must not do.
-              style={{
-                background: formBand(form.score).ink,
-                width: form.process === null ? 2 : 5,
-              }}
-              aria-hidden="true"
-            />
-          )}
-          <div className="round-head">
-            {/* Date and cup travel as one. Loose in a space-between row they were two separate
+            {form && (
+              <span
+                className="form-rail"
+                // Width, never opacity. Fading an untagged round lightened its colour and so
+                // overrode the ramp: a dark-green 9.1 drawn at 0.75 came out lighter than a
+                // mid-green 6.5 at full strength, which is the one thing the scale must not do.
+                style={{
+                  background: formBand(form.score).ink,
+                  width: form.process === null ? 2 : 5,
+                }}
+                aria-hidden="true"
+              />
+            )}
+            <div className="round-head">
+              {/* Date and cup travel as one. Loose in a space-between row they were two separate
                 children, so a round with no blood drop split the spare width between them and
                 left the cup stranded mid-card. */}
-            <span className="round-when">
-              <span className="round-date">{fmtDate(r.date)}</span>
-              {r.competitive && (
-                <span className="comp-cup" aria-label="competitive round">
-                  🏆
-                </span>
-              )}
-            </span>
-            {/* Drawn whenever a putting mistake happened, same as the drop on the scorecard,
+              <span className="round-when">
+                <span className="round-date">{fmtDate(r.date)}</span>
+                {r.competitive && (
+                  <span className="comp-cup" aria-label="competitive round">
+                    🏆
+                  </span>
+                )}
+              </span>
+              {/* Drawn whenever a putting mistake happened, same as the drop on the scorecard,
                 so no drop means no mistake. The number is what it went on to cost, and a mistake
                 that cost nothing shows the drop alone. */}
-            {mistakes > 0 && (
-              <span
-                className={bled > 0 ? 'bleed-tag' : 'bleed-tag clean'}
-                aria-label={
-                  bled > 0
-                    ? `${bled} shot${bled === 1 ? '' : 's'} lost after a putting mistake`
-                    : 'a putting mistake that cost nothing'
-                }
-              >
-                🩸{bled > 0 ? bled : ''}
-              </span>
-            )}
-            <PutterTag putterId={r.putterId} />
-          </div>
-          {r.course && (
-            <span className="small muted" style={{ display: 'block', marginTop: 2 }}>
-              {courseLabel(r)}
-            </span>
-          )}
-          <div className="metrics num">
-            <span className="metric">
-              <span className="tiny">Putts</span>
-              <span className="val">{s.totalPutts}</span>
-            </span>
-            <span className="metric">
-              <span className="tiny">3-putts</span>
-              <span className={s.threePlus ? 'val neg' : 'val'}>{s.threePlus}</span>
-            </span>
-            <span className="metric">
-              <span className="tiny">SG</span>
-              <span className={s.sg >= 0 ? 'val pos' : 'val neg'}>{signed(s.sg)}</span>
-            </span>
-            <span className="metric">
-              <span className="tiny">Score</span>
-              <span className="val">{r.score ?? '--'}</span>
-            </span>
-            {form && (
-              <span className="metric metric-form">
-                <span className="tiny">Form</span>
+              {mistakes > 0 && (
                 <span
-                  className="val"
-                  style={{ color: formBand(form.score).ink }}
+                  className={bled > 0 ? 'bleed-tag' : 'bleed-tag clean'}
+                  aria-label={
+                    bled > 0
+                      ? `${bled} shot${bled === 1 ? '' : 's'} lost after a putting mistake`
+                      : 'a putting mistake that cost nothing'
+                  }
                 >
-                  {form.score.toFixed(1)}
+                  🩸{bled > 0 ? bled : ''}
                 </span>
+              )}
+              <PutterTag putterId={r.putterId} />
+            </div>
+            {r.course && (
+              <span className="small muted" style={{ display: 'block', marginTop: 2 }}>
+                {courseLabel(r)}
               </span>
             )}
-          </div>
-        </button>
-      ))}
+            <div className="metrics num">
+              <span className="metric">
+                <span className="tiny">Putts</span>
+                <span className="val">{s.totalPutts}</span>
+              </span>
+              <span className="metric">
+                <span className="tiny">3-putts</span>
+                <span className={s.threePlus ? 'val neg' : 'val'}>{s.threePlus}</span>
+              </span>
+              <span className="metric">
+                <span className="tiny">SG</span>
+                <span className={s.sg >= 0 ? 'val pos' : 'val neg'}>{signed(s.sg)}</span>
+              </span>
+              <span className="metric">
+                <span className="tiny">Score</span>
+                <span className="val">{r.score ?? '--'}</span>
+              </span>
+              {form && (
+                <span className="metric metric-form">
+                  <span className="tiny">Form</span>
+                  <span className="val" style={{ color: formBand(form.score).ink }}>
+                    {form.score.toFixed(1)}
+                  </span>
+                </span>
+              )}
+            </div>
+          </button>
+        ))}
       </div>
 
       {finished.length > 20 && !showAll && (
@@ -315,12 +310,7 @@ export function Rounds() {
           <div className="field-label">Playing</div>
           <div className="seg">
             {[false, true].map((t) => (
-              <button
-                key={String(t)}
-                type="button"
-                aria-pressed={competitive === t}
-                onClick={() => setCompetitive(t)}
-              >
+              <button key={String(t)} type="button" aria-pressed={competitive === t} onClick={() => setCompetitive(t)}>
                 {t ? 'Competitive' : 'Casual'}
               </button>
             ))}
