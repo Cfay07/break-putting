@@ -5,6 +5,8 @@ import { headlineRanks, rankedRounds, rankText, roundRanks, swingHoles, type Ran
 import { courseLabel, type Stats } from '../lib/stats';
 import { holeVsPar, type Round } from '../lib/types';
 import { Sheet } from './Sheet';
+import { fmtIndex, indexAt } from '../lib/handicap';
+import { useCourseRatings } from '../lib/useCourseRatings';
 
 const parText = (v: number) => (v === 0 ? 'E' : v > 0 ? `+${v}` : String(v));
 const badge = (l: RankLine) => (l.since ? '↑' : `${l.tied ? 'T' : '#'}${l.rank}`);
@@ -31,6 +33,8 @@ export function RoundStory({
   const heads = useMemo(() => headlineRanks(roundRanks(round, rounds, baseline)), [round, rounds, baseline]);
   const [open, setOpen] = useState<string | null>(null);
   const list = open ? rankedRounds(round, rounds, baseline, open) : null;
+  const courses = useCourseRatings();
+  const index = useMemo(() => indexAt(round, rounds, courses), [round, rounds, courses]);
 
   return (
     <section className="story">
@@ -40,7 +44,7 @@ export function RoundStory({
             <span>Score</span>
             <strong className="num">
               {round.score}
-              {scored.length > 0 && <small> {parText(toPar)}</small>}
+              {scored.length > 0 && <small> ({parText(toPar)})</small>}
             </strong>
           </div>
         )}
@@ -52,6 +56,12 @@ export function RoundStory({
           <span>Gained</span>
           <strong className={stats.sg >= 0 ? 'num up' : 'num down'}>{signed(stats.sg)}</strong>
         </div>
+        {index !== null && (
+          <div>
+            <span>Handicap</span>
+            <strong className="num">{fmtIndex(index)}</strong>
+          </div>
+        )}
       </div>
 
       {heads.map((l, i) => (

@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { fmtIndex, indexHistory, TREND_FROM } from '../lib/handicap';
+import { useCourseRatings } from '../lib/useCourseRatings';
 import { bleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
 import { formTrial } from '../lib/formTrial';
@@ -71,6 +73,12 @@ export function Stats({ practice = false }: { practice?: boolean }) {
 
 function RoundStats() {
   const { state } = useApp();
+  const courses = useCourseRatings();
+  // Every round counts toward the handicap, whatever the filter: it is one number for the player.
+  const handicap = useMemo(
+    () => indexHistory(state.rounds, courses).filter((h) => h.scores >= TREND_FROM),
+    [state.rounds, courses],
+  );
   const [filter, setFilter] = useState<RoundFilter>(NO_FILTER);
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -252,6 +260,22 @@ function RoundStats() {
           )}
 
           <h2>Am I improving</h2>
+          {handicap.length >= 2 && (
+            <div className="card trend-card">
+              <div className="trend-head">
+                <span className="tiny">Handicap</span>
+                <span className="trend-now">
+                  <span className="num">{fmtIndex(handicap[handicap.length - 1].index)}</span>
+                  <span className="tiny muted">from {fmtIndex(handicap[0].index)}</span>
+                </span>
+              </div>
+              <Trend values={handicap.map((h) => h.index)} invert />
+              <p className="small muted" style={{ margin: '6px 0 0' }}>
+                Worked out the standard way from your best scores on rated tees, from your eighth score on. Rounds
+                without a known tee do not count. An estimate, not an official index.
+              </p>
+            </div>
+          )}
           {[
             {
               title: 'Putts per round',

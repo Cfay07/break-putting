@@ -2532,3 +2532,9 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .rp-band-bar i.neg { background: var(--red); }
 .rp-band-v { text-align: right; font-weight: 700; }
 .rp-hole { margin: 14px 0 0; font-size: 14px; }
+
+/* Four numbers fit the card on a phone: score, putts, gained, handicap. */
+.story-nums { gap: 18px; flex-wrap: wrap; }
+.story-nums { display: grid; grid-template-columns: repeat(4, auto); justify-content: space-between; gap: 8px; flex-wrap: nowrap; }
+.story-nums strong { font-size: 26px; white-space: nowrap; }
+.story-nums strong small { font-size: 13px; }
