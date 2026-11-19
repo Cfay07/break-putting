@@ -9,7 +9,6 @@ import {
   xpotStatus,
   makeChanceOf,
   puttSGAdjusted,
-  roundSGAdjusted,
   beatSpread,
   xpOf,
 } from '../lib/xp';
@@ -104,10 +103,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     }
     return sum;
   }, [makeModel, exec, state.baseline, round]);
-  const sgAdjusted = useMemo(
-    () => (round ? roundSGAdjusted(makeModel, state.baseline, round.holes) : null),
-    [makeModel, state.baseline, round],
-  );
   // Opened straight from a stat that names a hole, so the link lands where it is pointing.
   const [editHole, setEditHole] = useState<number | null>(openHole ?? null);
   const [editPutt, setEditPutt] = useState<number | null>(null);
@@ -155,17 +150,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       cls: better(s.totalPutts, 'putts', true),
     },
     ...(roundXp !== null ? [{ k: 'Expected', v: roundXp.toFixed(1), sub: 'putts, xP' }] : []),
-    // Strokes gained against Expected rather than plain tour averages, so it sits beside it.
-    ...(roundXp !== null && sgAdjusted !== null
-      ? [{ k: 'With break', v: signed(sgAdjusted), sub: 'gained vs xP', cls: sgAdjusted >= 0 ? 'pos' : 'neg' }]
-      : []),
     ...(practice ? [{ k: 'Gained', v: signed(s.sg), cls: s.sg >= 0 ? 'pos' : 'neg' }] : []),
-    {
-      k: 'Per hole',
-      v: s.puttsPerHole.toFixed(1),
-      sub: usualOf('putts', (v) => (s.holesPlayed ? (v / s.holesPlayed).toFixed(1) : '')),
-      cls: better(s.totalPutts, 'putts', true),
-    },
     {
       k: '1-putts',
       v: String(s.onePutts),
@@ -414,7 +399,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             ? 'Usual shows once you have eight rounds of this length to compare with.'
             : 'Usual is the middle of your other rounds of this length.'}
           {roundXp !== null &&
-            ' Expected and With break read the break on each putt, so they move with the putts you faced and have no usual.'}
+            ' Expected reads the break on each putt, so it moves with the putts you faced and has no usual.'}
         </p>
       )}
       {mismatch && (
