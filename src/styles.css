@@ -2538,3 +2538,5 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .story-nums { display: grid; grid-template-columns: repeat(4, auto); justify-content: space-between; gap: 8px; flex-wrap: nowrap; }
 .story-nums strong { font-size: 26px; white-space: nowrap; }
 .story-nums strong small { font-size: 13px; }
+
+.trend-pick { margin: 4px 0 0; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }

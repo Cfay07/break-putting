@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { fmtIndex, indexHistory, TREND_FROM } from '../lib/handicap';
+import { courseLabel } from '../lib/stats';
 import { useCourseRatings } from '../lib/useCourseRatings';
 import { bleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
@@ -269,7 +270,26 @@ function RoundStats() {
                   <span className="tiny muted">from {fmtIndex(handicap[0].index)}</span>
                 </span>
               </div>
-              <Trend values={handicap.map((h) => h.index)} invert />
+              <Trend
+                values={handicap.map((h) => h.index)}
+                invert
+                labels={handicap.map((h) => {
+                  const ids = h.id.split('+');
+                  const r = state.rounds.find((x) => x.id === ids[ids.length - 1]);
+                  const score = ids
+                    .map((id) => state.rounds.find((x) => x.id === id))
+                    .reduce((a, x) => a + (x?.holes.reduce((n, hole) => n + (hole.strokes ?? 0), 0) ?? 0), 0);
+                  return [
+                    fmtDate(h.date),
+                    r ? courseLabel(r).replace(/ \(\d+\)$/, '') : '',
+                    ids.length > 1 ? `two nines, ${score}` : String(score),
+                    `differential ${h.diff.toFixed(1)}`,
+                    `handicap ${fmtIndex(h.index)}`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+                })}
+              />
               <p className="small muted" style={{ margin: '6px 0 0' }}>
                 Worked out the standard way from your best scores on rated tees, from your eighth score on. Rounds
                 without a known tee do not count. An estimate, not an official index.

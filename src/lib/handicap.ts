@@ -98,15 +98,21 @@ export function indexOf(diffs: Differential[]): number | null {
  */
 export const TREND_FROM = 8;
 
-export function indexHistory(
-  rounds: Round[],
-  courses: SavedCourse[],
-): { date: string; index: number; scores: number }[] {
+/** The index after one score, and the score that moved it: its round (or both nines) and differential. */
+export interface HistoryPoint {
+  date: string;
+  index: number;
+  scores: number;
+  id: string;
+  diff: number;
+}
+
+export function indexHistory(rounds: Round[], courses: SavedCourse[]): HistoryPoint[] {
   const diffs = differentials(rounds, courses);
-  const out: { date: string; index: number; scores: number }[] = [];
+  const out: HistoryPoint[] = [];
   diffs.forEach((d, i) => {
     const idx = indexOf(diffs.slice(0, i + 1));
-    if (idx !== null) out.push({ date: d.date, index: idx, scores: Math.min(i + 1, WINDOW) });
+    if (idx !== null) out.push({ date: d.date, index: idx, scores: Math.min(i + 1, WINDOW), id: d.id, diff: d.value });
   });
   return out;
 }
