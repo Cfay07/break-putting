@@ -2509,9 +2509,7 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .sc-wrap.compact .sc-row .seq { display: flex; align-items: center; font-size: 13.5px; white-space: nowrap; overflow: hidden; }
 .sc-wrap.compact .sc-row .seq-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sc-wrap.compact .sc-tag { flex: 0 0 auto; }
-.sc-wrap.compact .sc-row .sc { font-size: 14px; }
 .sc-wrap.compact .sc-row .n { font-size: 14px; }
-.sc-wrap.compact .mk { padding: 0; }
 .sc-wrap.compact .sc-tag { margin-left: 6px; padding: 1px 6px; font-size: 9px; }
 
 /* The round's Practice tab: the leak, the numbers behind it, then the session that fixes it. */
