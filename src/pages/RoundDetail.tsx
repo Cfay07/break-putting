@@ -20,7 +20,7 @@ import { ConfirmButton } from '../components/ConfirmButton';
 import { SURFACE_LABELS } from '../lib/types';
 import { ScoreMark } from '../components/ScoreMark';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
-import { RoundPayoff } from '../components/RoundPayoff';
+import { RoundPractice } from '../components/RoundPractice';
 import { teeOf } from '../lib/courses';
 import { useCourseRatings } from '../lib/useCourseRatings';
 import { RoundStory } from '../components/RoundTrophies';
@@ -51,7 +51,7 @@ import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
  * break and starts being the reason the round went: those get the weight so the eye finds them
  * without reading every number.
  */
-type RoundTab = 'holes' | 'distance' | 'lag' | 'misses' | 'cup' | 'form';
+type RoundTab = 'holes' | 'practice' | 'distance' | 'lag' | 'misses' | 'cup' | 'form';
 
 const FAULT_WORDS: [string, string][] = [
   ['push', 'push'],
@@ -155,7 +155,17 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       cls: better(s.totalPutts, 'putts', true),
     },
     ...(roundXp !== null ? [{ k: 'Expected', v: roundXp.toFixed(1), sub: 'putts, xP' }] : []),
+    // Strokes gained against Expected rather than plain tour averages, so it sits beside it.
+    ...(roundXp !== null && sgAdjusted !== null
+      ? [{ k: 'With break', v: signed(sgAdjusted), sub: 'gained vs xP', cls: sgAdjusted >= 0 ? 'pos' : 'neg' }]
+      : []),
     ...(practice ? [{ k: 'Gained', v: signed(s.sg), cls: s.sg >= 0 ? 'pos' : 'neg' }] : []),
+    {
+      k: 'Per hole',
+      v: s.puttsPerHole.toFixed(1),
+      sub: usualOf('putts', (v) => (s.holesPlayed ? (v / s.holesPlayed).toFixed(1) : '')),
+      cls: better(s.totalPutts, 'putts', true),
+    },
     {
       k: '1-putts',
       v: String(s.onePutts),
@@ -192,10 +202,15 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       cls: better(longest, 'longest', false),
     });
   if (practice && round.score !== undefined) numberTiles.push({ k: 'Score', v: String(round.score) });
-  if (s.scoredHoles > 0) numberTiles.push({ k: 'Greens', v: String(s.gir), sub: `of ${s.scoredHoles}` });
-  // Only where the break moves it by a quarter of a stroke: below that it was noise on most rounds.
-  if (sgAdjusted !== null && Math.abs(sgAdjusted - s.sg) >= 0.25)
-    numberTiles.push({ k: 'With break', v: signed(sgAdjusted), cls: sgAdjusted >= 0 ? 'pos' : 'neg' });
+  if (s.scoredHoles > 0)
+    numberTiles.push({
+      k: 'Greens',
+      v: String(s.gir),
+      sub: usualOf('greens', (v) => `of ${s.scoredHoles}, usual ${Math.round(v)}`, true) ?? `of ${s.scoredHoles}`,
+      cls: better(s.gir, 'greens', false),
+    });
+  // Fewer than eight rounds to compare with: the usual lines are missing for that reason, not by design.
+  const noUsualYet = !practice && usual(round, state.rounds, state.baseline, 'putts') === null;
   if (roundXpot !== null) numberTiles.push({ k: 'After stroke', v: roundXpot.toFixed(1), sub: 'putts' });
   const hole = editHole !== null ? round.holes.find((h) => h.hole === editHole) : undefined;
 
@@ -213,14 +228,15 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   // The hole that made the round and the one that cost it, marked on the card.
   const swing = swingHoles(round, state.baseline);
   const tags = new Map<number, { text: string; fix: boolean }>();
-  if (swing && swing.best.sg > 0) tags.set(swing.best.hole, { text: 'Best hole', fix: false });
-  if (swing && swing.worst.sg < 0) tags.set(swing.worst.hole, { text: 'Cost the most', fix: true });
+  if (swing && swing.best.sg > 0) tags.set(swing.best.hole, { text: 'Best', fix: false });
+  if (swing && swing.worst.sg < 0) tags.set(swing.worst.hole, { text: 'Worst', fix: true });
   const cup = cupCounts(round.holes);
   const read = readError([round]);
   const form = round.practice ? null : formOf(round, state.baseline);
   const beats = beatSpread(state.baseline, [round as never]);
   const tabs: { key: RoundTab; label: string }[] = [
     { key: 'holes', label: 'Holes' },
+    { key: 'practice', label: 'Takeaways' },
     { key: 'distance', label: 'By distance' },
     { key: 'lag', label: 'Lag' },
     { key: 'misses', label: 'Misses' },
@@ -392,6 +408,15 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           Three-putts on {s.threePuttHoles.length === 1 ? 'hole' : 'holes'} {s.threePuttHoles.join(', ')}.
         </p>
       )}
+      {!practice && (
+        <p className="small muted tiles-note">
+          {noUsualYet
+            ? 'Usual shows once you have eight rounds of this length to compare with.'
+            : 'Usual is the middle of your other rounds of this length.'}
+          {roundXp !== null &&
+            ' Expected and With break read the break on each putt, so they move with the putts you faced and have no usual.'}
+        </p>
+      )}
       {mismatch && (
         <p className="small neg" style={{ margin: '6px 0 0' }}>
           The card says {round.recordedPutts} putts; {s.totalPutts} are logged here.
@@ -412,6 +437,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         ))}
       </div>
 
+      {tab === 'practice' && <RoundPractice round={round} stats={s} baseline={state.baseline} />}
       {tab === 'distance' && <DistanceTable stats={s} countsOnly />}
       {tab === 'lag' && <LagPanel stats={s} lag={lagSaves([round])} />}
       {tab === 'misses' && (
@@ -433,7 +459,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
               the hole if it needs fixing.
             </p>
           )}
-          <div className="sc-wrap">
+          <div className="sc-wrap compact">
             {playedHoles.map((h) => (
               <button
                 key={h.hole}
@@ -452,7 +478,9 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                 <span className="h">{h.hole}</span>
                 <span className="par-cell">{h.par ?? ''}</span>
                 <span className="seq">
-                  {h.putts.length ? puttSequence(h.putts) : holedOut(h) ? 'chipped in' : '--'}
+                  <span className="seq-t">
+                    {h.putts.length ? puttSequence(h.putts) : holedOut(h) ? 'chipped in' : '--'}
+                  </span>
                   {tags.get(h.hole) && (
                     <span className={tags.get(h.hole)!.fix ? 'sc-tag fix' : 'sc-tag'}>{tags.get(h.hole)!.text}</span>
                   )}
@@ -527,8 +555,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           )}
         </>
       )}
-
-      <RoundPayoff round={round} />
 
       {hole && (
         <Sheet
