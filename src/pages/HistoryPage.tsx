@@ -41,7 +41,7 @@ export function HistoryPage() {
         out.push({
           key: m.key,
           length,
-          title: length ? `${m.label}, ${length} holes` : m.label,
+          title: length && length !== 18 ? `${m.label}, ${length} holes` : m.label,
           best: ranked.rows[0].value,
           n: ranked.rows.length,
         });
@@ -73,9 +73,9 @@ export function HistoryPage() {
       </p>
 
       <h2>Records you hold</h2>
-      <div className="trophy-grid">
+      <div className="board">
         {room.highs.map((t) => (
-          <TrophyCard key={t.key} t={t} onList={(key, length) => setList({ key, length })} />
+          <TrophyRow key={t.key} t={t} />
         ))}
       </div>
 
@@ -83,9 +83,9 @@ export function HistoryPage() {
       <p className="small muted" style={{ margin: '-4px 0 10px' }}>
         Your worst. Every one of these is a round you can open.
       </p>
-      <div className="trophy-grid low">
+      <div className="board">
         {room.lows.map((t) => (
-          <TrophyCard key={t.key} t={t} onList={(key, length) => setList({ key, length })} />
+          <TrophyRow key={t.key} t={t} low />
         ))}
       </div>
 
@@ -127,7 +127,7 @@ export function HistoryPage() {
       </div>
 
       {open && (
-        <Sheet title={list?.length ? `${open.label}, ${list.length} holes` : open.label} onClose={() => setList(null)}>
+        <Sheet title={list?.length && list.length !== 18 ? `${open.label}, ${list.length} holes` : open.label} onClose={() => setList(null)}>
           <RankedList rows={open.rows} onPick={(id) => (setList(null), go(`/round/${id}`))} />
         </Sheet>
       )}
@@ -135,19 +135,16 @@ export function HistoryPage() {
   );
 }
 
-function TrophyCard({ t, onList }: { t: Trophy; onList: (key: string, length?: number) => void }) {
+/** One record: what it is and where it happened, the number on the right. Opens the round. */
+function TrophyRow({ t, low = false }: { t: Trophy; low?: boolean }) {
   return (
-    <div className="trophy-card">
-      <button className="trophy-open" onClick={() => go(`/round/${t.roundId}${t.hole ? `/hole/${t.hole}` : ''}`)}>
-        <span className="trophy-title">{t.title}</span>
-        <strong className="num">{t.value}</strong>
-        <span className="trophy-where">{t.where}</span>
-      </button>
-      {t.metric && (
-        <button className="trophy-list" onClick={() => onList(t.metric!, t.length)}>
-          Full list ›
-        </button>
-      )}
-    </div>
+    <button className="lb-row record-row" onClick={() => go(`/round/${t.roundId}${t.hole ? `/hole/${t.hole}` : ''}`)}>
+      <span className="nm">
+        {t.title}
+        <small>{t.where}</small>
+      </span>
+      <span className={low ? 'val num neg' : 'val num'}>{t.value}</span>
+      <span className="chev">›</span>
+    </button>
   );
 }

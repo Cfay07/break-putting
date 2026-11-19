@@ -192,27 +192,27 @@ function mostThrees(all: Round[]): Trophy | null {
 export function trophyRoom(all: Round[], baseline: [number, number][]) {
   const highs = [
     fromMetric(all, baseline, 'sg', 'Best putting round', false),
-    fromMetric(all, baseline, 'putts', 'Fewest putts, 18 holes', false, 18),
+    fromMetric(all, baseline, 'putts', 'Fewest putts', false, 18),
     fromMetric(all, baseline, 'putts', 'Fewest putts, 9 holes', false, 9),
-    fromMetric(all, baseline, 'score', 'Lowest score, 18 holes', false, 18),
+    fromMetric(all, baseline, 'score', 'Lowest score', false, 18),
     longestMake(all),
     noThreeRun(all),
     onePuttRun(all),
-    fromMetric(all, baseline, 'ones', 'Most one-putts, 18 holes', false, 18),
-    fromMetric(all, baseline, 'feet', 'Most feet holed, 18 holes', false, 18),
+    fromMetric(all, baseline, 'ones', 'Most one-putts', false, 18),
+    fromMetric(all, baseline, 'feet', 'Most feet holed', false, 18),
     fromMetric(all, baseline, 'scoring', 'Best from 3 to 10 ft', false),
     fromMetric(all, baseline, 'lag', 'Best lag putting', false),
-    fromMetric(all, baseline, 'greens', 'Most greens hit, 18 holes', false, 18),
-    fromMetric(all, baseline, 'birdies', 'Most birdies, 18 holes', false, 18),
+    fromMetric(all, baseline, 'greens', 'Most greens hit', false, 18),
+    fromMetric(all, baseline, 'birdies', 'Most birdies', false, 18),
   ].filter((t): t is Trophy => t !== null);
   const lows = [
     fromMetric(all, baseline, 'sg', 'Worst putting round', true),
-    fromMetric(all, baseline, 'putts', 'Most putts, 18 holes', true, 18),
+    fromMetric(all, baseline, 'putts', 'Most putts', true, 18),
     mostThrees(all),
     mostOnOneHole(all),
     worstHole(all),
     shortestMiss(all),
-    fromMetric(all, baseline, 'score', 'Highest score, 18 holes', true, 18),
+    fromMetric(all, baseline, 'score', 'Highest score', true, 18),
   ].filter((t): t is Trophy => t !== null);
   return { highs, lows };
 }

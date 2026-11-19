@@ -9,19 +9,39 @@ import { Sheet } from './Sheet';
 const parText = (v: number) => (v === 0 ? 'E' : v > 0 ? `+${v}` : String(v));
 const badge = (l: RankLine) => (l.since ? '↑' : `${l.tied ? 'T' : '#'}${l.rank}`);
 
-/** The round in one card: the three numbers that matter, then the hole that made it and the one that cost it. */
-export function RoundStory({ round, stats, baseline }: { round: Round; stats: Stats; baseline: [number, number][] }) {
+/**
+ * The round in one card: score, putts and gained, where it ranks among your rounds (found for
+ * you, three at most, only real records), then the hole that made it and the one that cost it.
+ * A ranking opens as your own leaderboard for that number.
+ */
+export function RoundStory({
+  round,
+  rounds,
+  stats,
+  baseline,
+}: {
+  round: Round;
+  rounds: Round[];
+  stats: Stats;
+  baseline: [number, number][];
+}) {
   const swing = swingHoles(round, baseline);
   const scored = round.holes.filter((h) => holeVsPar(h) !== undefined);
   const toPar = scored.reduce((a, h) => a + holeVsPar(h)!, 0);
+  const heads = useMemo(() => headlineRanks(roundRanks(round, rounds, baseline)), [round, rounds, baseline]);
+  const [open, setOpen] = useState<string | null>(null);
+  const list = open ? rankedRounds(round, rounds, baseline, open) : null;
+
   return (
     <section className="story">
       <div className="story-nums">
         {round.score !== undefined && (
           <div>
             <span>Score</span>
-            <strong className="num">{round.score}</strong>
-            {scored.length > 0 && <small>{parText(toPar)}</small>}
+            <strong className="num">
+              {round.score}
+              {scored.length > 0 && <small> {parText(toPar)}</small>}
+            </strong>
           </div>
         )}
         <div>
@@ -33,6 +53,17 @@ export function RoundStory({ round, stats, baseline }: { round: Round; stats: St
           <strong className={stats.sg >= 0 ? 'num up' : 'num down'}>{signed(stats.sg)}</strong>
         </div>
       </div>
+
+      {heads.map((l, i) => (
+        <button key={l.key} className="story-rank" onClick={() => setOpen(l.key)}>
+          <em className={i === 0 && !l.since ? 'gold' : undefined}>{badge(l)}</em>
+          <span>
+            <b>{`${l.label}, ${l.value}`}</b>
+            <small>{rankText(l)}</small>
+          </span>
+        </button>
+      ))}
+
       {swing && (
         <div className="story-swing">
           <div>
@@ -51,88 +82,6 @@ export function RoundStory({ round, stats, baseline }: { round: Round; stats: St
             <em className="down">{signed(swing.worst.sg)}</em>
           </div>
         </div>
-      )}
-    </section>
-  );
-}
-
-/**
- * This round in your history: where it ranks against every round you have logged, found for you.
- * Each ranking opens as your own leaderboard for it, and the trophy room holds the all-time best
- * and worst.
- */
-export function RoundTrophies({
-  round,
-  rounds,
-  baseline,
-}: {
-  round: Round;
-  rounds: Round[];
-  baseline: [number, number][];
-}) {
-  const lines = useMemo(() => roundRanks(round, rounds, baseline), [round, rounds, baseline]);
-  const heads = headlineRanks(lines);
-  const [open, setOpen] = useState<string | null>(null);
-  const [all, setAll] = useState(false);
-  const list = open ? rankedRounds(round, rounds, baseline, open) : null;
-
-  if (!lines.length) return null;
-  return (
-    <section className="trophies">
-      <div className="section-head">
-        <h2>History</h2>
-        <a href="#/history">All your history ›</a>
-      </div>
-      {heads.length ? (
-        <div className="board">
-          {heads.map((l) => (
-            <button key={l.key} className="lb-row trophy-row" onClick={() => setOpen(l.key)}>
-              <span className={l.rank === 1 && !l.since ? 'trophy-badge gold' : 'trophy-badge'}>{badge(l)}</span>
-              <span className="nm">
-                {l.label}
-                <small>
-                  {l.value} · {rankText(l)}
-                </small>
-              </span>
-              <span className="chev">›</span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="small muted" style={{ margin: 0 }}>
-          No records this round. Every ranking is still one tap away.
-        </p>
-      )}
-      <button className="linkish tiny" style={{ marginTop: 8 }} onClick={() => setAll(true)}>
-        Every ranking for this round ({lines.length})
-      </button>
-
-      {all && (
-        <Sheet title="Every ranking" onClose={() => setAll(false)}>
-          <div className="board">
-            {lines.map((l) => (
-              <button
-                key={l.key}
-                className="lb-row trophy-row"
-                onClick={() => {
-                  setAll(false);
-                  setOpen(l.key);
-                }}
-              >
-                <span
-                  className={l.rank === 1 ? 'trophy-badge gold' : 'trophy-badge'}
-                >{`${l.tied ? 'T' : '#'}${l.rank}`}</span>
-                <span className="nm">
-                  {l.label}
-                  <small>
-                    {l.value} · of {l.of} {l.pool}
-                  </small>
-                </span>
-                <span className="chev">›</span>
-              </button>
-            ))}
-          </div>
-        </Sheet>
       )}
 
       {list && (

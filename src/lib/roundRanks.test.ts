@@ -30,7 +30,7 @@ describe('roundRanks', () => {
     const best = round('best', '2026-11-01', 8);
     const fewest = roundRanks(best, [...history, best], B).find((l) => l.key === 'putts')!;
     expect(fewest.rank).toBe(1);
-    expect(rankText(fewest)).toBe('Your best of 10 18-hole rounds');
+    expect(rankText(fewest)).toBe('Your best of 10 rounds');
   });
 
   it('keeps a number most rounds share out of the headline', () => {

@@ -23,7 +23,7 @@ import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { RoundPayoff } from '../components/RoundPayoff';
 import { teeOf } from '../lib/courses';
 import { useCourseRatings } from '../lib/useCourseRatings';
-import { RoundStory, RoundTrophies } from '../components/RoundTrophies';
+import { RoundStory } from '../components/RoundTrophies';
 import { DistanceTable } from '../components/DistanceTable';
 import { LagPanel } from '../components/LagPanel';
 import { FormPanel } from '../components/FormPanel';
@@ -137,9 +137,10 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   // The old "The numbers" card, in the recap's tile grid. Rows of four: the count, how the
   // putts went, then what only some rounds have (a score, a fitted model).
   // Your usual sits under the counts, so every number says whether today was good for you.
-  const usualOf = (key: string, fmt: (v: number) => string) => {
+  const usualOf = (key: string, fmt: (v: number) => string, whole = false) => {
     const u = round.practice ? null : usual(round, state.rounds, state.baseline, key);
-    return u === null ? undefined : `usual ${fmt(u)}`;
+    if (u === null) return undefined;
+    return whole ? fmt(u) : `usual ${fmt(u)}`;
   };
   const better = (mine: number, key: string, lowBetter: boolean) => {
     const u = round.practice ? null : usual(round, state.rounds, state.baseline, key);
@@ -155,14 +156,12 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     },
     ...(roundXp !== null ? [{ k: 'Expected', v: roundXp.toFixed(1), sub: 'putts, xP' }] : []),
     ...(practice ? [{ k: 'Gained', v: signed(s.sg), cls: s.sg >= 0 ? 'pos' : 'neg' }] : []),
-    { k: 'Per hole', v: s.puttsPerHole.toFixed(1) },
     {
       k: '1-putts',
       v: String(s.onePutts),
       sub: usualOf('ones', (v) => String(Math.round(v))),
       cls: better(s.onePutts, 'ones', false),
     },
-    { k: '2-putts', v: String(s.twoPutts) },
     {
       k: '3-putts',
       v: String(s.threePlus),
@@ -180,7 +179,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     {
       k: 'Holed',
       v: String(s.makesTotalFeet),
-      sub: usualOf('feet', (v) => `${Math.round(v)} ft`) ?? 'feet',
+      sub: usualOf('feet', (v) => `feet, usual ${Math.round(v)}`, true) ?? 'feet',
       cls: better(s.makesTotalFeet, 'feet', false),
     },
   ];
@@ -189,7 +188,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     numberTiles.push({
       k: 'Longest',
       v: String(longest),
-      sub: usualOf('longest', (v) => `${Math.round(v)} ft`) ?? 'feet holed',
+      sub: usualOf('longest', (v) => `feet, usual ${Math.round(v)}`, true) ?? 'feet holed',
       cls: better(longest, 'longest', false),
     });
   if (practice && round.score !== undefined) numberTiles.push({ k: 'Score', v: String(round.score) });
@@ -293,13 +292,10 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
 
   return (
     <>
-      <div style={{ marginBottom: 6 }}>
+      <div className="round-top">
         <button className="linkish tiny" onClick={() => go(back)}>
           ← {practice && back === '/stats/practice' ? 'Practice stats' : backLabel(back)}
         </button>
-      </div>
-      <div className="round-top">
-        <h3>{fmtDateLong(round.date)}</h3>
         <div className="round-actions">
           {!practice && (
             <button className="status-tag" disabled={sharing} onClick={share}>
@@ -311,6 +307,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           </button>
         </div>
       </div>
+      <h3 className="round-date-big">{fmtDateLong(round.date)}</h3>
       {practice && (
         <p className="small muted" style={{ margin: '2px 0 0' }}>
           Practice round · {SURFACE_LABELS[round.practice!.surface]}. Never counted in your round stats.
@@ -378,7 +375,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         </p>
       )}
 
-      {!practice && <RoundStory round={round} stats={s} baseline={state.baseline} />}
+      {!practice && <RoundStory round={round} rounds={state.rounds} stats={s} baseline={state.baseline} />}
 
       <div className="round-numbers">
         {numberTiles.map((t) => (
@@ -400,10 +397,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           The card says {round.recordedPutts} putts; {s.totalPutts} are logged here.
         </p>
       )}
-
-      {!practice && <RoundTrophies round={round} rounds={state.rounds} baseline={state.baseline} />}
-
-      <RoundPayoff round={round} />
 
       <div className="round-tabs" role="tablist" aria-label="Round breakdowns">
         {tabs.map((t) => (
@@ -534,6 +527,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           )}
         </>
       )}
+
+      <RoundPayoff round={round} />
 
       {hole && (
         <Sheet

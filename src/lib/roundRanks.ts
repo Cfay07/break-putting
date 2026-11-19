@@ -162,7 +162,7 @@ export const METRICS: Metric[] = [
     sameLength: false,
     lowBetter: false,
     value: (r) => r.holes.flatMap((h) => h.putts.filter((p) => p.made && p.d >= 10 && p.d <= 20)).length,
-    fmt: (v) => `${v} from 10 to 20 ft`,
+    fmt: (v) => `${v} ${v === 1 ? 'make' : 'makes'}`,
   },
   {
     key: 'reads',
@@ -213,7 +213,7 @@ export interface RankLine {
   tied: boolean;
   /** Rounds sharing this exact number, this one included. */
   same: number;
-  /** Rounds compared against, in words: "18-hole rounds" or "rounds". */
+  /** Rounds compared against, in words: "rounds", or "nine-hole rounds" for a nine. */
   pool: string;
   /** Not a top three, but the best since this date, this many rounds back. */
   since?: { date: string; rounds: number };
@@ -251,7 +251,8 @@ export function roundRanks(round: Round, all: Round[], baseline: [number, number
       of: pool.length + 1,
       tied,
       same,
-      pool: m.sameLength ? `${n}-hole rounds` : 'rounds',
+      // Eighteen is the default and goes unsaid; only a nine says what it is compared with.
+      pool: m.sameLength && n !== 18 ? `${n === 9 ? 'nine' : n}-hole rounds` : 'rounds',
     };
     if (rank > 3) {
       // Best since: the most recent earlier round that did as well or better.
@@ -279,7 +280,7 @@ export function ordinal(n: number): string {
   return `${n}${s}`;
 }
 
-/** "Your best of 31 18-hole rounds", "2nd of 31", "Tied for best", "Best since Sep 24". */
+/** "Your best of 31 rounds", "2nd of your 8 nine-hole rounds", "Best since Sep 24". */
 export function rankText(l: RankLine): string {
   if (l.since) return `Best since ${fmtDate(l.since.date)}, ${l.since.rounds} rounds back`;
   if (l.rank === 1) return l.tied ? `Tied for your best of ${l.of} ${l.pool}` : `Your best of ${l.of} ${l.pool}`;
