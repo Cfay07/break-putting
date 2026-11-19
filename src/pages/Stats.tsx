@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { fmtIndex, indexHistory, TREND_FROM } from '../lib/handicap';
 import { courseLabel } from '../lib/stats';
+import { backTeeFor } from '../lib/courses';
+import type { Round } from '../lib/types';
 import { useCourseRatings } from '../lib/useCourseRatings';
 import { bleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
@@ -73,9 +75,18 @@ export function Stats({ practice = false }: { practice?: boolean }) {
 }
 
 function RoundStats() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const courses = useCourseRatings();
   // Every round counts toward the handicap, whatever the filter: it is one number for the player.
+  // Scored rounds that never said which tee, and the tee each would count off.
+  const teeless = useMemo(
+    () =>
+      state.rounds
+        .filter((r) => r.finished && !r.practice && !r.tee && r.holes.some((h) => (h.strokes ?? 0) > 0))
+        .map((r) => ({ r, pick: backTeeFor(r, courses) }))
+        .filter((x): x is { r: Round; pick: NonNullable<ReturnType<typeof backTeeFor>> } => !!x.pick),
+    [state.rounds, courses],
+  );
   const handicap = useMemo(
     () => indexHistory(state.rounds, courses).filter((h) => h.scores >= TREND_FROM),
     [state.rounds, courses],
@@ -294,6 +305,29 @@ function RoundStats() {
                 Worked out the standard way from your best scores on rated tees, from your eighth score on. Rounds
                 without a known tee do not count. An estimate, not an official index.
               </p>
+              {teeless.length > 0 && (
+                <p className="small" style={{ margin: '6px 0 0' }}>
+                  {teeless.length} {teeless.length === 1 ? 'round has' : 'rounds have'} no tee, so{' '}
+                  {teeless.length === 1 ? 'it does' : 'they do'} not count.{' '}
+                  <button
+                    className="linkish"
+                    onClick={() =>
+                      teeless.forEach(({ r, pick }) =>
+                        dispatch({
+                          t: 'applyCourse',
+                          roundId: r.id,
+                          course: r.course ?? pick.course.name,
+                          courseId: pick.course.id,
+                          tee: pick.tee.name,
+                          pars: pick.tee.pars,
+                        }),
+                      )
+                    }
+                  >
+                    Count them off the back tees
+                  </button>
+                </p>
+              )}
             </div>
           )}
           {[

@@ -42,3 +42,24 @@ export function teeOf(round: Round, courses: SavedCourse[]): SavedTee | undefine
   if (!round.courseId || !round.tee) return undefined;
   return courseOf(round, courses)?.tees.find((t) => t.name === round.tee);
 }
+
+/** A women's tee, by how the course service and the ratings backup label them. */
+const womens = (t: SavedTee) => /\(W\)|women|ladies/i.test(t.name);
+
+/**
+ * The tee to count a round off when it never said which: the nines you played where the course
+ * is built from nines (Ives Grove's "Red/White" is the tee), otherwise the longest rated men's tee.
+ * Only for rounds with no tee at all; a tee you picked is never replaced.
+ */
+export function backTeeFor(round: Round, courses: SavedCourse[]): { course: SavedCourse; tee: SavedTee } | null {
+  if (round.tee) return null;
+  const course = courseOf(round, courses);
+  if (!course) return null;
+  const rated = course.tees.filter((t) => t.rating && t.slope && !womens(t));
+  const nines = [round.firstNine, round.secondNine].filter(Boolean).join('/');
+  const byNines = nines ? rated.find((t) => t.name === nines) : undefined;
+  if (byNines) return { course, tee: byNines };
+  const fits = rated.filter((t) => t.pars.length === round.holeCount);
+  const back = [...(fits.length ? fits : rated)].sort((a, b) => (b.yards ?? 0) - (a.yards ?? 0))[0];
+  return back ? { course, tee: back } : null;
+}

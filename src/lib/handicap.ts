@@ -131,3 +131,14 @@ export function indexAt(round: Round, rounds: Round[], courses: SavedCourse[]): 
 
 /** Plain format: "4.8", or "+1.2" for better than scratch. */
 export const fmtIndex = (v: number) => (v < 0 ? `+${Math.abs(v).toFixed(1)}` : v.toFixed(1));
+
+/** How far this round moved your handicap, in tenths. Negative is better. Null if it did not count. */
+export function indexMove(round: Round, rounds: Round[], courses: SavedCourse[]): number | null {
+  const diffs = differentials(rounds, courses);
+  const i = diffs.findIndex((d) => d.id === round.id || d.id.split('+').includes(round.id));
+  if (i < 1) return null;
+  const now = indexOf(diffs.slice(0, i + 1));
+  const before = indexOf(diffs.slice(0, i));
+  if (now === null || before === null) return null;
+  return Math.round((now - before) * 10) / 10;
+}

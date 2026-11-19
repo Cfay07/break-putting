@@ -191,7 +191,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     numberTiles.push({
       k: 'Greens',
       v: String(s.gir),
-      sub: usualOf('greens', (v) => `of ${s.scoredHoles}, usual ${Math.round(v)}`, true) ?? `of ${s.scoredHoles}`,
+      sub: usualOf('greens', (v) => String(Math.round(v))) ?? `of ${s.scoredHoles}`,
       cls: better(s.gir, 'greens', false),
     });
   // Fewer than eight rounds to compare with: the usual lines are missing for that reason, not by design.

@@ -5,7 +5,9 @@ import { headlineRanks, rankedRounds, rankText, roundRanks, swingHoles, type Ran
 import { courseLabel, type Stats } from '../lib/stats';
 import { holeVsPar, type Round } from '../lib/types';
 import { Sheet } from './Sheet';
-import { fmtIndex, indexAt } from '../lib/handicap';
+import { fmtIndex, indexAt, indexMove } from '../lib/handicap';
+import { fitMakeModel } from '../lib/makeability';
+import { makeChanceOf } from '../lib/xp';
 import { useCourseRatings } from '../lib/useCourseRatings';
 
 const parText = (v: number) => (v === 0 ? 'E' : v > 0 ? `+${v}` : String(v));
@@ -35,6 +37,14 @@ export function RoundStory({
   const list = open ? rankedRounds(round, rounds, baseline, open) : null;
   const courses = useCourseRatings();
   const index = useMemo(() => indexAt(round, rounds, courses), [round, rounds, courses]);
+  const move = useMemo(() => indexMove(round, rounds, courses), [round, rounds, courses]);
+  // Your own make chance on the first putt of the two holes that swung the round.
+  const model = useMemo(() => fitMakeModel(rounds), [rounds]);
+  const chanceOn = (hole: number) => {
+    const p = round.holes.find((h) => h.hole === hole)?.putts[0];
+    const c = p ? makeChanceOf(model, p) : null;
+    return c === null ? null : `${c < 0.01 ? 'under 1' : Math.round(c * 100)}% chance`;
+  };
 
   return (
     <section className="story">
@@ -59,7 +69,16 @@ export function RoundStory({
         {index !== null && (
           <div>
             <span>Handicap</span>
-            <strong className="num">{fmtIndex(index)}</strong>
+            <strong className="num">
+              {fmtIndex(index)}
+              {move !== null && move !== 0 && (
+                <small className={move < 0 ? 'up' : 'down'}>
+                  {' '}
+                  {move < 0 ? '▼' : '▲'}
+                  {Math.abs(move).toFixed(1)}
+                </small>
+              )}
+            </strong>
           </div>
         )}
       </div>
@@ -81,7 +100,10 @@ export function RoundStory({
             <b>
               {swing.best.hole} · {swing.best.first} ft{swing.best.putts === 1 ? ', holed' : ''}
             </b>
-            <em className="up">{signed(swing.best.sg)}</em>
+            <em className="up">
+              {signed(swing.best.sg)}
+              {chanceOn(swing.best.hole) && <small>{chanceOn(swing.best.hole)}</small>}
+            </em>
           </div>
           <div>
             <span>Cost the most</span>
@@ -89,7 +111,10 @@ export function RoundStory({
               {swing.worst.hole} ·{' '}
               {swing.worst.putts >= 3 ? `3-putt from ${swing.worst.first} ft` : `missed ${swing.worst.first} ft`}
             </b>
-            <em className="down">{signed(swing.worst.sg)}</em>
+            <em className="down">
+              {signed(swing.worst.sg)}
+              {chanceOn(swing.worst.hole) && <small>{chanceOn(swing.worst.hole)}</small>}
+            </em>
           </div>
         </div>
       )}

@@ -2540,3 +2540,8 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .story-nums strong small { font-size: 13px; }
 
 .trend-pick { margin: 4px 0 0; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+.story-nums strong small.up { color: #8fd1a8; }
+.story-nums strong small.down { color: #f09595; }
+.story-swing em small { font-weight: 600; font-size: 12px; color: #a9c2b5; }
+.story-swing em small { display: block; margin-top: 1px; }

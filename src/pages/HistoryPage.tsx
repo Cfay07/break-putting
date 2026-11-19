@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { RankedList } from '../components/RoundTrophies';
 import { Sheet } from '../components/Sheet';
 import { fmtDate } from '../lib/format';
@@ -14,15 +14,19 @@ const RECENT = 10;
 const played = (r: Round) => r.holes.filter((h) => h.putts.length > 0).length;
 
 /**
- * Everything you have done, in one scroll: the records you hold, the ones you would rather not,
- * what each recent round did to them, and a leaderboard of your own rounds for every number.
+ * Everything you have done, in one scroll: your record on every number, each one opening as a
+ * leaderboard of your own rounds, then what your recent rounds did against them.
  */
 export function HistoryPage() {
   const { state } = useApp();
   const [list, setList] = useState<{ key: string; length?: number } | null>(null);
 
   const rounds = useMemo(() => state.rounds.filter((r) => r.finished && !r.practice && played(r) > 0), [state.rounds]);
-  const room = useMemo(() => trophyRoom(state.rounds, state.baseline), [state.rounds, state.baseline]);
+  // The two records no single number holds: runs across holes and across rounds.
+  const streaks = useMemo(
+    () => trophyRoom(state.rounds, state.baseline).highs.filter((t) => !t.metric),
+    [state.rounds, state.baseline],
+  );
   const recent = useMemo(
     () =>
       [...rounds]
@@ -32,7 +36,7 @@ export function HistoryPage() {
     [rounds, state.rounds, state.baseline],
   );
   const boards = useMemo(() => {
-    const out: { key: string; length?: number; title: string; best: string; n: number }[] = [];
+    const out: { key: string; length?: number; title: string; best: string; n: number; where: string }[] = [];
     for (const m of METRICS) {
       const lengths = m.sameLength ? [18, 9] : [undefined];
       for (const length of lengths) {
@@ -44,6 +48,7 @@ export function HistoryPage() {
           title: length && length !== 18 ? `${m.label}, ${length} holes` : m.label,
           best: ranked.rows[0].value,
           n: ranked.rows.length,
+          where: `${fmtDate(ranked.rows[0].round.date)} · ${courseLabel(ranked.rows[0].round).replace(/ \(\d+\)$/, '')}`,
         });
       }
     }
@@ -55,9 +60,7 @@ export function HistoryPage() {
     return (
       <>
         <h1 className="page-title">History</h1>
-        <p className="small muted">
-          Your records, your worst days and a leaderboard for every number show up after three rounds.
-        </p>
+        <p className="small muted">Your records on every number show up after three rounds.</p>
       </>
     );
   }
@@ -72,20 +75,23 @@ export function HistoryPage() {
         {rounds.length} rounds, {putts.toLocaleString('en-US')} putts, since {fmtDate(first)}.
       </p>
 
-      <h2>Records you hold</h2>
-      <div className="board">
-        {room.highs.map((t) => (
-          <TrophyRow key={t.key} t={t} />
-        ))}
-      </div>
-
-      <h2>The ones to beat</h2>
+      <h2>Records</h2>
       <p className="small muted" style={{ margin: '-4px 0 10px' }}>
-        Your worst. Every one of these is a round you can open.
+        Your best on every number, and where you set it. Tap one for every round ranked on it.
       </p>
       <div className="board">
-        {room.lows.map((t) => (
-          <TrophyRow key={t.key} t={t} low />
+        {boards.map((b) => (
+          <Fragment key={`${b.key}-${b.length ?? 'all'}`}>
+            <button className="lb-row record-row" onClick={() => setList({ key: b.key, length: b.length })}>
+              <span className="nm">
+                {b.title}
+                <small>{b.where}</small>
+              </span>
+              <span className="val num">{b.best}</span>
+              <span className="chev">›</span>
+            </button>
+            {b.key === 'longest' && streaks.map((t) => <TrophyRow key={t.key} t={t} />)}
+          </Fragment>
         ))}
       </div>
 
@@ -105,29 +111,11 @@ export function HistoryPage() {
         ))}
       </div>
 
-      <h2>Leaderboards</h2>
-      <p className="small muted" style={{ margin: '-4px 0 10px' }}>
-        Every round you have logged, ranked on one number. Your best is on the right.
-      </p>
-      <div className="board">
-        {boards.map((b) => (
-          <button
-            key={`${b.key}-${b.length ?? 'all'}`}
-            className="lb-row"
-            onClick={() => setList({ key: b.key, length: b.length })}
-          >
-            <span className="nm">
-              {b.title}
-              <small>{b.n} rounds</small>
-            </span>
-            <span className="val num">{b.best}</span>
-            <span className="chev">›</span>
-          </button>
-        ))}
-      </div>
-
       {open && (
-        <Sheet title={list?.length && list.length !== 18 ? `${open.label}, ${list.length} holes` : open.label} onClose={() => setList(null)}>
+        <Sheet
+          title={list?.length && list.length !== 18 ? `${open.label}, ${list.length} holes` : open.label}
+          onClose={() => setList(null)}
+        >
           <RankedList rows={open.rows} onPick={(id) => (setList(null), go(`/round/${id}`))} />
         </Sheet>
       )}
@@ -136,14 +124,14 @@ export function HistoryPage() {
 }
 
 /** One record: what it is and where it happened, the number on the right. Opens the round. */
-function TrophyRow({ t, low = false }: { t: Trophy; low?: boolean }) {
+function TrophyRow({ t }: { t: Trophy }) {
   return (
     <button className="lb-row record-row" onClick={() => go(`/round/${t.roundId}${t.hole ? `/hole/${t.hole}` : ''}`)}>
       <span className="nm">
         {t.title}
         <small>{t.where}</small>
       </span>
-      <span className={low ? 'val num neg' : 'val num'}>{t.value}</span>
+      <span className="val num">{t.value}</span>
       <span className="chev">›</span>
     </button>
   );

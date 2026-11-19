@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { differentials, fmtIndex, indexAt, indexOf } from './handicap';
+import { differentials, fmtIndex, indexAt, indexMove, indexOf } from './handicap';
+import { backTeeFor } from './courses';
 import type { Round, SavedCourse } from './types';
 
 const course: SavedCourse = {
@@ -80,5 +81,47 @@ describe('handicap', () => {
   it('writes a plus handicap the golf way', () => {
     expect(fmtIndex(-1.2)).toBe('+1.2');
     expect(fmtIndex(4.8)).toBe('4.8');
+  });
+
+  it('says how far a round moved the index, better as negative', () => {
+    const rs = [6, 6, 6, 4].map((per, i) =>
+      round(
+        `r${i}`,
+        `2026-10-0${i + 1}`,
+        Array(18)
+          .fill(4)
+          .map((s, j) => (j < 2 ? per : s)),
+      ),
+    );
+    expect(indexMove(rs[0], rs, [course])).toBeNull();
+    expect(indexMove(rs[3], rs, [course])).toBeLessThan(0);
+  });
+});
+
+describe('backTeeFor', () => {
+  const two: SavedCourse = {
+    id: 'two',
+    name: 'Two Tee Club',
+    tees: [
+      { name: 'White', yards: 6100, rating: 69, slope: 120, pars: Array(18).fill(4) },
+      { name: 'Black', yards: 6900, rating: 73, slope: 133, pars: Array(18).fill(4) },
+      { name: 'Red (W)', yards: 7000, rating: 75, slope: 135, pars: Array(18).fill(4) },
+    ],
+  } as unknown as SavedCourse;
+  const bare = {
+    id: 'b',
+    label: 'b',
+    date: '2026-08-01',
+    putterId: 'p',
+    course: 'Two Tee Club',
+    holeCount: 18,
+    holes: [],
+  } as unknown as Round;
+
+  it("takes the longest rated men's tee for a round with none", () => {
+    expect(backTeeFor(bare, [two])?.tee.name).toBe('Black');
+  });
+  it('never replaces a tee you picked', () => {
+    expect(backTeeFor({ ...bare, tee: 'White' } as Round, [two])).toBeNull();
   });
 });
