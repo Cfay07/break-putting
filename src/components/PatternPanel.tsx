@@ -5,7 +5,8 @@ import { TendencyDial } from './TendencyDial';
 
 function readVerdict(r: ReadBias): string {
   const sided = r.high + r.low;
-  const lead = r.side === 'low' ? `${r.low} of ${sided} finish below the hole` : `${r.high} of ${sided} finish above the hole`;
+  const lead =
+    r.side === 'low' ? `${r.low} of ${sided} finish below the hole` : `${r.high} of ${sided} finish above the hole`;
   const cause =
     r.side === 'low'
       ? 'not playing enough break'
@@ -27,7 +28,18 @@ function readVerdict(r: ReadBias): string {
   return `Your misses split ${r.high} high and ${r.low} low, close enough to even. The read is not the problem, the stroke is.`;
 }
 
-export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; taggedRounds?: number }) {
+/**
+ * `stroke` false leaves out pace and stroke, for the round page, where the Stroke tab holds them.
+ */
+export function PatternPanel({
+  stats,
+  taggedRounds = 1,
+  stroke = true,
+}: {
+  stats: Stats;
+  taggedRounds?: number;
+  stroke?: boolean;
+}) {
   const p = stats.pattern;
   const bias = readBias(p, taggedRounds);
   const paceTotal = p.short + p.long;
@@ -42,16 +54,14 @@ export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; tagged
     <div>
       {stats.missedPutts > 0 && coverage < 0.8 && (
         <p className="small muted" style={{ margin: '0 0 10px' }}>
-          Everything below comes from the {p.tagged} missed putts you tagged a side on, out of{' '}
-          {stats.missedPutts} you missed. Imported rounds carry no tags, so this is a smaller
-          sample than the rest of the page.
+          Everything below comes from the {p.tagged} missed putts you tagged a side on, out of {stats.missedPutts} you
+          missed. Imported rounds carry no tags, so this is a smaller sample than the rest of the page.
         </p>
       )}
       <TendencyDial high={p.high} low={p.low} short={p.short} long={p.long} />
-      {paceTotal >= 1 && (
+      {stroke && paceTotal >= 1 && (
         <p className="small" style={{ marginTop: 0 }}>
-          {p.short >= p.long ? p.short : p.long} of {paceTotal} pace misses were{' '}
-          {p.short >= p.long ? 'short' : 'long'}.
+          {p.short >= p.long ? p.short : p.long} of {paceTotal} pace misses were {p.short >= p.long ? 'short' : 'long'}.
         </p>
       )}
 
@@ -70,34 +80,38 @@ export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; tagged
         ]}
       />
 
-      <div className="field-label">Pace bias</div>
-      <Split
-        parts={[
-          { label: 'Short', count: p.short, color: '#a52a1f' },
-          { label: 'Good', count: p.good, color: '#1f7a4d' },
-          { label: 'Long', count: p.long, color: '#b5603a' },
-        ]}
-      />
+      {stroke && (
+        <>
+          <div className="field-label">Pace bias</div>
+          <Split
+            parts={[
+              { label: 'Short', count: p.short, color: '#a52a1f' },
+              { label: 'Good', count: p.good, color: '#1f7a4d' },
+              { label: 'Long', count: p.long, color: '#b5603a' },
+            ]}
+          />
 
-      <div className="field-label">Stroke</div>
-      <div className="card">
-        <div className="stat-row">
-          <span className="k">Pushed / pulled</span>
-          <span className="v num">
-            {p.push} / {p.pull}
-          </span>
-        </div>
-        <div className="stat-row">
-          <span className="k">Decel / accel</span>
-          <span className={p.decel + p.accel >= 3 ? 'v num neg' : 'v num'}>
-            {p.decel} / {p.accel}
-          </span>
-        </div>
-        <div className="stat-row">
-          <span className="k">Lip-outs</span>
-          <span className={p.lip >= 3 ? 'v num neg' : 'v num'}>{p.lip}</span>
-        </div>
-      </div>
+          <div className="field-label">Stroke</div>
+          <div className="card">
+            <div className="stat-row">
+              <span className="k">Pushed / pulled</span>
+              <span className="v num">
+                {p.push} / {p.pull}
+              </span>
+            </div>
+            <div className="stat-row">
+              <span className="k">Decel / accel</span>
+              <span className={p.decel + p.accel >= 3 ? 'v num neg' : 'v num'}>
+                {p.decel} / {p.accel}
+              </span>
+            </div>
+            <div className="stat-row">
+              <span className="k">Lip-outs</span>
+              <span className={p.lip >= 3 ? 'v num neg' : 'v num'}>{p.lip}</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {breakTagged >= 10 && (
         <>
@@ -124,16 +138,10 @@ export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; tagged
                   <tr key={label}>
                     <td>{label}</td>
                     <td className="num">{t.attempts || '--'}</td>
-                    <td className="num">
-                      {t.attempts ? (t.feet / t.attempts).toFixed(0) : '--'}
-                    </td>
+                    <td className="num">{t.attempts ? (t.feet / t.attempts).toFixed(0) : '--'}</td>
+                    {rateIsReal && <td className="num">{t.attempts ? `${t.makes}/${t.attempts}` : '--'}</td>}
                     {rateIsReal && (
-                      <td className="num">{t.attempts ? `${t.makes}/${t.attempts}` : '--'}</td>
-                    )}
-                    {rateIsReal && (
-                      <td className="num">
-                        {t.attempts ? `${((t.makes / t.attempts) * 100).toFixed(0)}%` : '--'}
-                      </td>
+                      <td className="num">{t.attempts ? `${((t.makes / t.attempts) * 100).toFixed(0)}%` : '--'}</td>
                     )}
                     <td>{t.high || '--'}</td>
                     <td>{t.low || '--'}</td>
@@ -143,11 +151,10 @@ export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; tagged
             </table>
           </div>
           <p className="small muted" style={{ margin: '6px 0 0' }}>
-            A double breaker counts once, in its own row, so every tagged putt sits in exactly one
-            of the top four. Uphill and downhill are a separate axis and overlap with them. Read
-            any make rate here against the average distance beside it: these rows pool every
-            length, so a shape you happen to face from further out will look harder than it is.
-            The distance-controlled version is in What the break costs you, which compares every
+            A double breaker counts once, in its own row, so every tagged putt sits in exactly one of the top four.
+            Uphill and downhill are a separate axis and overlap with them. Read any make rate here against the average
+            distance beside it: these rows pool every length, so a shape you happen to face from further out will look
+            harder than it is. The distance-controlled version is in What the break costs you, which compares every
             shape at six feet.
             {!rateIsReal
               ? ` No make rate yet: you have tagged ${p.breakMisses} miss${p.breakMisses === 1 ? '' : 'es'} and ${p.breakMakes} make${p.breakMakes === 1 ? '' : 's'}. Tag the break on putts you hole too, or the rate can only ever read zero.`
@@ -158,29 +165,29 @@ export function PatternPanel({ stats, taggedRounds = 1 }: { stats: Stats; tagged
 
       <div className="field-label">Miss side by distance</div>
       <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Distance</th>
-            <th>High</th>
-            <th>Low</th>
-            <th>On line</th>
-          </tr>
-        </thead>
-        <tbody>
-          {BUCKETS.map((b) => {
-            const row = p.byBucket[b.key];
-            return (
-              <tr key={b.key}>
-                <td>{b.label}</td>
-                <td>{row.high || '--'}</td>
-                <td>{row.low || '--'}</td>
-                <td>{row.online || '--'}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+        <table>
+          <thead>
+            <tr>
+              <th>Distance</th>
+              <th>High</th>
+              <th>Low</th>
+              <th>On line</th>
+            </tr>
+          </thead>
+          <tbody>
+            {BUCKETS.map((b) => {
+              const row = p.byBucket[b.key];
+              return (
+                <tr key={b.key}>
+                  <td>{b.label}</td>
+                  <td>{row.high || '--'}</td>
+                  <td>{row.low || '--'}</td>
+                  <td>{row.online || '--'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );

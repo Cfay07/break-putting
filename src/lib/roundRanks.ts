@@ -187,6 +187,39 @@ export const METRICS: Metric[] = [
     fmt: (v) => `${Math.round(v * 100)}% struck clean`,
   },
   {
+    key: 'centre',
+    label: 'Best strike',
+    sameLength: false,
+    lowBetter: false,
+    value: (r) => {
+      const ps = r.holes.flatMap((h) => h.putts.filter((p) => p.strike));
+      return ps.length >= 6 ? ps.filter((p) => p.strike === 'centre').length / ps.length : null;
+    },
+    fmt: (v) => `${Math.round(v * 100)}% struck in the middle`,
+  },
+  {
+    key: 'line',
+    label: 'Best start line',
+    sameLength: false,
+    lowBetter: true,
+    value: (r) => {
+      const ps = r.holes.flatMap((h) => h.putts.filter((p) => p.executionAssessed));
+      return ps.length >= 6 ? ps.filter((p) => p.push || p.pull).length / ps.length : null;
+    },
+    fmt: (v) => `${Math.round(v * 100)}% pushed or pulled`,
+  },
+  {
+    key: 'pace',
+    label: 'Smoothest pace',
+    sameLength: false,
+    lowBetter: true,
+    value: (r) => {
+      const ps = r.holes.flatMap((h) => h.putts.filter((p) => p.executionAssessed));
+      return ps.length >= 6 ? ps.filter((p) => p.decel || p.accel).length / ps.length : null;
+    },
+    fmt: (v) => `${Math.round(v * 100)}% quit or jabbed`,
+  },
+  {
     key: 'threes',
     label: 'Fewest three-putts',
     sameLength: true,

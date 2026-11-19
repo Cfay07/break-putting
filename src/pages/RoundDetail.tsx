@@ -20,12 +20,12 @@ import { SURFACE_LABELS } from '../lib/types';
 import { ScoreMark } from '../components/ScoreMark';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { RoundPractice } from '../components/RoundPractice';
+import { RoundStroke } from '../components/RoundStroke';
 import { teeOf } from '../lib/courses';
 import { useCourseRatings } from '../lib/useCourseRatings';
 import { RoundStory } from '../components/RoundTrophies';
 import { DistanceTable } from '../components/DistanceTable';
 import { LagPanel } from '../components/LagPanel';
-import { FormPanel } from '../components/FormPanel';
 import { ReadPanel } from '../components/ReadPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { BeatBar } from '../components/BeatBar';
@@ -50,7 +50,7 @@ import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
  * break and starts being the reason the round went: those get the weight so the eye finds them
  * without reading every number.
  */
-type RoundTab = 'holes' | 'practice' | 'distance' | 'lag' | 'misses' | 'cup' | 'form';
+type RoundTab = 'holes' | 'practice' | 'distance' | 'lag' | 'misses' | 'stroke' | 'cup';
 
 const FAULT_WORDS: [string, string][] = [
   ['push', 'push'],
@@ -225,8 +225,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     { key: 'distance', label: 'By distance' },
     { key: 'lag', label: 'Lag' },
     { key: 'misses', label: 'Misses' },
+    { key: 'stroke', label: 'Stroke' },
     ...(cup.total + cup.unsure > 0 ? [{ key: 'cup' as const, label: 'Cup' }] : []),
-    ...(form ? [{ key: 'form' as const, label: 'Form' }] : []),
   ];
   const putterName = state.putters.find((p) => p.id === round.putterId)?.name;
   const nines = ninesOf(round);
@@ -424,15 +424,15 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
 
       {tab === 'practice' && <RoundPractice round={round} stats={s} baseline={state.baseline} />}
       {tab === 'distance' && <DistanceTable stats={s} countsOnly />}
+      {tab === 'stroke' && <RoundStroke round={round} rounds={state.rounds} baseline={state.baseline} form={form} />}
       {tab === 'lag' && <LagPanel stats={s} lag={lagSaves([round])} />}
       {tab === 'misses' && (
         <>
           {read.judged > 0 && <ReadPanel read={read} />}
-          <PatternPanel stats={s} />
+          <PatternPanel stats={s} stroke={false} />
         </>
       )}
       {tab === 'cup' && <CupMap counts={cup.counts} unsure={cup.unsure} />}
-      {tab === 'form' && form && <FormPanel form={form} />}
 
       {tab === 'holes' && (
         <>

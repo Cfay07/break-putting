@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { fmtIndex, indexHistory, TREND_FROM } from '../lib/handicap';
+import { fmtIndex, indexHistory, MIN_SCORES, TREND_FROM } from '../lib/handicap';
 import { courseLabel } from '../lib/stats';
 import { backTeeFor } from '../lib/courses';
 import type { Round } from '../lib/types';
@@ -77,7 +77,6 @@ export function Stats({ practice = false }: { practice?: boolean }) {
 function RoundStats() {
   const { state, dispatch } = useApp();
   const courses = useCourseRatings();
-  // Every round counts toward the handicap, whatever the filter: it is one number for the player.
   // Scored rounds that never said which tee, and the tee each would count off.
   const teeless = useMemo(
     () =>
@@ -85,10 +84,6 @@ function RoundStats() {
         .filter((r) => r.finished && !r.practice && !r.tee && r.holes.some((h) => (h.strokes ?? 0) > 0))
         .map((r) => ({ r, pick: backTeeFor(r, courses) }))
         .filter((x): x is { r: Round; pick: NonNullable<ReturnType<typeof backTeeFor>> } => !!x.pick),
-    [state.rounds, courses],
-  );
-  const handicap = useMemo(
-    () => indexHistory(state.rounds, courses).filter((h) => h.scores >= TREND_FROM),
     [state.rounds, courses],
   );
   const [filter, setFilter] = useState<RoundFilter>(NO_FILTER);
@@ -99,6 +94,15 @@ function RoundStats() {
     [state.rounds, filter],
   );
 
+  // The handicap follows the filter, so a putter or a stretch of dates shows what you scored to with
+  // it.
+  const filtered = isFiltered(filter);
+  const handicap = useMemo(() => {
+    const all = indexHistory(filtered ? rounds : state.rounds, courses);
+    // Start at the eighth score whenever there are enough; a small filter starts at three.
+    const from = all.filter((h) => h.scores >= TREND_FROM).length >= 2 ? TREND_FROM : MIN_SCORES;
+    return all.filter((h) => h.scores >= from);
+  }, [filtered, rounds, state.rounds, courses]);
   const o = useMemo(() => overall(rounds, state.baseline), [rounds, state.baseline]);
   const taggedRounds = useMemo(
     () => rounds.filter((r) => r.holes.some((h) => h.putts.some((p) => p.missSide))).length,
@@ -272,10 +276,18 @@ function RoundStats() {
           )}
 
           <h2>Am I improving</h2>
+          {filtered && handicap.length < 2 && (
+            <div className="card trend-card">
+              <span className="tiny">Handicap · {filterLabel(filter, state.putters)}</span>
+              <p className="small muted" style={{ margin: '6px 0 0' }}>
+                Not enough scores on rated tees in these rounds for a handicap. It needs four.
+              </p>
+            </div>
+          )}
           {handicap.length >= 2 && (
             <div className="card trend-card">
               <div className="trend-head">
-                <span className="tiny">Handicap</span>
+                <span className="tiny">Handicap{filtered ? ` · ${filterLabel(filter, state.putters)}` : ''}</span>
                 <span className="trend-now">
                   <span className="num">{fmtIndex(handicap[handicap.length - 1].index)}</span>
                   <span className="tiny muted">from {fmtIndex(handicap[0].index)}</span>
@@ -302,8 +314,9 @@ function RoundStats() {
                 })}
               />
               <p className="small muted" style={{ margin: '6px 0 0' }}>
-                Worked out the standard way from your best scores on rated tees, from your eighth score on. Rounds
-                without a known tee do not count. An estimate, not an official index.
+                {filtered
+                  ? 'Only the rounds in this filter, worked out the standard way from their best scores on rated tees. Your real handicap counts every round.'
+                  : 'Worked out the standard way from your best scores on rated tees, from your eighth score on. Rounds without a known tee do not count. An estimate, not an official index.'}
               </p>
               {teeless.length > 0 && (
                 <p className="small" style={{ margin: '6px 0 0' }}>
