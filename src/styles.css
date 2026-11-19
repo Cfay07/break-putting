@@ -2505,7 +2505,7 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .tiles-note { margin: 10px 0 0; font-size: 12px; line-height: 1.45; }
 
 /* The round's card fits one phone screen, 18 holes and the totals, so one screenshot takes it all. */
-.sc-wrap.compact .sc-row { min-height: 28px; padding: 1px 8px; }
+.sc-wrap.compact .sc-row { min-height: 31px; padding: 2px 8px; }
 .sc-wrap.compact .sc-row .seq { display: flex; align-items: center; font-size: 13.5px; white-space: nowrap; overflow: hidden; }
 .sc-wrap.compact .sc-row .seq-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sc-wrap.compact .sc-tag { flex: 0 0 auto; }
@@ -2542,4 +2542,4 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .story-nums strong small.up { color: #8fd1a8; }
 .story-nums strong small.down { color: #f09595; }
 .story-swing em small { font-weight: 600; font-size: 12px; color: #a9c2b5; }
-.story-swing em small { display: block; margin-top: 1px; }
+.story-swing em small { margin-left: 6px; }
