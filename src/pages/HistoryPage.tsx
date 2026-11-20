@@ -6,6 +6,7 @@ import { go } from '../lib/router';
 import { headlineRanks, METRICS, rankedBy, rankText, roundRanks } from '../lib/roundRanks';
 import { courseLabel } from '../lib/stats';
 import { useApp } from '../lib/store';
+import { streaks as streaksOf, type Streak } from '../lib/streaks';
 import { trophyRoom, type Trophy } from '../lib/trophies';
 import type { Round } from '../lib/types';
 
@@ -22,9 +23,16 @@ export function HistoryPage() {
   const [list, setList] = useState<{ key: string; length?: number } | null>(null);
 
   const rounds = useMemo(() => state.rounds.filter((r) => r.finished && !r.practice && played(r) > 0), [state.rounds]);
-  // The two records no single number holds: runs across holes and across rounds.
-  const streaks = useMemo(
-    () => trophyRoom(state.rounds, state.baseline).highs.filter((t) => !t.metric),
+  // Runs inside a round. Runs across rounds have their own section.
+  const holeRuns = useMemo(
+    () => trophyRoom(state.rounds, state.baseline).highs.filter((t) => !t.metric && t.key !== 'high-nothree'),
+    [state.rounds, state.baseline],
+  );
+  const runs = useMemo(
+    () =>
+      streaksOf(state.rounds, state.baseline)
+        .filter((s) => s.current > 0 || s.best >= 3)
+        .sort((a, b) => b.current - a.current || b.best - a.best),
     [state.rounds, state.baseline],
   );
   const recent = useMemo(
@@ -75,6 +83,20 @@ export function HistoryPage() {
         {rounds.length} rounds, {putts.toLocaleString('en-US')} putts, since {fmtDate(first)}.
       </p>
 
+      {runs.length > 0 && (
+        <>
+          <h2>Streaks</h2>
+          <p className="small muted" style={{ margin: '-4px 0 10px' }}>
+            Rounds in a row, as of your last round. A round with nothing to judge it on is skipped.
+          </p>
+          <div className="board">
+            {runs.map((s) => (
+              <StreakRow key={s.key} s={s} />
+            ))}
+          </div>
+        </>
+      )}
+
       <h2>Records</h2>
       <p className="small muted" style={{ margin: '-4px 0 10px' }}>
         Your best on every number, and where you set it. Tap one for every round ranked on it.
@@ -90,7 +112,7 @@ export function HistoryPage() {
               <span className="val num">{b.best}</span>
               <span className="chev">›</span>
             </button>
-            {b.key === 'longest' && streaks.map((t) => <TrophyRow key={t.key} t={t} />)}
+            {b.key === 'longest' && holeRuns.map((t) => <TrophyRow key={t.key} t={t} />)}
           </Fragment>
         ))}
       </div>
@@ -132,6 +154,26 @@ function TrophyRow({ t }: { t: Trophy }) {
         <small>{t.where}</small>
       </span>
       <span className="val num">{t.value}</span>
+      <span className="chev">›</span>
+    </button>
+  );
+}
+
+function StreakRow({ s }: { s: Streak }) {
+  const target = s.latest ?? s.bestTo;
+  const bestSpan = s.bestFrom && s.bestTo ? `${fmtDate(s.bestFrom.date)} to ${fmtDate(s.bestTo.date)}` : '';
+  const sub = s.current
+    ? s.current >= s.best
+      ? `Since ${fmtDate(s.since!.date)}. Your longest.`
+      : `Since ${fmtDate(s.since!.date)}. Best ${s.best}, ${bestSpan}.`
+    : `Ended ${s.endedOn ? fmtDate(s.endedOn.date) : ''}. Best ${s.best}, ${bestSpan}.`;
+  return (
+    <button className="lb-row record-row" onClick={() => target && go(`/round/${target.id}`)}>
+      <span className="nm">
+        {s.label}
+        <small>{sub}</small>
+      </span>
+      <span className={s.current ? 'val num' : 'val num muted'}>{s.current}x</span>
       <span className="chev">›</span>
     </button>
   );

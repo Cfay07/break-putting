@@ -2545,3 +2545,6 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .story-swing em small { margin-left: 6px; }
 
 .compare-n { display: block; font-size: 11px; color: var(--ink-3); font-weight: 500; }
+.story-streaks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.story-streaks span { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: rgba(242, 239, 230, 0.08); color: #a9c2b5; }
+.story-streaks b { color: var(--paper); font-weight: 800; }

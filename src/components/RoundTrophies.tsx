@@ -3,6 +3,7 @@ import { fmtDate, signed } from '../lib/format';
 import { go } from '../lib/router';
 import { headlineRanks, rankedRounds, rankText, roundRanks, swingHoles, type RankLine } from '../lib/roundRanks';
 import { courseLabel, type Stats } from '../lib/stats';
+import { roundStreaks } from '../lib/streaks';
 import { holeVsPar, type Round } from '../lib/types';
 import { Sheet } from './Sheet';
 import { fmtIndex, indexAt, indexMove } from '../lib/handicap';
@@ -33,6 +34,7 @@ export function RoundStory({
   const scored = round.holes.filter((h) => holeVsPar(h) !== undefined);
   const toPar = scored.reduce((a, h) => a + holeVsPar(h)!, 0);
   const heads = useMemo(() => headlineRanks(roundRanks(round, rounds, baseline)), [round, rounds, baseline]);
+  const runs = useMemo(() => roundStreaks(round, rounds, baseline), [round, rounds, baseline]);
   const [open, setOpen] = useState<string | null>(null);
   const list = open ? rankedRounds(round, rounds, baseline, open) : null;
   const courses = useCourseRatings();
@@ -116,6 +118,16 @@ export function RoundStory({
               {chanceOn(swing.worst.hole) && <small>{chanceOn(swing.worst.hole)}</small>}
             </em>
           </div>
+        </div>
+      )}
+
+      {runs.length > 0 && (
+        <div className="story-streaks">
+          {runs.map((s) => (
+            <span key={s.key}>
+              <b>{s.n}x</b> {s.short}
+            </span>
+          ))}
         </div>
       )}
 
