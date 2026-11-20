@@ -88,3 +88,12 @@ if (typeof window !== 'undefined') {
 export function previousRoute(): string | null {
   return trail.length > 1 ? trail[trail.length - 2] : null;
 }
+
+/**
+ * The last page before this one that is not skipped. Round to round to round through the rankings
+ * should go back to where the first round was opened from, not to the round before it.
+ */
+export function previousRouteBut(skip: (route: string) => boolean): string | null {
+  for (let i = trail.length - 2; i >= 0; i--) if (!skip(trail[i])) return trail[i];
+  return null;
+}

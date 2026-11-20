@@ -2,15 +2,7 @@ import { useMemo, useState } from 'react';
 import { bleedMarks, bleedsIn } from '../lib/bleed';
 import { holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
-import {
-  fitExecModel,
-  difficultyOf,
-  xpotStatus,
-  makeChanceOf,
-  puttSGAdjusted,
-  beatSpread,
-  xpOf,
-} from '../lib/xp';
+import { fitExecModel, difficultyOf, xpotStatus, makeChanceOf, puttSGAdjusted, beatSpread, xpOf } from '../lib/xp';
 import { drawRoundSheet, pngFile } from '../lib/shareCard';
 import { publishRound, shareUrl } from '../lib/shareLink';
 import { currentSession } from '../lib/cloud';
@@ -38,7 +30,7 @@ import { PuttEditor } from '../components/PuttEditor';
 import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
-import { backLabel, go, previousRoute, replaceRoute } from '../lib/router';
+import { backLabel, go, previousRouteBut, replaceRoute } from '../lib/router';
 import { lagSaves, ninesOf, pct, roundStats, suspectHoles } from '../lib/stats';
 import { findRound, useApp } from '../lib/store';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
@@ -72,8 +64,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const practice = !!round?.practice;
   // Back to wherever the round was opened from: Stats, a moment, a session. A reload has no
   // trail, so it falls back to the list the round lives in.
-  const from = previousRoute();
-  const back = from && !from.startsWith('/round/') ? from : practice ? '/stats/practice' : '/';
+  const from = previousRouteBut((r) => r.startsWith('/round/'));
+  const back = from ?? (practice ? '/stats/practice' : '/');
   // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
   const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
   const exec = useMemo(() => fitExecModel(makeModel, state.rounds), [makeModel, state.rounds]);
