@@ -22,10 +22,12 @@ import { TeamLivePage, TeamPracticePage, TeamRoundPage } from './pages/TeamPost'
 import { Track } from './pages/Track';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { runLapsed } from './lib/practice';
+import { remember } from './lib/lastLoaded';
 import { go, useRoute } from './lib/router';
 import { courseLabel, roundStats } from './lib/stats';
 import {
   joinTeam,
+  loadFeed,
   loadTeams,
   pendingJoin,
   rememberJoin,
@@ -107,7 +109,15 @@ export default function App() {
         .then(() => rememberOnTeam(true))
         .catch(() => undefined)
         .finally(() => rememberJoin(null));
-    } else if (currentSession()) loadTeams().catch(() => undefined);
+    } else if (currentSession()) {
+      // Kept for the Team tab, so its first open this visit is already filled in.
+      loadTeams()
+        .then((v) => {
+          remember('teams', v);
+          if (v.teams.length) return loadFeed().then((f) => remember('feed', f));
+        })
+        .catch(() => undefined);
+    }
     return () => window.removeEventListener('break:team', sync);
   }, []);
   const { state, dispatch } = useApp();

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { playerWeeks, teamLeak } from '../lib/coach';
 import { fmtDate, signed } from '../lib/format';
 import { FOCUS, findFocus } from '../lib/starters';
+import { lastLoaded, remember } from '../lib/lastLoaded';
 import { loadCoach, setFocus, type Focus, type PlayerStats, type TeamRound } from '../lib/teams';
 import { DEFAULT_BASELINE } from '../lib/types';
 import type { TeamPracticeRow } from '../lib/feed';
@@ -23,7 +24,7 @@ export function CoachView({
   stats: PlayerStats[];
 }) {
   const [data, setData] = useState<{ rounds: TeamRound[]; practice: TeamPracticeRow[]; focus: Focus | null } | null>(
-    null,
+    () => lastLoaded(`coach:${team.id}`) ?? null,
   );
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,7 +32,7 @@ export function CoachView({
 
   useEffect(() => {
     loadCoach(team.id)
-      .then(setData)
+      .then((d) => setData(remember(`coach:${team.id}`, d)))
       .catch((e) => setErr(e instanceof Error ? e.message : 'Could not load the team.'));
   }, [team.id]);
 

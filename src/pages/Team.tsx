@@ -5,6 +5,7 @@ import { Leaderboard } from '../components/Leaderboard';
 import { TeamFeed } from '../components/TeamFeed';
 import { Sheet } from '../components/Sheet';
 import { accountName, currentSession, saveAccountName, teamByCode } from '../lib/cloud';
+import { lastLoaded, remember } from '../lib/lastLoaded';
 import { replaceRoute } from '../lib/router';
 import { Account } from '../components/Account';
 import { useApp } from '../lib/store';
@@ -332,8 +333,8 @@ const inviteLink = (code: string) => `${window.location.origin}${window.location
 
 export function Team({ joinCode }: { joinCode?: string } = {}) {
   const session = currentSession();
-  const [view, setView] = useState<TeamView>(EMPTY);
-  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<TeamView>(() => lastLoaded<TeamView>('teams') ?? EMPTY);
+  const [loading, setLoading] = useState(() => !lastLoaded('teams'));
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [pick, setPick] = useState('');
@@ -348,7 +349,7 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
 
   const refresh = async () => {
     try {
-      setView(await loadTeams());
+      setView(remember('teams', await loadTeams()));
       setErr('');
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Could not load your teams.');

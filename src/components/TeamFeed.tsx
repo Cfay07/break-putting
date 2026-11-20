@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { buildFeed, liveNow, reactionsFor, type Post, type Reaction } from '../lib/feed';
 import { fmtDate, signed } from '../lib/format';
+import { lastLoaded, remember } from '../lib/lastLoaded';
 import { loadFeed, setReaction, type PlayerStats, type TeamRound } from '../lib/teams';
 import { go } from '../lib/router';
 import type { TeamPracticeRow } from '../lib/feed';
@@ -23,12 +24,12 @@ export function TeamFeed({
   me: string;
 }) {
   const [data, setData] = useState<{ rounds: TeamRound[]; practice: TeamPracticeRow[]; reactions: Reaction[] } | null>(
-    null,
+    () => lastLoaded('feed') ?? null,
   );
   const [err, setErr] = useState('');
   useEffect(() => {
     loadFeed()
-      .then(setData)
+      .then((d) => setData(remember('feed', d)))
       .catch((e) => setErr(e instanceof Error ? e.message : 'Could not load the feed.'));
   }, []);
 

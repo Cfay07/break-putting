@@ -49,8 +49,8 @@ export function ShootCard({ shoot, withTour, rounds, anyShort }: Props) {
       </div>
 
       <p className="hcp-how">
-        Your scoring average over {rounds.length} scored {rounds.length === 1 ? 'round' : 'rounds'}, and the same
-        rounds with a tour pro's putting dropped in.{' '}
+        Your scoring average over {rounds.length} scored {rounds.length === 1 ? 'round' : 'rounds'}, and the same rounds
+        with a tour pro's putting dropped in.{' '}
         {gap >= 0
           ? `A tour pro's putter would save you ${gap.toFixed(1)} a round. Strokes gained is measured against tour, so read it as the gap to a pro's putter, not to a decent amateur one.`
           : `You putt better than tour, so their putter would cost you ${(-gap).toFixed(1)} a round. The strokes are somewhere else.`}
@@ -63,7 +63,7 @@ export function ShootCard({ shoot, withTour, rounds, anyShort }: Props) {
               const left = Math.min(r.shot, r.withTour);
               const right = Math.max(r.shot, r.withTour);
               return (
-                <a key={r.id} className="hcp-lane shoot-lane" href={`#/round/${r.id}`}>
+                <div key={r.id} className="hcp-lane shoot-lane">
                   <span className="hcp-date">
                     {fmtDate(r.date)}
                     {r.short && <small> 9</small>}
@@ -79,7 +79,7 @@ export function ShootCard({ shoot, withTour, rounds, anyShort }: Props) {
                   <b className="num">
                     {Math.round(r.shot)} <span className="muted">→</span> {r.withTour.toFixed(1)}
                   </b>
-                </a>
+                </div>
               );
             })}
             <div className="hcp-lane shoot-lane hcp-axis">

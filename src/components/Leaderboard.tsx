@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BOARDS, WINDOWS, board as rankBoard, type Window } from '../lib/board';
 import type { TeamPracticeRow } from '../lib/feed';
+import { lastLoaded, remember } from '../lib/lastLoaded';
 import { loadBoard, type TeamRound } from '../lib/teams';
 
 /**
@@ -16,7 +17,9 @@ export function Leaderboard({
   me: string;
   onOpen: (user: string) => void;
 }) {
-  const [data, setData] = useState<{ rounds: TeamRound[]; practice: TeamPracticeRow[] } | null>(null);
+  const [data, setData] = useState<{ rounds: TeamRound[]; practice: TeamPracticeRow[] } | null>(
+    () => lastLoaded('board') ?? null,
+  );
   const [err, setErr] = useState('');
   const [key, setKey] = useState(BOARDS[0].key);
   const [win, setWin] = useState<Window>('season');
@@ -24,7 +27,7 @@ export function Leaderboard({
 
   useEffect(() => {
     loadBoard()
-      .then(setData)
+      .then((d) => setData(remember('board', d)))
       .catch((e) => setErr(e instanceof Error ? e.message : 'Could not load the leaderboard.'));
   }, []);
 

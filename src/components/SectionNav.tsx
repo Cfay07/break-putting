@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 
 /**
  * A jump list for a long page.
@@ -11,15 +11,20 @@ import { useEffect, useState } from 'react';
 export function SectionNav({ scope }: { scope: string }) {
   const [names, setNames] = useState<string[]>([]);
 
-  useEffect(() => {
+  // Before paint, so the page never lands without the row and then jumps down when it arrives.
+  // Every render, because a filter can hide or bring back a section. setNames keeps the old list
+  // when nothing changed, so this settles after one pass.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
     const root = document.querySelector(scope);
     if (!root) return;
     const heads = [...root.querySelectorAll('h2')];
     heads.forEach((h, i) => {
-      if (!h.id) h.id = `sec-${i}`;
+      h.id = `sec-${i}`;
     });
-    setNames(heads.map((h) => h.textContent ?? ''));
-  }, [scope]);
+    const next = heads.map((h) => h.textContent ?? '');
+    setNames((prev) => (prev.length === next.length && prev.every((n, i) => n === next[i]) ? prev : next));
+  });
 
   if (names.length < 6) return null;
 
