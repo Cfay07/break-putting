@@ -1,6 +1,6 @@
 import { resolveDrill } from '../lib/drills';
 import { signed } from '../lib/format';
-import { swingHoles } from '../lib/roundRanks';
+import { swingHoles, usual } from '../lib/roundRanks';
 import { conversion } from '../lib/situations';
 import { BUCKETS, type Stats } from '../lib/stats';
 import { FOCUS, startSession, type FocusBand } from '../lib/starters';
@@ -40,6 +40,8 @@ export function RoundPractice({
   const best = bands.reduce<(typeof bands)[number] | null>((a, b) => (b.t.sg > (a?.t.sg ?? 0) ? b : a), null);
   const swing = swingHoles(round, baseline);
   const conv = conversion([round]);
+  const usualConvert = usual(round, state.rounds, baseline, 'convert');
+  const usualSaves = usual(round, state.rounds, baseline, 'saves');
   const focus = worst ? FOCUS.find((f) => f.band === BAND_FOCUS[worst.key]) : undefined;
   const span = Math.max(0.5, ...bands.map((b) => Math.abs(b.t.sg)));
 
@@ -88,11 +90,34 @@ export function RoundPractice({
       </p>
 
       {(conv.greens > 0 || conv.missed > 0) && (
-        <p className="rp-hole">
-          <b>Turning greens into scores:</b>{' '}
-          {conv.greens > 0 ? `${conv.birdies} birdies from ${conv.greens} greens hit` : 'no greens hit'}
-          {conv.missed > 0 ? `, ${conv.saves} pars saved from ${conv.missed} missed` : ''}.
-        </p>
+        <div className="card" style={{ marginTop: 14 }}>
+          {conv.greens > 0 && (
+            <div className="stat-row">
+              <span className="k">Birdies from greens hit</span>
+              <span className="v num">
+                {Math.round((conv.birdies / conv.greens) * 100)}%
+                <span className="small muted">
+                  {' '}
+                  · {conv.birdies} of {conv.greens}
+                  {usualConvert !== null ? `, usual ${Math.round(usualConvert * 100)}%` : ''}
+                </span>
+              </span>
+            </div>
+          )}
+          {conv.missed > 0 && (
+            <div className="stat-row">
+              <span className="k">Pars saved after a missed green</span>
+              <span className="v num">
+                {Math.round((conv.saves / conv.missed) * 100)}%
+                <span className="small muted">
+                  {' '}
+                  · {conv.saves} of {conv.missed}
+                  {usualSaves !== null ? `, usual ${Math.round(usualSaves * 100)}%` : ''}
+                </span>
+              </span>
+            </div>
+          )}
+        </div>
       )}
 
       {swing && swing.worst.sg < 0 && (
