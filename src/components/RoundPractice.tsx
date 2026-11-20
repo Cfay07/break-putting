@@ -1,6 +1,7 @@
 import { resolveDrill } from '../lib/drills';
 import { signed } from '../lib/format';
 import { swingHoles } from '../lib/roundRanks';
+import { conversion } from '../lib/situations';
 import { BUCKETS, type Stats } from '../lib/stats';
 import { FOCUS, startSession, type FocusBand } from '../lib/starters';
 import { usePractice } from '../lib/usePractice';
@@ -38,6 +39,7 @@ export function RoundPractice({
   const worst = bands.reduce<(typeof bands)[number] | null>((a, b) => (b.t.sg < (a?.t.sg ?? 0) ? b : a), null);
   const best = bands.reduce<(typeof bands)[number] | null>((a, b) => (b.t.sg > (a?.t.sg ?? 0) ? b : a), null);
   const swing = swingHoles(round, baseline);
+  const conv = conversion([round]);
   const focus = worst ? FOCUS.find((f) => f.band === BAND_FOCUS[worst.key]) : undefined;
   const span = Math.max(0.5, ...bands.map((b) => Math.abs(b.t.sg)));
 
@@ -84,6 +86,14 @@ export function RoundPractice({
       <p className="small muted" style={{ margin: '6px 0 0' }}>
         Every putt this round by its length: holed of tried, and strokes gained against tour averages.
       </p>
+
+      {(conv.greens > 0 || conv.missed > 0) && (
+        <p className="rp-hole">
+          <b>Turning greens into scores:</b>{' '}
+          {conv.greens > 0 ? `${conv.birdies} birdies from ${conv.greens} greens hit` : 'no greens hit'}
+          {conv.missed > 0 ? `, ${conv.saves} pars saved from ${conv.missed} missed` : ''}.
+        </p>
+      )}
 
       {swing && swing.worst.sg < 0 && (
         <p className="rp-hole">

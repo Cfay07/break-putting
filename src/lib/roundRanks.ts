@@ -1,6 +1,7 @@
 import { fmtDate } from './format';
 import { holeSG } from './sg';
 import { readError } from './readError';
+import { conversion } from './situations';
 import { roundStats } from './stats';
 import { faultyOf } from './xp';
 import { holeVsPar, type Round } from './types';
@@ -207,6 +208,28 @@ export const METRICS: Metric[] = [
       return ps.length >= 6 ? ps.filter((p) => p.decel || p.accel).length / ps.length : null;
     },
     fmt: (v) => `${Math.round(v * 100)}% quit or jabbed`,
+  },
+  {
+    key: 'convert',
+    label: 'Best birdie conversion',
+    sameLength: false,
+    lowBetter: false,
+    value: (r) => {
+      const c = conversion([r]);
+      return c.greens >= 6 ? c.birdies / c.greens : null;
+    },
+    fmt: (v) => `${Math.round(v * 100)}% of greens hit`,
+  },
+  {
+    key: 'saves',
+    label: 'Most pars saved',
+    sameLength: false,
+    lowBetter: false,
+    value: (r) => {
+      const c = conversion([r]);
+      return c.missed >= 4 ? c.saves / c.missed : null;
+    },
+    fmt: (v) => `${Math.round(v * 100)}% of missed greens`,
   },
   {
     key: 'threes',

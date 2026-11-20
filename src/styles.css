@@ -2543,3 +2543,5 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .story-nums strong small.down { color: #f09595; }
 .story-swing em small { font-weight: 600; font-size: 12px; color: #a9c2b5; }
 .story-swing em small { margin-left: 6px; }
+
+.compare-n { display: block; font-size: 11px; color: var(--ink-3); font-weight: 500; }

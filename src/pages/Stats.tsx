@@ -9,6 +9,8 @@ import { fitMakeModel } from '../lib/makeability';
 import { formTrial } from '../lib/formTrial';
 import { formOf, formBand } from '../lib/form';
 import { readBias, beatSpread } from '../lib/xp';
+import { byStretch, byTrueness, conversion, tournamentVsCasual } from '../lib/situations';
+import { CompareRows, CompareTable } from '../components/CompareTable';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
@@ -103,6 +105,27 @@ function RoundStats() {
     return all.filter((h) => h.scores >= from);
   }, [filtered, rounds, state.rounds, courses]);
   const o = useMemo(() => overall(rounds, state.baseline), [rounds, state.baseline]);
+  const conv = useMemo(() => conversion(rounds.filter((r) => r.finished && !r.practice)), [rounds]);
+  const pressure = useMemo(() => tournamentVsCasual(rounds, state.baseline), [rounds, state.baseline]);
+  // Pressure compared within one putter at a time, so a putter switch cannot pass for nerves.
+  const pressureByPutter = useMemo(
+    () =>
+      state.putters
+        .map((p) => ({
+          p,
+          lines: tournamentVsCasual(
+            rounds.filter((r) => r.putterId === p.id),
+            state.baseline,
+          ),
+        }))
+        .filter((x) => x.lines.length === 2 && x.lines.every((l) => l.rounds >= 3)),
+    [rounds, state.putters, state.baseline],
+  );
+  const trueness = useMemo(
+    () => byTrueness(rounds, state.baseline).filter((l) => l.rounds >= 3),
+    [rounds, state.baseline],
+  );
+  const stretches = useMemo(() => byStretch(rounds, state.baseline), [rounds, state.baseline]);
   const taggedRounds = useMemo(
     () => rounds.filter((r) => r.holes.some((h) => h.putts.some((p) => p.missSide))).length,
     [rounds],
@@ -247,6 +270,34 @@ function RoundStats() {
               <div className="stat-row">
                 <span className="k">Greens in regulation per round</span>
                 <span className="v num">{o.girPerRound.toFixed(1)}</span>
+              </div>
+            )}
+            {conv.greens > 0 && (
+              <div className="stat-row">
+                <span className="k">
+                  Birdies from greens hit <SampleTag s={sample(conv.greens, 60, 'greens')} />
+                </span>
+                <span className="v num">
+                  {Math.round((conv.birdies / conv.greens) * 100)}%
+                  <span className="small muted">
+                    {' '}
+                    · {conv.birdies} of {conv.greens}
+                  </span>
+                </span>
+              </div>
+            )}
+            {conv.missed > 0 && (
+              <div className="stat-row">
+                <span className="k">
+                  Pars saved after a missed green <SampleTag s={sample(conv.missed, 40, 'misses')} />
+                </span>
+                <span className="v num">
+                  {Math.round((conv.saves / conv.missed) * 100)}%
+                  <span className="small muted">
+                    {' '}
+                    · {conv.saves} of {conv.missed}
+                  </span>
+                </span>
               </div>
             )}
             {vol && (
@@ -668,12 +719,61 @@ function RoundStats() {
           )}
 
           <p className="act">When it changes</p>
+          {(speeds.length > 1 || trueness.length > 1) && <h2>Greens</h2>}
           {speeds.length > 1 && (
             <>
-              <h2>By green speed</h2>
+              <div className="field-label">By speed</div>
               <SpeedPanel splits={speeds} />
               <p className="small muted" style={{ margin: '8px 0 0' }}>
                 Per eighteen holes. If the miss line swings between bands, the greens moved your miss and not your read.
+              </p>
+            </>
+          )}
+          {trueness.length > 1 && (
+            <>
+              <div className="field-label">How true they rolled</div>
+              <CompareTable lines={trueness} />
+              <p className="small muted" style={{ margin: '8px 0 0' }}>
+                From the rounds you marked smooth, average or bumpy.
+              </p>
+            </>
+          )}
+
+          {pressure.length === 2 && (
+            <>
+              <h2>Tournament vs casual</h2>
+              <CompareTable lines={pressure} />
+              {pressureByPutter.length > 0 && (
+                <>
+                  <div className="field-label">Same putter only</div>
+                  <div className="card">
+                    {pressureByPutter.map(({ p, lines }) => (
+                      <div className="stat-row" key={p.id}>
+                        <span className="k">{p.name}</span>
+                        <span className="v num">
+                          {lines[0].sg === null ? '--' : signed(lines[0].sg, 1)}
+                          <span className="small muted"> vs </span>
+                          {lines[1].sg === null ? '--' : signed(lines[1].sg, 1)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="small muted" style={{ margin: '8px 0 0' }}>
+                    Strokes gained per 18, tournament against casual, with one putter at a time, so a putter switch
+                    cannot pass for nerves.
+                  </p>
+                </>
+              )}
+            </>
+          )}
+
+          {stretches.length > 1 && (
+            <>
+              <h2>When in the round</h2>
+              <CompareRows lines={stretches} />
+              <p className="small muted" style={{ margin: '8px 0 0' }}>
+                Gained and 3-putts are per 18 holes. In the order you played them, so a shotgun start still reads right.
+                Nines split only on eighteen-hole rounds.
               </p>
             </>
           )}
