@@ -91,7 +91,7 @@ export function HistoryPage() {
           </p>
           <div className="board">
             {runs.map((s) => (
-              <StreakRow key={s.key} s={s} />
+              <StreakRow key={s.key} s={s} first={first} />
             ))}
           </div>
         </>
@@ -159,12 +159,12 @@ function TrophyRow({ t }: { t: Trophy }) {
   );
 }
 
-function StreakRow({ s }: { s: Streak }) {
+function StreakRow({ s, first }: { s: Streak; first: string }) {
   const target = s.latest ?? s.bestTo;
   const bestSpan = s.bestFrom && s.bestTo ? `${fmtDate(s.bestFrom.date)} to ${fmtDate(s.bestTo.date)}` : '';
   const sub = s.current
     ? s.current >= s.best
-      ? `Since ${fmtDate(s.since!.date)}. Your longest.`
+      ? `Since ${fmtDate(s.since!.date)}. Your longest since you started logging on ${fmtDate(first)}.`
       : `Since ${fmtDate(s.since!.date)}. Best ${s.best}, ${bestSpan}.`
     : `Ended ${s.endedOn ? fmtDate(s.endedOn.date) : ''}. Best ${s.best}, ${bestSpan}.`;
   return (

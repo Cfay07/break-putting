@@ -77,7 +77,10 @@ if (typeof window !== 'undefined') {
     trail = nextTrail(trail, window.location.hash.slice(1) || '/');
   };
   note();
-  // Added on import, so it runs before any page rendering off the same hashchange.
+  // Added on import, so it runs before any page rendering off the same move. go() renders on its
+  // own event before the hashchange, so the trail listens to both; a second note of the same route
+  // changes nothing.
+  window.addEventListener(ROUTED, note);
   window.addEventListener('hashchange', note);
 }
 
