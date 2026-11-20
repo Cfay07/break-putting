@@ -268,7 +268,16 @@ function RoundStats() {
             </div>
             {o.girPerRound !== null && (
               <div className="stat-row">
-                <span className="k">Greens in regulation per round</span>
+                <span className="k">
+                  Greens in regulation per round{' '}
+                  <SampleTag
+                    s={sample(
+                      o.points.reduce((n, p) => n + p.stats.scoredHoles, 0),
+                      90,
+                      'holes',
+                    )}
+                  />
+                </span>
                 <span className="v num">{o.girPerRound.toFixed(1)}</span>
               </div>
             )}
