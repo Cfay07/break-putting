@@ -5,7 +5,6 @@ import { fitMakeModel } from '../lib/makeability';
 import {
   fitExecModel,
   difficultyOf,
-  roomOf,
   xpotStatus,
   makeChanceOf,
   puttSGAdjusted,
@@ -29,7 +28,6 @@ import { LagPanel } from '../components/LagPanel';
 import { ReadPanel } from '../components/ReadPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { BeatBar } from '../components/BeatBar';
-import { CupMap, cupCounts } from '../components/CupMap';
 import { formOf } from '../lib/form';
 import { readError } from '../lib/readError';
 import { swingHoles, usual } from '../lib/roundRanks';
@@ -50,7 +48,7 @@ import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
  * break and starts being the reason the round went: those get the weight so the eye finds them
  * without reading every number.
  */
-type RoundTab = 'holes' | 'practice' | 'distance' | 'lag' | 'misses' | 'stroke' | 'cup';
+type RoundTab = 'holes' | 'practice' | 'distance' | 'lag' | 'misses' | 'stroke';
 
 const FAULT_WORDS: [string, string][] = [
   ['push', 'push'],
@@ -215,7 +213,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const tags = new Map<number, { text: string; fix: boolean }>();
   if (swing && swing.best.sg > 0) tags.set(swing.best.hole, { text: 'Best', fix: false });
   if (swing && swing.worst.sg < 0) tags.set(swing.worst.hole, { text: 'Worst', fix: true });
-  const cup = cupCounts(round.holes);
   const read = readError([round]);
   const form = round.practice ? null : formOf(round, state.baseline);
   const beats = beatSpread(state.baseline, [round as never]);
@@ -226,7 +223,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
     { key: 'lag', label: 'Lag' },
     { key: 'misses', label: 'Misses' },
     { key: 'stroke', label: 'Stroke' },
-    ...(cup.total + cup.unsure > 0 ? [{ key: 'cup' as const, label: 'Cup' }] : []),
   ];
   const putterName = state.putters.find((p) => p.id === round.putterId)?.name;
   const nines = ninesOf(round);
@@ -432,7 +428,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           <PatternPanel stats={s} stroke={false} />
         </>
       )}
-      {tab === 'cup' && <CupMap counts={cup.counts} unsure={cup.unsure} />}
 
       {tab === 'holes' && (
         <>
@@ -646,14 +641,6 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                             {p.made ? 'holed' : leave !== null ? `missed · left ${leave} ft` : 'missed'}
                           </span>
                         </span>
-                        {p.made && p.cupEntry && p.cupEntry !== 'unsure' && (
-                          <span className="pc-line">
-                            <span className="pc-k">Room to spare</span>
-                            <span className="pc-t">
-                              {roomOf(p.cupEntry) === null ? 'went in on pace' : `${roomOf(p.cupEntry)!.toFixed(2)} in`}
-                            </span>
-                          </span>
-                        )}
                         <span className="pc-line">
                           <span className="pc-k">The stroke</span>
                           <span className={p.executionAssessed ? 'pc-t' : 'pc-t quiet'}>{execution}</span>

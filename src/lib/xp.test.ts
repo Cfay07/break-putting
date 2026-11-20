@@ -145,50 +145,6 @@ describe('past the end of the baseline table', () => {
   });
 });
 
-describe('room to spare', () => {
-  it('is widest dead through the front and nil at the lip', async () => {
-    const { roomOf, ROOM_MAX } = await import('./xp');
-    expect(roomOf('front')).toBeCloseTo(ROOM_MAX, 10);
-    expect(roomOf('left')).toBeCloseTo(0, 10);
-    expect(roomOf('right')).toBeCloseTo(0, 10);
-  });
-
-  it('falls monotonically from the centre out to the lip', async () => {
-    const { roomOf, ROOM_MAX } = await import('./xp');
-    const front = roomOf('front')!;
-    const just = roomOf('just-left')!;
-    const inside = roomOf('inside-left')!;
-    const lip = roomOf('left')!;
-    expect(front).toBeCloseTo(ROOM_MAX, 10);
-    expect(just).toBeLessThan(front);
-    expect(inside).toBeLessThan(just);
-    expect(lip).toBeCloseTo(0, 10);
-    // Four readings a side now, where eight points gave three.
-    expect(new Set([front, just, inside, lip]).size).toBe(4);
-  });
-
-  it('is symmetric across every pair', async () => {
-    const { roomOf } = await import('./xp');
-    expect(roomOf('just-left')).toBeCloseTo(roomOf('just-right')!, 10);
-    expect(roomOf('inside-left')).toBeCloseTo(roomOf('inside-right')!, 10);
-    expect(roomOf('left')).toBeCloseTo(roomOf('right')!, 10);
-  });
-
-  it('refuses the back half rather than calling it zero', async () => {
-    const { roomOf } = await import('./xp');
-    expect(roomOf('back')).toBeNull();
-    expect(roomOf('back-left')).toBeNull();
-    expect(roomOf('back-right')).toBeNull();
-    expect(roomOf('unsure')).toBeNull();
-    expect(roomOf(undefined)).toBeNull();
-  });
-
-  it('is symmetric left and right', async () => {
-    const { roomOf } = await import('./xp');
-    expect(roomOf('left')).toBeCloseTo(roomOf('right')!, 10);
-  });
-});
-
 describe('round xP sums first putts, not every putt', () => {
   it('a hole is worth its first putt, which already contains the leave', () => {
     const hole = [putt(22, false, ['R→L', 'downhill'], 3), putt(3, true)];

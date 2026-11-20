@@ -1,15 +1,6 @@
 import { expectedPutts } from './sg';
 import { irls, makeability, type MakeModel } from './makeability';
-import {
-  breakBucket,
-  breakDirsOf,
-  CUP_ANGLES,
-  CUP_ENTRIES,
-  CUP_LABELS,
-  slopeOf,
-  type CupEntry,
-  type Putt,
-} from './types';
+import { breakBucket, breakDirsOf, slopeOf, type Putt } from './types';
 
 /**
  * Expected putts to hole out, reading break and slope rather than distance alone.
@@ -108,6 +99,14 @@ export function holeAdjustments(model: MakeModel, baseline: [number, number][], 
   });
 }
 
+type AnyRound = {
+  id: string;
+  label: string;
+  date: string;
+  deleted?: boolean;
+  holes: { hole: number; putts: Putt[] }[];
+};
+
 /** Strokes gained on one putt against the condition-aware baseline, telescoping to the hole. */
 export function puttSGAdjusted(
   model: MakeModel,
@@ -120,93 +119,6 @@ export function puttSGAdjusted(
   if (i + 1 >= putts.length) return here - 1;
   const next = xpOf(model, baseline, putts[i + 1]);
   return next === null ? null : here - 1 - next;
-}
-
-/**
- * Round strokes gained against the condition-aware baseline.
- *
- * Same shape as the distance-only version in sg.ts: the first putt's expectation minus the putts
- * taken, summed over holes. Returns null until the break model is ready, so nothing pretends to
- * know more than it does.
- */
-export function roundSGAdjusted(
-  model: MakeModel,
-  baseline: [number, number][],
-  holes: { putts: Putt[] }[],
-): number | null {
-  if (!model.ready) return null;
-  let sum = 0;
-  for (const h of holes) {
-    if (!h.putts.length) continue;
-    const first = xpOf(model, baseline, h.putts[0]);
-    if (first === null) return null;
-    sum += first - h.putts.length;
-  }
-  return sum;
-}
-
-type AnyRound = {
-  id: string;
-  label: string;
-  date: string;
-  deleted?: boolean;
-  holes: { hole: number; putts: Putt[] }[];
-};
-
-export interface CupUse {
-  /** Holed putts carrying an entry point you actually saw. */
-  n: number;
-  /** Holed putts where you said you did not see it drop. */
-  unsure: number;
-  /** Straight through the front, the centre cut. */
-  centre: number;
-  /** Came in off a side or round the back. */
-  edge: number;
-  byPoint: { point: CupEntry; label: string; n: number }[];
-}
-
-/**
- * How much of the hole you are using.
- *
- * A make is a make to every putting stat there is, so a centre cut and a ball that fell in off
- * the back lip have identical records. They are not identical strokes, and a run of edge-entry
- * makes is the kind of thing that stops happening. Counting, no model: this is an observation
- * you made, not a number anything inferred.
- *
- * It says nothing about pace or about whether the read was right. Entry point is a joint result
- * of line, speed and break together, so a back door can come from too much pace or from a putt
- * that took the break late, and this cannot tell those apart.
- */
-export function cupUse(rounds: AnyRound[]): CupUse {
-  const counts = new Map<CupEntry, number>();
-  let n = 0;
-  let unsure = 0;
-  for (const r of rounds) {
-    if (r.deleted) continue;
-    for (const h of r.holes) {
-      for (const p of h.putts) {
-        if (!p.made || !p.cupEntry) continue;
-        if (p.cupEntry === 'unsure') {
-          unsure++;
-          continue;
-        }
-        n++;
-        counts.set(p.cupEntry, (counts.get(p.cupEntry) ?? 0) + 1);
-      }
-    }
-  }
-  const centre = counts.get('front') ?? 0;
-  return {
-    n,
-    unsure,
-    centre,
-    edge: n - centre,
-    byPoint: CUP_ENTRIES.map((point) => ({
-      point,
-      label: CUP_LABELS[point],
-      n: counts.get(point) ?? 0,
-    })).sort((a, b) => b.n - a.n),
-  };
 }
 
 export interface ExecModel {
@@ -498,16 +410,7 @@ export interface ReadBias {
   /** Line and break agreed. */
   agreed: number;
   n: number;
-  fromMakes: number;
   fromMisses: number;
-}
-
-/** Which side of the hole a cup entry sits on, from the player's view with the ball at six. */
-function entrySide(e: CupEntry): 'left' | 'right' | 'centre' | null {
-  if (e === 'unsure') return null;
-  if (e === 'left' || e === 'inside-left' || e === 'back-left') return 'left';
-  if (e === 'right' || e === 'inside-right' || e === 'back-right') return 'right';
-  return 'centre';
 }
 
 /**
@@ -526,7 +429,6 @@ export function readBias(rounds: AnyRound[]): ReadBias {
   let over = 0;
   let under = 0;
   let agreed = 0;
-  let fromMakes = 0;
   let fromMisses = 0;
 
   for (const r of rounds) {
@@ -536,92 +438,16 @@ export function readBias(rounds: AnyRound[]): ReadBias {
         const bucket = breakBucket(breakDirsOf(p));
         // Only a putt that turns one way has a high side to miss on.
         if (bucket !== 'lr' && bucket !== 'rl') continue;
-        const highIsLeft = bucket === 'lr';
 
-        if (p.made) {
-          if (!p.cupEntry) continue;
-          const side = entrySide(p.cupEntry);
-          if (!side) continue;
-          fromMakes += 1;
-          if (side === 'centre') agreed += 1;
-          else if ((side === 'left') === highIsLeft) over += 1;
-          else under += 1;
-        } else {
-          if (!p.missSide) continue;
-          fromMisses += 1;
-          if (p.missSide === 'online') agreed += 1;
-          else if (p.missSide === 'high') over += 1;
-          else under += 1;
-        }
+        if (p.made || !p.missSide) continue;
+        fromMisses += 1;
+        if (p.missSide === 'online') agreed += 1;
+        else if (p.missSide === 'high') over += 1;
+        else under += 1;
       }
     }
   }
-  return { over, under, agreed, n: over + under + agreed, fromMakes, fromMisses };
-}
-
-/** Cup radius and ball radius, inches. A ball falls once its centre is inside the rim. */
-const CUP_R = 2.125;
-const BALL_R = 0.84;
-/** The most error a dead-centre putt can carry either way and still drop. */
-export const ROOM_MAX = CUP_R - BALL_R;
-
-/**
- * How much room a holed putt had to spare, in inches.
- *
- * Geometry, not a model. Where the ball crossed the rim says how far from the lip it was, and
- * that is the margin the stroke actually had. Nothing is fitted, so there is no sample gate and
- * nothing to confound: it is as true on the first putt logged as on the thousandth, which is not
- * something anything else in the app can say.
- *
- * The margin falls with the sine of the entry angle, not the cosine. It is the ball's lateral
- * offset that eats the window, and that offset is `R·sin`, so an entry at forty five degrees sat
- * 1.50 inches off the middle of a 2.13 inch half-window: seventy one percent of the way out, not
- * seventy one percent of the way in. Using cosine paid that putt 0.91 inches of room when it had
- * 0.38, and a round of edge entries read as though it had been struck through the middle.
- *
- * The back half returns nothing rather than zero. A back-door ball was not holed by being on
- * line, it was holed by still moving when it got there, and that is a question about pace this
- * cannot answer.
- */
-export function roomOf(entry: CupEntry | undefined): number | null {
-  if (!entry || entry === 'unsure') return null;
-  const deg = CUP_ANGLES[entry];
-  // Six o'clock is where the ball came from, so the front is 270 degrees in the drawing's frame.
-  const fromFront = Math.abs(((deg - 270 + 540) % 360) - 180);
-  if (fromFront > 90) return null;
-  return ROOM_MAX * (1 - Math.sin((fromFront * Math.PI) / 180));
-}
-
-export interface RoomStat {
-  n: number;
-  /** Holed putts whose entry says nothing about margin, the back half. */
-  onPace: number;
-  mean: number | null;
-  /** Makes that dropped with under a quarter inch to spare. */
-  nearlyMissed: number;
-}
-
-/** Room to spare across every holed putt carrying an entry. */
-export function roomSpare(rounds: AnyRound[]): RoomStat {
-  const vals: number[] = [];
-  let onPace = 0;
-  for (const r of rounds) {
-    if (r.deleted) continue;
-    for (const h of r.holes) {
-      for (const p of h.putts) {
-        if (!p.made || !p.cupEntry || p.cupEntry === 'unsure') continue;
-        const room = roomOf(p.cupEntry);
-        if (room === null) onPace += 1;
-        else vals.push(room);
-      }
-    }
-  }
-  return {
-    n: vals.length,
-    onPace,
-    mean: vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : null,
-    nearlyMissed: vals.filter((v) => v < 0.25).length,
-  };
+  return { over, under, agreed, n: over + under + agreed, fromMisses };
 }
 
 export interface LooseEnd {

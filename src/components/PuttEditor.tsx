@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { MissGrid } from './MissGrid';
-import { CupEntry } from './CupEntry';
 import { SegMulti } from './SegMulti';
 import { ReadBreak } from './ReadBreak';
 import {
@@ -125,13 +124,6 @@ export function PuttEditor({
         </>
       )}
 
-      {putt.made && (
-        <>
-          <div className="field-label">Where it went in</div>
-          <CupEntry value={putt.cupEntry} onPick={(cupEntry) => onPatch({ cupEntry })} />
-        </>
-      )}
-
       {/* A holed putt carries a break read too, so hiding this behind the miss made one
           uncorrectable once it was logged. */}
       <div className="field-label">
@@ -148,9 +140,7 @@ export function PuttEditor({
 
       {slopeOf(dirs) && (
         <>
-          <div className="field-label">
-            {slopeOf(dirs) === 'uphill' ? 'Uphill' : 'Downhill'}, how much
-          </div>
+          <div className="field-label">{slopeOf(dirs) === 'uphill' ? 'Uphill' : 'Downhill'}, how much</div>
           <div className="chips chips-sm">
             {SLOPE_STEPS.map((n) => (
               <button
@@ -175,9 +165,7 @@ export function PuttEditor({
             readAs={putt.readAs}
             brokeAs={putt.brokeAs}
             wrongWay={!!putt.wrongWay}
-            onPick={(readAs, brokeAs, wrongWay) =>
-              onPatch({ readAs, brokeAs, wrongWay: wrongWay || undefined })
-            }
+            onPick={(readAs, brokeAs, wrongWay) => onPatch({ readAs, brokeAs, wrongWay: wrongWay || undefined })}
           />
         </>
       )}
@@ -190,9 +178,7 @@ export function PuttEditor({
             type="button"
             className={putt.strike === k ? 'chip chip-sel' : 'chip'}
             aria-pressed={putt.strike === k}
-            onClick={() =>
-              onPatch({ strike: putt.strike === k ? undefined : k, executionAssessed: true })
-            }
+            onClick={() => onPatch({ strike: putt.strike === k ? undefined : k, executionAssessed: true })}
           >
             {k === 'centre' ? 'Middle' : k === 'toe' ? 'Toe' : 'Heel'}
           </button>

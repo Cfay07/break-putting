@@ -124,17 +124,6 @@ export const METRICS: Metric[] = [
     fmt: (v) => `${v} ${v === 1 ? 'birdie' : 'birdies'}`,
   },
   {
-    key: 'front',
-    label: 'Most through the front door',
-    sameLength: false,
-    lowBetter: false,
-    value: (r) => {
-      const makes = r.holes.flatMap((h) => h.putts.filter((p) => p.made && p.cupEntry && p.cupEntry !== 'unsure'));
-      return makes.length >= 4 ? makes.filter((p) => p.cupEntry === 'front').length / makes.length : null;
-    },
-    fmt: (v) => `${Math.round(v * 100)}% of makes`,
-  },
-  {
     key: 'pars',
     label: 'Most pars or better',
     sameLength: true,

@@ -4,7 +4,6 @@ import { ConfirmButton } from '../components/ConfirmButton';
 import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
 import { Keypad } from '../components/Keypad';
 import { MissGrid } from '../components/MissGrid';
-import { CupEntry } from '../components/CupEntry';
 import { SegMulti } from '../components/SegMulti';
 import { ReadBreak } from '../components/ReadBreak';
 import { Sheet } from '../components/Sheet';
@@ -34,7 +33,6 @@ import {
 
 /** Below this a made putt is a tap-in, and asking which way it broke is just friction. */
 const BREAK_PROMPT_FROM = 4;
-
 
 function played(round: Round, hole: number): boolean {
   const h = round.holes.find((x) => x.hole === hole);
@@ -72,8 +70,7 @@ export function Track() {
 
   const { track } = state;
   const hole = round.holes.find((h) => h.hole === track.hole) ?? { hole: track.hole, putts: [] };
-  const complete =
-    holedOut(hole) || (hole.putts.length > 0 && hole.putts[hole.putts.length - 1].made);
+  const complete = holedOut(hole) || (hole.putts.length > 0 && hole.putts[hole.putts.length - 1].made);
   const roundComplete = round.holes.every((h) => holedOut(h) || h.putts.some((p) => p.made));
   const holesPlayed = round.holes.filter((h) => h.putts.length > 0 || holedOut(h)).length;
   // Every per-round number is quoted on an eighteen-hole footing, so a short round is multiplied
@@ -88,9 +85,7 @@ export function Track() {
   // "Stopped the bleed" used to fire on any par with no bleed running, including hole one. It
   // only means something if the hole before it was actually a trigger or part of a bleed.
   const marks = bleedMarks(round);
-  const prevPlayed = round.holes
-    .filter((h) => h.hole < hole.hole && (h.putts.length > 0 || holedOut(h)))
-    .pop();
+  const prevPlayed = round.holes.filter((h) => h.hole < hole.hole && (h.putts.length > 0 || holedOut(h))).pop();
   const bouncedBack =
     !!prevPlayed &&
     (marks.triggers.has(prevPlayed.hole) || marks.bled.has(prevPlayed.hole)) &&
@@ -104,8 +99,10 @@ export function Track() {
   const draftXp = draftPutt ? xpOf(makeModel, state.baseline, draftPutt) : null;
   // A putt from your target's distance is the one that answers whether practice is working.
   const [targetType, targetZone] = (state.target && !state.target.fixedOn ? state.target.key : '').split(':');
-  const targetRange = targetType === 'slice' || targetType === 'zone' ? ZONE_RANGE[targetZone as keyof typeof ZONE_RANGE] : null;
-  const onTarget = !!draft.d && !!targetRange && !round?.practice && draft.d >= targetRange[0] && draft.d <= targetRange[1];
+  const targetRange =
+    targetType === 'slice' || targetType === 'zone' ? ZONE_RANGE[targetZone as keyof typeof ZONE_RANGE] : null;
+  const onTarget =
+    !!draft.d && !!targetRange && !round?.practice && draft.d >= targetRange[0] && draft.d <= targetRange[1];
   const draftChance = draftPutt ? makeChanceOf(makeModel, draftPutt) : null;
   // A toe or heel strike is a fault, so it can never sit beside "Nothing wrong".
   const offCentre = draft.strike === 'toe' || draft.strike === 'heel';
@@ -150,9 +147,7 @@ export function Track() {
             {hole.par ? <span className="par-note"> par {hole.par}</span> : null}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {!quiet && scored.length > 0 && (
-              <span className="tag num">{fmtVsPar(runningScore)}</span>
-            )}
+            {!quiet && scored.length > 0 && <span className="tag num">{fmtVsPar(runningScore)}</span>}
             {!quiet && bleed.bleeding && (
               <span className="drop" aria-label={`bleeding ${bleed.holes} holes`}>
                 🩸{bleed.holes > 0 ? bleed.holes : ''}
@@ -190,11 +185,7 @@ export function Track() {
       </div>
 
       {!hasPars && !practice && (
-        <button
-          className="btn btn-ghost btn-wide"
-          style={{ marginBottom: 12 }}
-          onClick={() => setCourseOpen(true)}
-        >
+        <button className="btn btn-ghost btn-wide" style={{ marginBottom: 12 }} onClick={() => setCourseOpen(true)}>
           Add the course to fill in pars
         </button>
       )}
@@ -206,9 +197,7 @@ export function Track() {
               {p.d} ft{p.made ? ' holed' : ''}
               <button
                 aria-label={`remove putt ${i + 1}`}
-                onClick={() =>
-                  dispatch({ t: 'removePutt', roundId: round.id, hole: hole.hole, index: i })
-                }
+                onClick={() => dispatch({ t: 'removePutt', roundId: round.id, hole: hole.hole, index: i })}
               >
                 ×
               </button>
@@ -221,17 +210,13 @@ export function Track() {
         <div className="card">
           <h3>
             Hole {hole.hole}:{' '}
-            {holedOut(hole)
-              ? 'chipped in'
-              : `${hole.putts.length} ${hole.putts.length === 1 ? 'putt' : 'putts'}`}
+            {holedOut(hole) ? 'chipped in' : `${hole.putts.length} ${hole.putts.length === 1 ? 'putt' : 'putts'}`}
           </h3>
           {!practice && (
             <div style={{ marginTop: 10 }}>
               <HoleScore
                 hole={hole}
-                onChange={(patch) =>
-                  dispatch({ t: 'setHoleScore', roundId: round.id, hole: hole.hole, patch })
-                }
+                onChange={(patch) => dispatch({ t: 'setHoleScore', roundId: round.id, hole: hole.hole, patch })}
               />
             </div>
           )}
@@ -271,9 +256,7 @@ export function Track() {
       ) : track.phase === 'distance' ? (
         <>
           <div className="readout">
-            <div className={track.distanceInput ? 'd num' : 'd num dim'}>
-              {track.distanceInput || '--'}
-            </div>
+            <div className={track.distanceInput ? 'd num' : 'd num dim'}>{track.distanceInput || '--'}</div>
             <div className="unit">feet{hole.putts.length ? ' · leave' : ''}</div>
           </div>
           <Keypad
@@ -295,9 +278,7 @@ export function Track() {
             <button
               className="btn btn-danger"
               disabled={!canSubmit}
-              onClick={() =>
-                dispatch({ t: 'setTrack', patch: { phase: 'tags', draft: { d, made: false } } })
-              }
+              onClick={() => dispatch({ t: 'setTrack', patch: { phase: 'tags', draft: { d, made: false } } })}
             >
               MISSED
             </button>
@@ -328,13 +309,6 @@ export function Track() {
             </h3>
           </div>
 
-          {draft.made && (
-            <>
-              <div className="field-label">Where it went in</div>
-              <CupEntry value={draft.cupEntry} onPick={(cupEntry) => setDraft({ cupEntry })} />
-            </>
-          )}
-
           {!draft.made && (
             <>
               <div className="field-label">Where it finished</div>
@@ -356,8 +330,8 @@ export function Track() {
 
           {onTarget && (
             <p className="target-flag">
-              Your target distance. Tag how it broke{targetType === 'slice' ? ' and the read' : ''}, and this putt counts
-              toward the check.
+              Your target distance. Tag how it broke{targetType === 'slice' ? ' and the read' : ''}, and this putt
+              counts toward the check.
             </p>
           )}
           <div className="field-label">
@@ -405,9 +379,7 @@ export function Track() {
                 readAs={draft.readAs}
                 brokeAs={draft.brokeAs}
                 wrongWay={!!draft.wrongWay}
-                onPick={(readAs, brokeAs, wrongWay) =>
-                  setDraft({ readAs, brokeAs, wrongWay: wrongWay || undefined })
-                }
+                onPick={(readAs, brokeAs, wrongWay) => setDraft({ readAs, brokeAs, wrongWay: wrongWay || undefined })}
               />
             </>
           )}
@@ -420,9 +392,7 @@ export function Track() {
                 type="button"
                 className={draft.strike === k ? 'chip chip-on' : 'chip'}
                 aria-pressed={draft.strike === k}
-                onClick={() =>
-                  setDraft({ strike: draft.strike === k ? undefined : k, executionAssessed: true })
-                }
+                onClick={() => setDraft({ strike: draft.strike === k ? undefined : k, executionAssessed: true })}
               >
                 {k === 'centre' ? 'Middle' : k === 'toe' ? 'Toe' : 'Heel'}
               </button>
@@ -488,9 +458,7 @@ export function Track() {
           <button
             className="btn btn-primary btn-wide"
             style={{ marginTop: 18 }}
-            onClick={() =>
-              dispatch({ t: 'addPutt', putt: { ...draft, d: draft.d!, made: !!draft.made } })
-            }
+            onClick={() => dispatch({ t: 'addPutt', putt: { ...draft, d: draft.d!, made: !!draft.made } })}
           >
             {draft.made ? 'Save putt' : 'Next putt'}
           </button>
@@ -546,8 +514,7 @@ export function Track() {
                 course: c.name,
                 courseId: c.courseId,
                 tee: c.tee,
-                pars:
-                  round.holeCount === 9 && c.pars.length > 9 ? c.pars.slice(0, 9) : c.pars,
+                pars: round.holeCount === 9 && c.pars.length > 9 ? c.pars.slice(0, 9) : c.pars,
               });
               setCourseOpen(false);
             }}

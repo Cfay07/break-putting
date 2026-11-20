@@ -8,7 +8,7 @@ import { bleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
 import { formTrial } from '../lib/formTrial';
 import { formOf, formBand } from '../lib/form';
-import { cupUse, readBias, roomSpare, ROOM_MAX, beatSpread } from '../lib/xp';
+import { readBias, beatSpread } from '../lib/xp';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
 import { LagPanel } from '../components/LagPanel';
@@ -19,7 +19,6 @@ import { readError } from '../lib/readError';
 import { StrikePanel } from '../components/StrikePanel';
 import { SampleTag } from '../components/SampleTag';
 import { SectionNav } from '../components/SectionNav';
-import { CupMap } from '../components/CupMap';
 import { Why } from '../components/Why';
 import { BeatBar } from '../components/BeatBar';
 import { sample, signedFor } from '../lib/sample';
@@ -110,9 +109,7 @@ function RoundStats() {
   );
   const makeModel = useMemo(() => fitMakeModel(rounds), [rounds]);
   const spread = useMemo(() => beatSpread(state.baseline, rounds), [state.baseline, rounds]);
-  const cup = useMemo(() => cupUse(rounds), [rounds]);
   const bias = useMemo(() => readBias(rounds), [rounds]);
-  const room = useMemo(() => roomSpare(rounds), [rounds]);
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const read = useMemo(() => readError(rounds), [rounds]);
@@ -522,16 +519,14 @@ function RoundStats() {
           <div className="field-label">Where they finish</div>
           <PatternPanel stats={o.pooled} taggedRounds={taggedRounds} />
 
-          {(read.judged > 0 || bias.n >= 10 || cup.n + cup.unsure > 0) && <h2>Reads</h2>}
+          {(read.judged > 0 || bias.n >= 10) && <h2>Reads</h2>}
           {read.judged > 0 && <ReadPanel read={read} />}
 
           {bias.n >= 10 && (
             <>
               <div className="field-label">Too much break or not enough</div>
-              <Why lead="One axis for every putt that turns.">
-                A miss finishing high and a make entering on the high side say the same thing: more break than it took.
-                Until the cup existed only the misses could speak, which is the tail of the pattern rather than the
-                pattern.
+              <Why lead="From where your misses finished on putts that turn.">
+                A miss finishing high is more break than it took; one finishing low is not enough.
               </Why>
               <div className="biasbar">
                 <span className="bias-seg over" style={{ width: `${(bias.over / bias.n) * 100}%` }} />
@@ -556,78 +551,7 @@ function RoundStats() {
                   {Math.round((bias.under / bias.n) * 100)}%<span className="small muted"> · {bias.under}</span>
                 </span>
               </div>
-              <p className="note">
-                {bias.fromMisses} from misses, {bias.fromMakes} from cup entries.
-              </p>
-            </>
-          )}
-
-          {cup.n + cup.unsure > 0 && (
-            <>
-              <div className="field-label">How much of the hole you use</div>
-              <CupMap
-                counts={Object.fromEntries(cup.byPoint.map((b) => [b.point, b.n]))}
-                unsure={cup.unsure}
-                chartOnly
-              />
-              <div className="stat-row">
-                <span className="k">Centre cut</span>
-                <span className="v num">
-                  {cup.n ? Math.round((cup.centre / cup.n) * 100) : 0}%
-                  <span className="small muted">
-                    {' '}
-                    · {cup.centre} of {cup.n}
-                  </span>
-                </span>
-              </div>
-              <div className="stat-row">
-                <span className="k">In off an edge</span>
-                <span className="v num">{cup.edge}</span>
-              </div>
-              {cup.unsure > 0 && (
-                <div className="stat-row">
-                  <span className="k">Did not see it drop</span>
-                  <span className="v num muted">{cup.unsure}</span>
-                </div>
-              )}
-              <div className="board" style={{ marginTop: 8 }}>
-                {cup.byPoint
-                  .filter((b) => b.n > 0)
-                  .map((b) => (
-                    <div className="lb-row" key={b.point}>
-                      <span className="nm">{b.label}</span>
-                      <span className="val num">{b.n}</span>
-                    </div>
-                  ))}
-              </div>
-              {room.n > 0 && (
-                <>
-                  <div className="stat-row">
-                    <span className="k">Room to spare, typical</span>
-                    <span className="v num">
-                      {room.mean?.toFixed(2)} in
-                      <span className="small muted"> of {ROOM_MAX.toFixed(2)}</span>
-                    </span>
-                  </div>
-                  <div className="stat-row">
-                    <span className="k">Dropped with almost none</span>
-                    <span className="v num">{room.nearlyMissed}</span>
-                  </div>
-                  {room.onPace > 0 && (
-                    <div className="stat-row">
-                      <span className="k">In off the back, on pace</span>
-                      <span className="v num muted">{room.onPace}</span>
-                    </div>
-                  )}
-                  <Why lead="Pure geometry, so there is no sample to wait for.">
-                    A ball dead through the front had {ROOM_MAX.toFixed(2)} inches of error either way; one off the lip
-                    had none. Nothing is fitted, nothing can confound it, and it is as true on the first putt as the
-                    thousandth. It says nothing about pace or whether the read was right: entry point is a joint result
-                    of line, speed and break, so a back door can come from too much pace or from a putt that took the
-                    break late.
-                  </Why>
-                </>
-              )}
+              <p className="note">From {bias.n} misses with a side tagged.</p>
             </>
           )}
 
