@@ -275,29 +275,17 @@ function RoundStats() {
             {conv.greens > 0 && (
               <div className="stat-row">
                 <span className="k">
-                  Birdies from greens hit <SampleTag s={sample(conv.greens, 60, 'greens')} />
+                  Birdies from greens <SampleTag s={sample(conv.greens, 60, 'greens')} />
                 </span>
-                <span className="v num">
-                  {Math.round((conv.birdies / conv.greens) * 100)}%
-                  <span className="small muted">
-                    {' '}
-                    · {conv.birdies} of {conv.greens}
-                  </span>
-                </span>
+                <span className="v num">{Math.round((conv.birdies / conv.greens) * 100)}%</span>
               </div>
             )}
             {conv.missed > 0 && (
               <div className="stat-row">
                 <span className="k">
-                  Pars saved after a missed green <SampleTag s={sample(conv.missed, 40, 'misses')} />
+                  Pars saved <SampleTag s={sample(conv.missed, 40, 'misses')} />
                 </span>
-                <span className="v num">
-                  {Math.round((conv.saves / conv.missed) * 100)}%
-                  <span className="small muted">
-                    {' '}
-                    · {conv.saves} of {conv.missed}
-                  </span>
-                </span>
+                <span className="v num">{Math.round((conv.saves / conv.missed) * 100)}%</span>
               </div>
             )}
             {vol && (
@@ -441,10 +429,10 @@ function RoundStats() {
             <>
               <h2>Form</h2>
               <div className="stat-row">
-                <span className="k">Does Form say anything strokes gained does not</span>
+                <span className="k">Tells you more than gained?</span>
                 <span className="v small muted">
                   {trial.verdict === 'waiting'
-                    ? `${trial.judged} of ${trial.needed} rounds judged`
+                    ? `${trial.judged} of ${trial.needed} rounds`
                     : `r = ${trial.r?.toFixed(3)}`}
                 </span>
               </div>
@@ -494,7 +482,7 @@ function RoundStats() {
                     How you hit them
                     <span className="small muted">
                       {' '}
-                      · reads, strikes, line, pace · {form.measured} round
+                      · {form.measured} round
                       {form.measured === 1 ? '' : 's'}
                     </span>
                   </span>
@@ -503,7 +491,7 @@ function RoundStats() {
                 <div className="stat-row">
                   <span className="k">
                     How they finished
-                    <span className="small muted"> · strokes gained, on this scale · {form.rounds} rounds</span>
+                    <span className="small muted"> · {form.rounds} rounds</span>
                   </span>
                   <span className="v num">{form.outcome.toFixed(1)}</span>
                 </div>

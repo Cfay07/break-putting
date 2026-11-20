@@ -215,7 +215,7 @@ p { line-height: 1.45; }
 }
 .stat-row:last-child { border-bottom: 0; }
 .stat-row .k { font-size: 14px; color: var(--ink-2); }
-.stat-row .v { font-size: 17px; font-weight: 700; }
+.stat-row .v { font-size: 17px; font-weight: 700; white-space: nowrap; }
 
 /* bars */
 .bar-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }

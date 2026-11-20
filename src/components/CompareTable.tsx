@@ -18,8 +18,8 @@ export function CompareTable({ lines, unit = 'rounds' }: { lines: GroupLine[]; u
     { k: 'Putts per 18', v: (l) => (l.putts === null ? '--' : l.putts.toFixed(1)) },
     { k: '3-putts per 18', v: (l) => (l.threes === null ? '--' : l.threes.toFixed(1)) },
     { k: '3 to 10 ft', v: (l) => pct(l.short.made, l.short.tried) },
-    { k: 'Birdies from greens hit', v: (l) => pct(l.conv.birdies, l.conv.greens) },
-    { k: 'Pars saved after a miss', v: (l) => pct(l.conv.saves, l.conv.missed) },
+    { k: 'Birdies from greens', v: (l) => pct(l.conv.birdies, l.conv.greens) },
+    { k: 'Pars saved', v: (l) => pct(l.conv.saves, l.conv.missed) },
   ];
   return (
     <div className="table-wrap">

@@ -93,7 +93,7 @@ export function RoundPractice({
         <div className="card" style={{ marginTop: 14 }}>
           {conv.greens > 0 && (
             <div className="stat-row">
-              <span className="k">Birdies from greens hit</span>
+              <span className="k">Birdies from greens</span>
               <span className="v num">
                 {Math.round((conv.birdies / conv.greens) * 100)}%
                 <span className="small muted">
@@ -106,7 +106,7 @@ export function RoundPractice({
           )}
           {conv.missed > 0 && (
             <div className="stat-row">
-              <span className="k">Pars saved after a missed green</span>
+              <span className="k">Pars saved</span>
               <span className="v num">
                 {Math.round((conv.saves / conv.missed) * 100)}%
                 <span className="small muted">
