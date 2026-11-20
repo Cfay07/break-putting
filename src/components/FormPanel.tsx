@@ -8,6 +8,7 @@ const ROWS: { key: keyof Form['parts']; label: string; note: string }[] = [
   { key: 'strike', label: 'Caught the middle', note: 'not the toe or the heel' },
   { key: 'line', label: 'Started it on line', note: 'no push, no pull' },
   { key: 'pace', label: 'Right pace', note: 'not short, not running out' },
+  { key: 'commit', label: 'Committed', note: 'sure of the line and the pace' },
   { key: 'lip', label: 'Lipped out', note: 'everything right, no reward' },
 ];
 
@@ -36,9 +37,7 @@ export function FormPanel({ form }: { form: Form }) {
             How you hit them
             <span className="small muted"> · reads, strikes, line, pace</span>
           </span>
-          <span className="v num">
-            {form.process === null ? '--' : form.process.toFixed(1)}
-          </span>
+          <span className="v num">{form.process === null ? '--' : form.process.toFixed(1)}</span>
         </div>
         <div className="stat-row">
           <span className="k">
@@ -51,9 +50,9 @@ export function FormPanel({ form }: { form: Form }) {
 
       {form.process === null ? (
         <p className="small muted" style={{ margin: '8px 0 0' }}>
-          Only {form.tagged} putt{form.tagged === 1 ? '' : 's'} carried a read or a strike this
-          round, so this is strokes gained on a nought to ten scale and nothing more. Tag the read
-          and the strike as you play and the other half appears.
+          Only {form.tagged} putt{form.tagged === 1 ? '' : 's'} carried a read or a strike this round, so this is
+          strokes gained on a nought to ten scale and nothing more. Tag the read and the strike as you play and the
+          other half appears.
         </p>
       ) : (
         <>
@@ -71,7 +70,10 @@ export function FormPanel({ form }: { form: Form }) {
                   </span>
                   <span className={pct !== null && pct < 50 ? 'v num neg' : 'v num'}>
                     {key === 'lip' ? t.right : `${pct}%`}
-                    <span className="small muted"> · {t.right}/{t.of}</span>
+                    <span className="small muted">
+                      {' '}
+                      · {t.right}/{t.of}
+                    </span>
                   </span>
                 </div>
               );
@@ -80,11 +82,10 @@ export function FormPanel({ form }: { form: Form }) {
           <FormVenn venn={form.venn} />
 
           <p className="small muted" style={{ margin: '8px 0 0' }}>
-            Form averages the two. How you hit them is the rows above, the share of what you
-            controlled that you got right. How they finished is strokes gained, which does not
-            care how you hit them. Lip-outs only ever add, because a putt that caught the hole
-            and stayed out was a good one that went unpaid, and that is the thing strokes gained
-            cannot see.
+            Form averages the two. How you hit them is the rows above, the share of what you controlled that you got
+            right. How they finished is strokes gained, which does not care how you hit them. Lip-outs only ever add,
+            because a putt that caught the hole and stayed out was a good one that went unpaid, and that is the thing
+            strokes gained cannot see.
           </p>
         </>
       )}

@@ -58,7 +58,18 @@ function wording(
  * A quadratic peaks at half its control offset, so a bend of 34 reaches 17 either side. The
  * viewBox runs to 20 so the widest one clears its own stroke instead of being cut off.
  */
-function Curve({ bend, dir, double, on }: { bend: number; dir: BreakDir | undefined; double: boolean; on: boolean }) {
+function Curve({
+  bend,
+  dir,
+  double,
+  on,
+}: {
+  bend: number;
+  dir: BreakDir | undefined;
+  /** On a double breaker, the way it turns first: the S bows to that side's high side near the ball. */
+  double: BreakDir | null;
+  on: boolean;
+}) {
   // A double breaker is an S, and only the bend at the hole is being rated, so the low bend is
   // held constant and the high one grows. The stops then differ in exactly the thing the scale
   // is asking about. No break is drawn dead straight whatever the putt did.
@@ -66,7 +77,7 @@ function Curve({ bend, dir, double, on }: { bend: number; dir: BreakDir | undefi
     bend === 0
       ? 'M 0 32.5 L 0 9.5'
       : double
-        ? `M 0 32.5 C -9 25 ${bend} 15 0 9.5`
+        ? `M 0 32.5 C ${double === 'L→R' ? -9 : 9} 25 ${double === 'L→R' ? bend : -bend} 15 0 9.5`
         : `M 0 32.5 Q ${dir === 'L→R' ? -bend : bend} 19 0 9.5`;
   return (
     <svg width="40" height="40" viewBox="-20 0 40 40" aria-hidden="true">
@@ -95,11 +106,7 @@ export function ReadBreak({
   readAs: number | undefined;
   brokeAs: number | undefined;
   wrongWay: boolean;
-  onPick: (
-    readAs: number | undefined,
-    brokeAs: number | undefined,
-    wrongWay: boolean,
-  ) => void;
+  onPick: (readAs: number | undefined, brokeAs: number | undefined, wrongWay: boolean) => void;
 }) {
   // A double breaker turns both ways, so there is no single side to bow it to: it gets an S.
   const lr = dirs.includes('L→R');
@@ -109,6 +116,8 @@ export function ReadBreak({
   // never there, which is the one read error the app could not hold before.
   const straight = !lr && !rl;
   const dir = double ? undefined : lr ? 'L→R' : 'R→L';
+  // Taps are kept in order, so the first side tapped is the way it turned first.
+  const firstSide = double ? (dirs.find((d) => d === 'L→R' || d === 'R→L') ?? null) : null;
 
   const actual = brokeAs ?? readAs;
   const lo = readAs !== undefined && actual !== undefined ? Math.min(readAs, actual) : null;
@@ -144,7 +153,7 @@ export function ReadBreak({
               aria-label={s.label}
               onClick={() => tap(s.n)}
             >
-              <Curve bend={s.bend} dir={dir} double={double} on={(isRead || isActual) && !wrongWay} />
+              <Curve bend={s.bend} dir={dir} double={firstSide} on={(isRead || isActual) && !wrongWay} />
               <span className="brk-label">{s.label}</span>
             </button>
           );
@@ -163,19 +172,19 @@ export function ReadBreak({
           found, inert until there is a read for it to contradict. Meaningless on a putt that
           never turned, so it is not offered there. */}
       {!straight && (
-      <button
-        type="button"
-        className={wrongWay ? 'brk-wrong on' : 'brk-wrong'}
-        aria-pressed={wrongWay}
-        disabled={readAs === undefined || readAs === 0}
-        onClick={tapWrongWay}
-      >
-        {readAs === undefined
-          ? 'Pick your read first'
-          : readAs === 0
-            ? 'You read no break, so there is no other way'
-            : 'It broke the other way'}
-      </button>
+        <button
+          type="button"
+          className={wrongWay ? 'brk-wrong on' : 'brk-wrong'}
+          aria-pressed={wrongWay}
+          disabled={readAs === undefined || readAs === 0}
+          onClick={tapWrongWay}
+        >
+          {readAs === undefined
+            ? 'Pick your read first'
+            : readAs === 0
+              ? 'You read no break, so there is no other way'
+              : 'It broke the other way'}
+        </button>
       )}
     </div>
   );

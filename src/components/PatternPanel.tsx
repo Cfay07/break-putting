@@ -105,6 +105,14 @@ export function PatternPanel({
                 {p.decel} / {p.accel}
               </span>
             </div>
+            {p.committed + p.uncommitted > 0 && (
+              <div className="stat-row">
+                <span className="k">Not committed</span>
+                <span className="v num">
+                  {p.uncommitted} of {p.committed + p.uncommitted}
+                </span>
+              </div>
+            )}
             <div className="stat-row">
               <span className="k">Lip-outs</span>
               <span className={p.lip >= 3 ? 'v num neg' : 'v num'}>{p.lip}</span>

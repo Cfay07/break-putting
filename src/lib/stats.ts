@@ -61,6 +61,9 @@ export interface Pattern {
   lip: number;
   decel: number;
   accel: number;
+  /** Putts where commitment was said either way. Untouched putts are in neither. */
+  committed: number;
+  uncommitted: number;
   tagged: number;
   byBucket: Record<BucketKey, { high: number; low: number; online: number }>;
   /** Every tagged putt lands in exactly one break bucket, double breakers included. */
@@ -140,13 +143,27 @@ function emptyBreak(): BreakTally {
 
 function emptyPattern(): Pattern {
   return {
-    high: 0, low: 0, online: 0,
-    short: 0, good: 0, long: 0,
-    push: 0, pull: 0, lip: 0, decel: 0, accel: 0, tagged: 0,
+    high: 0,
+    low: 0,
+    online: 0,
+    short: 0,
+    good: 0,
+    long: 0,
+    push: 0,
+    pull: 0,
+    lip: 0,
+    decel: 0,
+    accel: 0,
+    committed: 0,
+    uncommitted: 0,
+    tagged: 0,
     breakMakes: 0,
     breakMisses: 0,
     byBreak: {
-      lr: emptyBreak(), rl: emptyBreak(), double: emptyBreak(), straight: emptyBreak(),
+      lr: emptyBreak(),
+      rl: emptyBreak(),
+      double: emptyBreak(),
+      straight: emptyBreak(),
     },
     uphill: emptyBreak(),
     downhill: emptyBreak(),
@@ -247,11 +264,16 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
           scoring.sgPutts++;
         }
       }
-      if (p.lip) { pattern.lip++; lipOuts++; }
+      if (p.lip) {
+        pattern.lip++;
+        lipOuts++;
+      }
       if (p.push) pattern.push++;
       if (p.pull) pattern.pull++;
       if (p.decel) pattern.decel++;
       if (p.accel) pattern.accel++;
+      if (p.uncommitted === true) pattern.uncommitted++;
+      if (p.uncommitted === false) pattern.committed++;
       if (p.missSide) {
         pattern[p.missSide]++;
         pattern.byBucket[b][p.missSide]++;
@@ -287,21 +309,15 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
     threePuttHoles,
     buckets,
     scoring,
-    avgLeave: lagPutts.length
-      ? lagPutts.reduce((a, b) => a + b.leave, 0) / lagPutts.length
-      : null,
-    avgLeavePct: lagPutts.length
-      ? (lagPutts.reduce((a, b) => a + b.leave / b.d, 0) / lagPutts.length) * 100
-      : null,
+    avgLeave: lagPutts.length ? lagPutts.reduce((a, b) => a + b.leave, 0) / lagPutts.length : null,
+    avgLeavePct: lagPutts.length ? (lagPutts.reduce((a, b) => a + b.leave / b.d, 0) / lagPutts.length) * 100 : null,
     lagAttempts: lagPutts.length,
     lagInside: lagPutts.filter((l) => l.leave <= l.d * LEAVE_STANDARD).length,
     lipOuts,
     sg,
     makesTotalFeet,
     gir,
-    girProximity: girLeaves.length
-      ? girLeaves.reduce((a, b) => a + b, 0) / girLeaves.length
-      : null,
+    girProximity: girLeaves.length ? girLeaves.reduce((a, b) => a + b, 0) / girLeaves.length : null,
     // The median says more than the mean here: one 77 footer drags an average and leaves the
     // typical green untouched.
     girProximityMedian: median(girLeaves),
@@ -360,10 +376,12 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
     stats: roundStats(round, baseline),
     scale: roundScale(round),
   }));
-  const pooled = statsForHoles(rounds.flatMap((r) => r.holes), baseline);
+  const pooled = statsForHoles(
+    rounds.flatMap((r) => r.holes),
+    baseline,
+  );
   const n = points.length;
-  const avg = (pick: (p: RoundPoint) => number) =>
-    n ? points.reduce((s, p) => s + pick(p), 0) / n : null;
+  const avg = (pick: (p: RoundPoint) => number) => (n ? points.reduce((s, p) => s + pick(p), 0) / n : null);
 
   const bucketSgPerRound = {} as Record<BucketKey, number | null>;
   for (const b of BUCKETS) {
@@ -381,9 +399,7 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
     threePuttsPerRound: avg((p) => p.stats.threePlus * p.scale),
     sgPerRound: avg((p) => p.stats.sg * p.scale),
     scoringPct: pct(pooled.scoring),
-    girPerRound: points.some((p) => p.stats.scoredHoles > 0)
-      ? avg((p) => p.stats.gir * p.scale)
-      : null,
+    girPerRound: points.some((p) => p.stats.scoredHoles > 0) ? avg((p) => p.stats.gir * p.scale) : null,
     points,
   };
 }
@@ -417,9 +433,7 @@ export function missShapes(rounds: Round[]): MissShape[] {
       }
     }
   }
-  return [...counts.entries()]
-    .map(([label, n]) => ({ label, n, share: n / total }))
-    .sort((a, b) => b.n - a.n);
+  return [...counts.entries()].map(([label, n]) => ({ label, n, share: n / total })).sort((a, b) => b.n - a.n);
 }
 
 /** Round-to-round spread of strokes gained. Two players can share a mean and not a game. */
@@ -455,7 +469,13 @@ export interface MissAnatomy {
  */
 export function missAnatomy(rounds: Round[]): MissAnatomy {
   const out: MissAnatomy = {
-    judged: 0, lineWrong: 0, paceWrong: 0, bothWrong: 0, lineOnly: 0, paceOnly: 0, lipOut: 0,
+    judged: 0,
+    lineWrong: 0,
+    paceWrong: 0,
+    bothWrong: 0,
+    lineOnly: 0,
+    paceOnly: 0,
+    lipOut: 0,
   };
   for (const r of rounds) {
     for (const h of r.holes) {
@@ -527,9 +547,7 @@ export function lagSaves(rounds: Round[]): LagSave {
     lags,
     bad,
     saved,
-    avgBadLeave: badLeaves.length
-      ? badLeaves.reduce((a, b) => a + b, 0) / badLeaves.length
-      : null,
+    avgBadLeave: badLeaves.length ? badLeaves.reduce((a, b) => a + b, 0) / badLeaves.length : null,
     bySource: bySource.filter((b) => b.holes > 0),
   };
 }
@@ -564,7 +582,10 @@ export function byGreenSpeed(rounds: Round[], baseline: [number, number][]): Spe
     const scaled = rs.map((r) => ({ s: roundStats(r, baseline), k: roundScale(r) }));
     const per = (pick: (x: (typeof scaled)[number]) => number) =>
       scaled.reduce((sum, x) => sum + pick(x), 0) / rs.length;
-    const pooled = statsForHoles(rs.flatMap((r) => r.holes), baseline);
+    const pooled = statsForHoles(
+      rs.flatMap((r) => r.holes),
+      baseline,
+    );
     return {
       speed,
       rounds: rs.length,
@@ -635,30 +656,31 @@ export function byCourse(rounds: Round[], baseline: [number, number][]): CourseS
     groups.set(key, [...(groups.get(key) ?? []), r]);
   }
 
-  return [...groups.entries()]
-    .map(([, rs]) => {
-      // the fullest spelling of the name wins the label
-      const best = rs.reduce((a, b) => ((b.course ?? '').length > (a.course ?? '').length ? b : a));
-      const label = best.course?.trim() || 'Course not named';
-      const n = rs.length;
-      // Each round carries its own scale, so a group holding both a full eighteen and a
-      // walk-in after nine still averages to an eighteen-hole number.
-      const scaled = rs.map((r) => ({ s: roundStats(r, baseline), k: roundScale(r) }));
-      const per = (pick: (x: (typeof scaled)[number]) => number) =>
-        scaled.reduce((sum, x) => sum + pick(x), 0) / n;
-      const lastPlayed = rs.reduce((a, b) => (b.date > a.date ? b : a)).date;
-      return {
-        label,
-        lastPlayed,
-        rounds: n,
-        putts: per((x) => x.s.totalPutts * x.k),
-        threePlus: per((x) => x.s.threePlus * x.k),
-        sg: per((x) => x.s.sg * x.k),
-      };
-    })
-    // most played first, then most recent, so a hundred one-off courses do not crowd out
-    // the ones you actually have data on
-    .sort((a, b) => b.rounds - a.rounds || b.lastPlayed.localeCompare(a.lastPlayed));
+  return (
+    [...groups.entries()]
+      .map(([, rs]) => {
+        // the fullest spelling of the name wins the label
+        const best = rs.reduce((a, b) => ((b.course ?? '').length > (a.course ?? '').length ? b : a));
+        const label = best.course?.trim() || 'Course not named';
+        const n = rs.length;
+        // Each round carries its own scale, so a group holding both a full eighteen and a
+        // walk-in after nine still averages to an eighteen-hole number.
+        const scaled = rs.map((r) => ({ s: roundStats(r, baseline), k: roundScale(r) }));
+        const per = (pick: (x: (typeof scaled)[number]) => number) => scaled.reduce((sum, x) => sum + pick(x), 0) / n;
+        const lastPlayed = rs.reduce((a, b) => (b.date > a.date ? b : a)).date;
+        return {
+          label,
+          lastPlayed,
+          rounds: n,
+          putts: per((x) => x.s.totalPutts * x.k),
+          threePlus: per((x) => x.s.threePlus * x.k),
+          sg: per((x) => x.s.sg * x.k),
+        };
+      })
+      // most played first, then most recent, so a hundred one-off courses do not crowd out
+      // the ones you actually have data on
+      .sort((a, b) => b.rounds - a.rounds || b.lastPlayed.localeCompare(a.lastPlayed))
+  );
 }
 
 export function allPutts(rounds: Round[]): Putt[] {
@@ -705,13 +727,7 @@ export function readBias(p: Pattern, taggedRounds = 1): ReadBias {
     lean,
     z,
     verdict:
-      sided < MIN_SIDED_MISSES
-        ? 'thin'
-        : z < 2
-          ? 'stroke'
-          : taggedRounds < MIN_TAGGED_ROUNDS
-            ? 'leaning'
-            : 'read',
+      sided < MIN_SIDED_MISSES ? 'thin' : z < 2 ? 'stroke' : taggedRounds < MIN_TAGGED_ROUNDS ? 'leaning' : 'read',
     rounds: taggedRounds,
     onlineShare: misses ? p.online / misses : null,
   };
@@ -848,7 +864,6 @@ export function suspectHoles(round: Round): { hole: number; from: number; to: nu
   }
   return out;
 }
-
 
 /** A strike row needs this many putts before its percentages are worth printing. */
 export const MIN_STRIKE = 10;

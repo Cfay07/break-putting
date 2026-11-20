@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
@@ -6,11 +6,10 @@ import { Keypad } from '../components/Keypad';
 import { MissGrid } from '../components/MissGrid';
 import { SegMulti } from '../components/SegMulti';
 import { ReadBreak } from '../components/ReadBreak';
+import { StrokeTags } from '../components/StrokeTags';
 import { Sheet } from '../components/Sheet';
 import { go, replaceRoute } from '../lib/router';
 import { bleedMarks, liveBleed } from '../lib/bleed';
-import { fitMakeModel } from '../lib/makeability';
-import { makeChanceOf, xpOf } from '../lib/xp';
 import { ZONE_RANGE } from '../lib/pinpoint';
 import { liveRound, useApp } from '../lib/store';
 import { syncQuietly } from '../lib/sync';
@@ -18,16 +17,13 @@ import {
   BREAK_DIRS,
   BREAK_LABELS,
   breakLabel,
+  breakStory,
   toggleBreak,
-  FACTORS,
   slopeOf,
   SLOPE_LABELS,
   SLOPE_STEPS,
-  type Putt,
-  FACTOR_LABELS,
   holeVsPar,
   holedOut,
-  type Factor,
   type Round,
 } from '../lib/types';
 
@@ -47,10 +43,6 @@ function nextUnplayed(round: Round, from: number): number {
 
 export function Track() {
   const { state, dispatch } = useApp();
-  // Above every early return. This used to sit beside the draft readout, below the branch for
-  // "no live round", so finishing a round dropped a hook between renders and React threw. With no
-  // boundary at the time that was a white screen on the last tap of a round.
-  const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
   const round = liveRound(state);
   const [finishing, setFinishing] = useState(false);
   const [courseOpen, setCourseOpen] = useState(false);
@@ -95,18 +87,12 @@ export function Track() {
   const d = Number(track.distanceInput);
   const canSubmit = track.distanceInput !== '' && d >= 1;
   const draft = track.draft ?? {};
-  const draftPutt = draft.d ? ({ ...draft, d: draft.d, made: !!draft.made } as Putt) : null;
-  const draftXp = draftPutt ? xpOf(makeModel, state.baseline, draftPutt) : null;
   // A putt from your target's distance is the one that answers whether practice is working.
   const [targetType, targetZone] = (state.target && !state.target.fixedOn ? state.target.key : '').split(':');
   const targetRange =
     targetType === 'slice' || targetType === 'zone' ? ZONE_RANGE[targetZone as keyof typeof ZONE_RANGE] : null;
   const onTarget =
     !!draft.d && !!targetRange && !round?.practice && draft.d >= targetRange[0] && draft.d <= targetRange[1];
-  const draftChance = draftPutt ? makeChanceOf(makeModel, draftPutt) : null;
-  // A toe or heel strike is a fault, so it can never sit beside "Nothing wrong".
-  const offCentre = draft.strike === 'toe' || draft.strike === 'heel';
-  const cleanCalled = !!draft.executionAssessed && !FACTORS.some((f: Factor) => draft[f]) && !offCentre;
   const hasPars = round.holes.some((h) => h.par !== undefined);
   // A practice round is only putts: no course, no par, no score on the hole.
   const practice = !!round.practice;
@@ -336,7 +322,7 @@ export function Track() {
           )}
           <div className="field-label">
             How it broke
-            {breakLabel(draft.breakDirs ?? []) ? (
+            {!breakStory(draft.breakDirs ?? []) && breakLabel(draft.breakDirs ?? []) ? (
               <span className="muted"> · {breakLabel(draft.breakDirs ?? [])}</span>
             ) : null}
           </div>
@@ -347,6 +333,7 @@ export function Track() {
             values={draft.breakDirs ?? []}
             onToggle={(v) => setDraft({ breakDirs: toggleBreak(draft.breakDirs ?? [], v) })}
           />
+          {breakStory(draft.breakDirs ?? []) && <p className="small brk-story">{breakStory(draft.breakDirs ?? [])}</p>}
 
           {slopeOf(draft.breakDirs ?? []) && (
             <>
@@ -384,84 +371,18 @@ export function Track() {
             </>
           )}
 
-          <div className="field-label">Strike</div>
-          <div className="chips">
-            {(['toe', 'centre', 'heel'] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                className={draft.strike === k ? 'chip chip-on' : 'chip'}
-                aria-pressed={draft.strike === k}
-                onClick={() => setDraft({ strike: draft.strike === k ? undefined : k, executionAssessed: true })}
-              >
-                {k === 'centre' ? 'Middle' : k === 'toe' ? 'Toe' : 'Heel'}
-              </button>
-            ))}
-          </div>
+          <StrokeTags putt={draft} onPatch={setDraft} />
 
-          <div className="field-label">Factors</div>
-          <div className="chips">
-            {/* Without this an empty set means both "nothing was wrong" and "nobody looked". */}
+          {/* Pinned above the tab bar: a fully tagged miss runs past the bottom of a phone, and
+              scrolling to save every putt adds up over a round. */}
+          <div className="tag-save">
             <button
-              type="button"
-              className={cleanCalled ? 'chip chip-on' : 'chip'}
-              aria-pressed={cleanCalled}
-              onClick={() =>
-                setDraft(
-                  cleanCalled
-                    ? { executionAssessed: undefined }
-                    : {
-                        ...Object.fromEntries(FACTORS.map((f: Factor) => [f, false])),
-                        ...(offCentre ? { strike: undefined } : {}),
-                        executionAssessed: true,
-                      },
-                )
-              }
+              className="btn btn-primary btn-wide"
+              onClick={() => dispatch({ t: 'addPutt', putt: { ...draft, d: draft.d!, made: !!draft.made } })}
             >
-              Nothing wrong
+              {draft.made ? 'Save putt' : 'Next putt'}
             </button>
-            {/* One flow rather than two rows: a lone chip above five wraps as 1, 4, 1. Factors
-                were also hidden on a holed putt, so a putt you pushed and holed anyway could not
-                be recorded at all. Across 431 makes that produced exactly zero faulty ones, which
-                left "has a fault" standing in for "missed" in anything that read it. */}
-            {FACTORS.filter((f) => !(draft.made && f === 'lip')).map((f: Factor) => (
-              <button
-                key={f}
-                type="button"
-                className={draft[f] ? 'chip chip-on' : 'chip'}
-                aria-pressed={!!draft[f]}
-                onClick={() => setDraft({ [f]: !draft[f], executionAssessed: true })}
-              >
-                {FACTOR_LABELS[f]}
-              </button>
-            ))}
           </div>
-
-          {/* What the putt you just described is worth, before it is filed. Hidden on a
-              competitive round along with everything else behind `quiet`: live expected-value
-              readouts mid-tournament are a rules question nobody needs. */}
-          {!quiet && draftXp !== null && (
-            <div className="draft-xp">
-              <span className="dx-k">Expected putts (xP)</span>
-              <span className="dx-v">{draftXp.toFixed(2)}</span>
-              <span className="dx-k">Chance it drops</span>
-              <span className="dx-v">
-                {draftChance === null ? (
-                  <span className="dx-note">Past your longest putt, {makeModel.longest} ft</span>
-                ) : (
-                  `${Math.round(draftChance * 100)}%`
-                )}
-              </span>
-            </div>
-          )}
-
-          <button
-            className="btn btn-primary btn-wide"
-            style={{ marginTop: 18 }}
-            onClick={() => dispatch({ t: 'addPutt', putt: { ...draft, d: draft.d!, made: !!draft.made } })}
-          >
-            {draft.made ? 'Save putt' : 'Next putt'}
-          </button>
           <button
             className="btn btn-ghost btn-wide"
             style={{ marginTop: 8 }}

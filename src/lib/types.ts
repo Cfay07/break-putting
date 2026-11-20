@@ -36,8 +36,16 @@ export type CupEntry =
  * holed putts actually cross.
  */
 export const CUP_ENTRIES: Exclude<CupEntry, 'unsure'>[] = [
-  'front', 'just-left', 'inside-left', 'left', 'back-left',
-  'back', 'back-right', 'right', 'inside-right', 'just-right',
+  'front',
+  'just-left',
+  'inside-left',
+  'left',
+  'back-left',
+  'back',
+  'back-right',
+  'right',
+  'inside-right',
+  'just-right',
 ];
 
 export const CUP_LABELS: Record<CupEntry, string> = {
@@ -56,8 +64,16 @@ export const CUP_LABELS: Record<CupEntry, string> = {
 
 /** Degrees anticlockwise from three o'clock, for drawing. Six o'clock is where the ball started. */
 export const CUP_ANGLES: Record<Exclude<CupEntry, 'unsure'>, number> = {
-  right: 0, 'back-right': 45, back: 90, 'back-left': 135, left: 180,
-  'inside-left': 210, 'just-left': 240, front: 270, 'just-right': 300, 'inside-right': 330,
+  right: 0,
+  'back-right': 45,
+  back: 90,
+  'back-left': 135,
+  left: 180,
+  'inside-left': 210,
+  'just-left': 240,
+  front: 270,
+  'just-right': 300,
+  'inside-right': 330,
 };
 export type BreakDir = 'L→R' | 'R→L' | 'straight' | 'uphill' | 'downhill';
 
@@ -97,6 +113,12 @@ export interface Putt {
   decel?: boolean;
   /** Jabbed at it. The opposite tempo fault, and nothing could say it before. */
   accel?: boolean;
+  /**
+   * Hit it without being committed to the line or the pace. A head fault rather than a hands one,
+   * so it sits beside decel and accel. False only when the stroke was called clean; undefined
+   * means nobody said, and old putts stay that way.
+   */
+  uncommitted?: boolean;
   /**
    * How the break looked before the putt and how much it actually moved, 1 slight to 4 severe.
    * Two taps on one scale: the second only when the read was wrong, so the gap between them is
@@ -194,9 +216,9 @@ export interface Round {
   greens?: number;
   recordedPutts?: number;
   /**
-    * Played in competition. Kept per round rather than as a setting, because it is a fact about
-    * the round and the whole point is comparing these against the casual ones later.
-    */
+   * Played in competition. Kept per round rather than as a setting, because it is a fact about
+   * the round and the whole point is comparing these against the casual ones later.
+   */
   competitive?: boolean;
   /** How the greens were rolling. One pick for the round, taken before the first hole. */
   greenSpeed?: GreenSpeed;
@@ -462,9 +484,25 @@ export interface SessionRun {
  * source: reproductions of Broadie's table disagree there (2.06 or 2.12 at 40 ft). See ROADMAP Phase 5.
  */
 export const DEFAULT_BASELINE: [number, number][] = [
-  [1, 1.0], [2, 1.01], [3, 1.04], [4, 1.13], [5, 1.23], [6, 1.34], [7, 1.42], [8, 1.5],
-  [9, 1.56], [10, 1.61], [12, 1.7], [15, 1.78], [20, 1.87],
-  [25, 1.94], [30, 2.0], [35, 2.02], [40, 2.06], [50, 2.14], [60, 2.21],
+  [1, 1.0],
+  [2, 1.01],
+  [3, 1.04],
+  [4, 1.13],
+  [5, 1.23],
+  [6, 1.34],
+  [7, 1.42],
+  [8, 1.5],
+  [9, 1.56],
+  [10, 1.61],
+  [12, 1.7],
+  [15, 1.78],
+  [20, 1.87],
+  [25, 1.94],
+  [30, 2.0],
+  [35, 2.02],
+  [40, 2.06],
+  [50, 2.14],
+  [60, 2.21],
 ];
 
 const WHITE = '#f7f5ee';
@@ -494,16 +532,9 @@ export function brandPill(name: string): { bg: string; ink: string } | null {
   return BRAND_PILLS.find((b) => b.match.test(name)) ?? null;
 }
 
-export const FACTORS = ['lip', 'push', 'pull', 'decel', 'accel'] as const;
+/** Stroke faults. Lip-outs are not one: the miss grid records them, since a lip-out is where it finished. */
+export const FACTORS = ['push', 'pull', 'decel', 'accel', 'uncommitted'] as const;
 export type Factor = (typeof FACTORS)[number];
-
-export const FACTOR_LABELS: Record<Factor, string> = {
-  lip: 'Lipped',
-  push: 'Pushed',
-  pull: 'Pulled',
-  decel: 'Decel',
-  accel: 'Accel',
-};
 
 export const BREAK_DIRS: BreakDir[] = ['L→R', 'R→L', 'straight', 'uphill', 'downhill'];
 
@@ -575,6 +606,36 @@ export function slopeOf(dirs: BreakDir[]): 'uphill' | 'downhill' | null {
   if (dirs.includes('uphill')) return 'uphill';
   if (dirs.includes('downhill')) return 'downhill';
   return null;
+}
+
+const STORY_WORD: Record<BreakDir, string> = {
+  'L→R': 'left to right',
+  'R→L': 'right to left',
+  straight: 'straight',
+  uphill: 'uphill',
+  downhill: 'downhill',
+};
+
+/**
+ * A putt that changes on the way, told in the order it was tapped: "Starts right to left, uphill.
+ * Finishes downhill, left to right." The first side and first slope tapped are the start, the
+ * second of each the finish. Null when nothing changes, so the plain label stands.
+ */
+export function breakStory(dirs: BreakDir[]): string | null {
+  const sides = dirs.filter((d) => SIDES.includes(d)).length;
+  const slopes = dirs.filter((d) => SLOPES.includes(d)).length;
+  if (sides < 2 && slopes < 2) return null;
+  const start: BreakDir[] = [];
+  const finish: BreakDir[] = [];
+  let side = 0;
+  let slope = 0;
+  for (const d of dirs) {
+    if (SIDES.includes(d)) (side++ === 0 ? start : finish).push(d);
+    else if (SLOPES.includes(d)) (slope++ === 0 ? start : finish).push(d);
+    else start.push(d);
+  }
+  const words = (ds: BreakDir[]) => ds.map((d) => STORY_WORD[d]).join(', ');
+  return `Starts ${words(start)}. Finishes ${words(finish)}.`;
 }
 
 /** "Double break · downhill", "L→R", "Straight · uphill". */

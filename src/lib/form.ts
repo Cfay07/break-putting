@@ -91,6 +91,8 @@ export interface FormParts {
   pace: Tally;
   /** Lip-outs. The clearest case in the game of doing it right and not being paid. */
   lip: Tally;
+  /** Committed to the putt. Only putts where it was said either way. */
+  commit: Tally;
 }
 
 /**
@@ -138,7 +140,12 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
   const outcome = fromSG(sg18);
 
   const parts: FormParts = {
-    read: empty(), strike: empty(), line: empty(), pace: empty(), lip: empty(),
+    read: empty(),
+    strike: empty(),
+    line: empty(),
+    pace: empty(),
+    lip: empty(),
+    commit: empty(),
   };
   const venn: Venn = { earned: 0, gotAway: 0, robbed: 0, deserved: 0 };
   let tagged = 0;
@@ -155,15 +162,12 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
         if (unfinished) {
           // counted as tagged, judged on nothing
         } else {
-        parts.read.of++;
-        touched = true;
-        const neverTurned = neverTurnedOf(p);
-        const wrong =
-          !!p.wrongWay ||
-          neverTurned ||
-          (p.brokeAs !== undefined && p.brokeAs !== p.readAs);
-        readWrong = wrong;
-        if (!wrong) parts.read.right++;
+          parts.read.of++;
+          touched = true;
+          const neverTurned = neverTurnedOf(p);
+          const wrong = !!p.wrongWay || neverTurned || (p.brokeAs !== undefined && p.brokeAs !== p.readAs);
+          readWrong = wrong;
+          if (!wrong) parts.read.right++;
         }
       }
       if (p.strike) {
@@ -188,6 +192,10 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
         parts.lip.of++;
         parts.lip.right++;
       }
+      if (p.uncommitted !== undefined) {
+        parts.commit.of++;
+        if (!p.uncommitted) parts.commit.right++;
+      }
 
       if (touched) {
         tagged++;
@@ -197,7 +205,7 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
         const strikeOk = p.strike === undefined || p.strike === 'centre';
         const lineOk = !p.push && !p.pull;
         const paceOk = !p.decel && !p.accel && p.speed !== 'short' && p.speed !== 'long';
-        const clean = readOk && strikeOk && lineOk && paceOk;
+        const clean = readOk && strikeOk && lineOk && paceOk && !p.uncommitted;
         if (p.made && clean) venn.earned++;
         else if (p.made) venn.gotAway++;
         else if (clean) venn.robbed++;
@@ -206,10 +214,10 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
     }
   }
 
-  const totals = Object.values(parts).reduce(
-    (a, t) => ({ right: a.right + t.right, of: a.of + t.of }),
-    { right: 0, of: 0 },
-  );
+  const totals = Object.values(parts).reduce((a, t) => ({ right: a.right + t.right, of: a.of + t.of }), {
+    right: 0,
+    of: 0,
+  });
   const process = tagged >= MIN_TAGGED_PUTTS_IN_ROUND && totals.of ? (totals.right / totals.of) * 10 : null;
 
   // Half and half when both exist. Process is the point of the metric, outcome is the half

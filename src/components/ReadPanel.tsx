@@ -70,9 +70,7 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
                     <td>{AMOUNT[b.amount] ?? b.amount}</td>
                     <td className="num">{b.putts}</td>
                     <td className="num">{Math.round((b.hadIt / b.putts) * 100)}%</td>
-                    <td className={b.under > b.hadIt ? 'num neg' : 'num'}>
-                      {Math.round((b.under / b.putts) * 100)}%
-                    </td>
+                    <td className={b.under > b.hadIt ? 'num neg' : 'num'}>{Math.round((b.under / b.putts) * 100)}%</td>
                     {read.wrong > 0 && (
                       <td className={b.wrong ? 'num neg' : 'num'}>
                         {b.wrong ? `${Math.round((b.wrong / b.putts) * 100)}%` : '--'}
@@ -85,8 +83,8 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
             </table>
           </div>
           <p className="small muted" style={{ margin: '6px 0 0' }}>
-            If the too-little column climbs as the break gets bigger, you are under-reading the
-            severe ones. Miss by is how far the ball finished from the hole when it did not drop.
+            If the too-little column climbs as the break gets bigger, you are under-reading the severe ones. Miss by is
+            how far the ball finished from the hole when it did not drop.
           </p>
         </>
       )}
@@ -111,9 +109,7 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
                     <td>{d.label}</td>
                     <td className="num">{d.putts}</td>
                     <td className="num">{Math.round((d.right / d.putts) * 100)}%</td>
-                    <td className={d.under > d.right ? 'num neg' : 'num'}>
-                      {Math.round((d.under / d.putts) * 100)}%
-                    </td>
+                    <td className={d.under > d.right ? 'num neg' : 'num'}>{Math.round((d.under / d.putts) * 100)}%</td>
                     <td className="num">{Math.round((d.over / d.putts) * 100)}%</td>
                   </tr>
                 ))}
@@ -121,16 +117,16 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
             </table>
           </div>
           <p className="small muted" style={{ margin: '6px 0 0' }}>
-            Most right-handers miss one of these two far more than the other. Double breakers are
-            left out, because the error does not belong to either side.
+            Most right-handers miss one of these two far more than the other. Double breakers are left out, because the
+            error does not belong to either side.
           </p>
         </>
       )}
 
       {read.leaveWhenRight !== null && read.leaveWhenWrong !== null && (
         <p className="small" style={{ margin: '10px 0 0' }}>
-          A miss with the read right finishes {read.leaveWhenRight.toFixed(1)} ft away. With the
-          read wrong, {read.leaveWhenWrong.toFixed(1)} ft.
+          A miss with the read right finishes {read.leaveWhenRight.toFixed(1)} ft away. With the read wrong,{' '}
+          {read.leaveWhenWrong.toFixed(1)} ft.
         </p>
       )}
 
@@ -157,21 +153,19 @@ export function ReadPanel({ read }: { read: ReadSummary }) {
             <div className="stat-row">
               <span className="k">
                 The speed
-                <span className="small muted"> · short, long, quit on it, jabbed</span>
+                <span className="small muted"> · short, long, decel, accel</span>
               </span>
               <span className="v num">{Math.round((read.blameSpeed / read.blamed) * 100)}%</span>
             </div>
           </div>
           <p className="small muted" style={{ margin: '6px 0 0' }}>
             Across {Math.round(read.blamed)} tagged miss
-            {Math.round(read.blamed) === 1 ? '' : 'es'}. A putt carrying more than one fault is
-            split between them rather than handed to whichever is checked first, so a misread you
-            also pushed counts as half of each. A miss with the read right and nothing else
-            flagged is put down to the pace.
+            {Math.round(read.blamed) === 1 ? '' : 'es'}. A putt carrying more than one fault is split between them
+            rather than handed to whichever is checked first, so a misread you also pushed counts as half of each. A
+            miss with the read right and nothing else flagged is put down to the pace.
           </p>
         </>
       )}
-
     </>
   );
 }

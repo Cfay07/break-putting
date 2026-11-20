@@ -170,6 +170,7 @@ export function faultyOf(p: Putt): boolean {
     !!p.pull ||
     !!p.decel ||
     !!p.accel ||
+    !!p.uncommitted ||
     !!p.wrongWay ||
     p.strike === 'toe' ||
     p.strike === 'heel' ||

@@ -31,7 +31,7 @@ export function roundTags(round: Round) {
     { key: 'start', n: push + pull, line: `Start line: ${push} pushed, ${pull} pulled.` },
     { key: 'lip', n: lips, line: `${lips} lipped out.` },
     { key: 'strike', n: off, line: `${off} of ${struck} strikes off the middle.` },
-    { key: 'decel', n: decel, line: `${decel} quit on.` },
+    { key: 'decel', n: decel, line: `${decel} decel.` },
   ];
   const sorted = rows.filter((r) => r.n > 0).sort((a, b) => b.n - a.n);
   return {
@@ -44,7 +44,7 @@ export function roundTags(round: Round) {
       start: push + pull ? `${push} pushed, ${pull} pulled` : null,
       lip: shortLips ? `${shortLips} lipped out from 3 to 10 ft` : null,
       strike: off ? `${off} of ${struck} strikes off the middle` : null,
-      decel: decel ? `${decel} quit on` : null,
+      decel: decel ? `${decel} decel` : null,
     },
   };
 }
@@ -80,17 +80,29 @@ export function roundPayoff(round: Round, scoped: Round[], carry: Carry[], surfa
     if (h.read) {
       const side = sides.find((x) => x.key === h.read!.side);
       const n = side?.[h.read.way] ?? 0;
-      return side && n ? `${n} of ${side.putts} ${h.read.side === 'lr' ? 'left-to-right' : 'right-to-left'} reads ${h.read.way}` : null;
+      return side && n
+        ? `${n} of ${side.putts} ${h.read.side === 'lr' ? 'left-to-right' : 'right-to-left'} reads ${h.read.way}`
+        : null;
     }
     return h.key === 'read' || h.key === 'bleed' ? null : tags.here[h.key];
   };
-  const lineOf = (h: Habit): HabitLine => ({ title: h.title, round: hereFor(h), total: h.total ?? null, detail: h.detail });
+  const lineOf = (h: Habit): HabitLine => ({
+    title: h.title,
+    round: hereFor(h),
+    total: h.total ?? null,
+    detail: h.detail,
+  });
   const found = after.filter((h) => !had.has(h.title)).map(lineOf);
   const stillHabit = after.find((h) => had.has(h.title) && hereFor(h));
   const still = stillHabit ? lineOf(stillHabit) : null;
   // Said once: a pattern line already gave this round's count for its own key.
-  const spoken = new Set(after.filter((h) => !h.read && hereFor(h) && (!had.has(h.title) || h === stillHabit)).map((h) => h.key));
-  const lines = tags.rows.filter((r) => !spoken.has(r.key)).slice(0, 3).map((r) => r.line);
+  const spoken = new Set(
+    after.filter((h) => !h.read && hereFor(h) && (!had.has(h.title) || h === stillHabit)).map((h) => h.key),
+  );
+  const lines = tags.rows
+    .filter((r) => !spoken.has(r.key))
+    .slice(0, 3)
+    .map((r) => r.line);
   const work = inScope
     ? carry
         .filter((c) => round.date >= c.started)

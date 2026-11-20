@@ -1152,14 +1152,6 @@ button.pick:active { background-color: #f4f1e8; }
 .xps-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 9px; font-size: 11.5px; color: var(--ink-3); }
 .xps-legend b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 
-/* What the putt you just described is worth, shown before it is filed. */
-.draft-xp {
-  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: baseline;
-  margin-top: 16px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px;
-  background: var(--card);
-}
-.dx-k { font-size: 12px; color: var(--ink-2); }
-.dx-v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
 .xps-jump {
   display: flex; flex-direction: column; gap: 1px; align-items: flex-start; text-align: left;
   background: none; border: none; padding: 0; font: inherit; color: var(--ink-3); cursor: pointer;
@@ -1535,7 +1527,6 @@ a.btn { text-decoration: none; }
 .preview-history > div { display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); }
 .preview-history strong { font-size: 17px; }
 .preview-history span { font-size: 12px; color: var(--ink-2); }
-.dx-note { font-size: 12px; font-weight: 600; color: var(--ink-2); }
 .habit { display: grid; gap: 6px; }
 .habit strong { font-size: 15px; }
 .habit .focus-drill { margin-top: 4px; }
@@ -2546,3 +2537,16 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .story-streaks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .story-streaks span { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: rgba(242, 239, 230, 0.08); color: #a9c2b5; }
 .story-streaks b { color: var(--paper); font-weight: 800; }
+
+/* Stroke tags: one row per part of the stroke, label on the left. */
+.stroke-head { display: flex; justify-content: space-between; align-items: center; }
+.stroke-head .chip { min-height: 30px; padding: 0 12px; font-size: 13px; text-transform: none; letter-spacing: 0; }
+.stroke-row { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.stroke-row .k { font-size: 13px; color: var(--ink-2); }
+.chip.chip-no { background: #a52a1f; border-color: #a52a1f; color: #fff; }
+.brk-story { margin: 8px 0 0; color: var(--ink-2); font-weight: 600; }
+
+.tag-save {
+  position: sticky; bottom: calc(36px + env(safe-area-inset-bottom)); z-index: 5;
+  margin-top: 18px; padding: 10px 0; background: var(--paper);
+}

@@ -207,7 +207,7 @@ export const METRICS: Metric[] = [
       const ps = r.holes.flatMap((h) => h.putts.filter((p) => p.executionAssessed));
       return ps.length >= 6 ? ps.filter((p) => p.decel || p.accel).length / ps.length : null;
     },
-    fmt: (v) => `${Math.round(v * 100)}% quit or jabbed`,
+    fmt: (v) => `${Math.round(v * 100)}% decel or accel`,
   },
   {
     key: 'convert',

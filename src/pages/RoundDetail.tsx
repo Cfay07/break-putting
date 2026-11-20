@@ -45,8 +45,9 @@ type RoundTab = 'holes' | 'practice' | 'distance' | 'lag' | 'misses' | 'stroke';
 const FAULT_WORDS: [string, string][] = [
   ['push', 'push'],
   ['pull', 'pull'],
-  ['decel', 'quit on it'],
-  ['accel', 'jabbed it'],
+  ['decel', 'decel'],
+  ['accel', 'accel'],
+  ['uncommitted', 'not committed'],
   ['wrongWay', 'read it the wrong way'],
 ];
 

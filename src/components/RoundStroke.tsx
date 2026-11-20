@@ -52,11 +52,12 @@ export function RoundStroke({
       'Misread the break',
       `${count((p) => !!p.wrongWay || (p.brokeAs !== undefined && p.readAs !== undefined && p.brokeAs !== p.readAs))} of ${judged.length}`,
     ],
-    ['Quit on it', String(count((p) => !!p.decel))],
-    ['Jabbed it', String(count((p) => !!p.accel))],
+    ['Decel', String(count((p) => !!p.decel))],
+    ['Accel', String(count((p) => !!p.accel))],
+    ['Not committed', String(count((p) => !!p.uncommitted))],
     ...(struck.length
       ? ([
-          ['Middle of the face', `${struck.filter((x) => x.p.strike === 'centre').length} of ${struck.length}`],
+          ['Middle', `${struck.filter((x) => x.p.strike === 'centre').length} of ${struck.length}`],
           ['Toe', String(struck.filter((x) => x.p.strike === 'toe').length)],
           ['Heel', String(struck.filter((x) => x.p.strike === 'heel').length)],
         ] as [string, string][])
@@ -79,7 +80,7 @@ export function RoundStroke({
         </strong>
         <span>
           {usualClean !== null ? `Your usual is ${Math.round(usualClean * 100)}%. ` : ''}
-          Clean means no push, pull, quit, jab, toe or heel, and the read went the right way.
+          Clean means no push, pull, decel, accel, toe or heel, you were committed, and the read went the right way.
         </span>
       </div>
 

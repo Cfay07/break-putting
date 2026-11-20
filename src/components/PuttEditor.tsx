@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { MissGrid } from './MissGrid';
 import { SegMulti } from './SegMulti';
 import { ReadBreak } from './ReadBreak';
+import { StrokeTags } from './StrokeTags';
 import {
   BREAK_DIRS,
   BREAK_LABELS,
   breakDirsOf,
   breakLabel,
+  breakStory,
   toggleBreak,
-  FACTORS,
-  FACTOR_LABELS,
   slopeOf,
   SLOPE_LABELS,
   SLOPE_STEPS,
@@ -77,10 +77,6 @@ export function PuttEditor({
 }) {
   const dirs = breakDirsOf(putt);
 
-  // A toe or heel strike is a fault, so it can never sit beside "Nothing wrong".
-  const offCentre = putt.strike === 'toe' || putt.strike === 'heel';
-  const cleanCalled = !!putt.executionAssessed && !FACTORS.some((f) => putt[f]) && !offCentre;
-
   return (
     <div className="card" style={{ marginBottom: 12 }}>
       <h3 style={{ margin: '0 0 10px' }}>Putt {n}</h3>
@@ -128,7 +124,7 @@ export function PuttEditor({
           uncorrectable once it was logged. */}
       <div className="field-label">
         How it broke
-        {breakLabel(dirs) ? <span className="muted"> · {breakLabel(dirs)}</span> : null}
+        {!breakStory(dirs) && breakLabel(dirs) ? <span className="muted"> · {breakLabel(dirs)}</span> : null}
       </div>
       <SegMulti
         quiet
@@ -137,6 +133,7 @@ export function PuttEditor({
         values={dirs}
         onToggle={(v) => onPatch({ breakDirs: toggleBreak(dirs, v), breakDir: undefined })}
       />
+      {breakStory(dirs) && <p className="small brk-story">{breakStory(dirs)}</p>}
 
       {slopeOf(dirs) && (
         <>
@@ -170,59 +167,7 @@ export function PuttEditor({
         </>
       )}
 
-      <div className="field-label">Strike</div>
-      <div className="chips">
-        {(['toe', 'centre', 'heel'] as const).map((k) => (
-          <button
-            key={k}
-            type="button"
-            className={putt.strike === k ? 'chip chip-sel' : 'chip'}
-            aria-pressed={putt.strike === k}
-            onClick={() => onPatch({ strike: putt.strike === k ? undefined : k, executionAssessed: true })}
-          >
-            {k === 'centre' ? 'Middle' : k === 'toe' ? 'Toe' : 'Heel'}
-          </button>
-        ))}
-      </div>
-
-      <div className="field-label">Factors</div>
-      <div className="chips">
-        {/* An empty set of factors used to mean two different things at once: nothing was wrong,
-            and nobody looked. This chip separates them, so the clean pile only holds putts that
-            were actually judged.
-
-            Lip is dropped on a holed putt: lipping out means it stayed out, and a make that
-            catches the lip is a lip-in, which the cup already records by which edge it fell off. */}
-        <button
-          type="button"
-          className={cleanCalled ? 'chip chip-sel' : 'chip'}
-          aria-pressed={cleanCalled}
-          onClick={() =>
-            onPatch(
-              cleanCalled
-                ? { executionAssessed: undefined }
-                : {
-                    ...Object.fromEntries(FACTORS.map((f) => [f, false])),
-                    ...(offCentre ? { strike: undefined } : {}),
-                    executionAssessed: true,
-                  },
-            )
-          }
-        >
-          Nothing wrong
-        </button>
-        {FACTORS.filter((f) => !(putt.made && f === 'lip')).map((f) => (
-          <button
-            key={f}
-            type="button"
-            className={putt[f] ? 'chip chip-sel' : 'chip'}
-            aria-pressed={!!putt[f]}
-            onClick={() => onPatch({ [f]: !putt[f], executionAssessed: true })}
-          >
-            {FACTOR_LABELS[f]}
-          </button>
-        ))}
-      </div>
+      <StrokeTags putt={putt} onPatch={onPatch} selClass="chip-sel" />
 
       <button className="btn btn-ghost btn-wide" style={{ marginTop: 14 }} onClick={onRemove}>
         Remove this putt
