@@ -772,8 +772,8 @@ function RoundStats() {
               <h2>When in the round</h2>
               <CompareRows lines={stretches} />
               <p className="small muted" style={{ margin: '8px 0 0' }}>
-                Gained and 3-putts are per 18 holes. In the order you played them, so a shotgun start still reads right.
-                Nines split only on eighteen-hole rounds.
+                Gained is strokes gained per hole on average; 3-putts is how often a hole there took three. In the order
+                you played them, so a shotgun start still reads right. Nines split only on eighteen-hole rounds.
               </p>
             </>
           )}

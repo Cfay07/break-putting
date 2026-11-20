@@ -49,7 +49,10 @@ export function CompareTable({ lines, unit = 'rounds' }: { lines: GroupLine[]; u
   );
 }
 
-/** Many groups, few numbers: one row per group, so five stretches of a round fit a phone. */
+/**
+ * Many groups, few numbers: one row per group, so five stretches of a round fit a phone. Per hole,
+ * not per 18: a single hole scaled to a round read as if that hole cost seven strokes.
+ */
 export function CompareRows({ lines }: { lines: GroupLine[] }) {
   return (
     <div className="table-wrap">
@@ -67,12 +70,14 @@ export function CompareRows({ lines }: { lines: GroupLine[] }) {
             <tr key={l.label}>
               <td>
                 {l.label}
-                <small className="compare-n">{l.holes} holes</small>
+                <small className="compare-n">
+                  {l.rounds} {l.rounds === 1 ? 'round' : 'rounds'}
+                </small>
               </td>
               <td className={l.sg === null ? 'num' : l.sg >= 0 ? 'num pos' : 'num neg'}>
-                {l.sg === null ? '--' : signed(l.sg, 1)}
+                {l.sg === null ? '--' : signed(l.sg / 18, 2)}
               </td>
-              <td className="num">{l.threes === null ? '--' : l.threes.toFixed(1)}</td>
+              <td className="num">{l.threes === null ? '--' : `${Math.round((l.threes / 18) * 100)}%`}</td>
               <td className="num">{pct(l.short.made, l.short.tried)}</td>
             </tr>
           ))}

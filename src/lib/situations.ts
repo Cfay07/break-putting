@@ -106,8 +106,8 @@ export const byTrueness = (rounds: Round[], baseline: [number, number][]) =>
   );
 
 /**
- * Each stage of a round, in the order the holes were played: the first three, the hole you lose
- * the most on, the last three, then the two nines of an eighteen. A shotgun start still reads right, since it goes
+ * Each stage of a round, in the order the holes were played: the first three, the last three, the
+ * hole you lose the most on, then the two nines of an eighteen. A shotgun start still reads right, since it goes
  * by order played rather than hole number.
  */
 export function byStretch(rounds: Round[], baseline: [number, number][]): GroupLine[] {
@@ -122,13 +122,13 @@ export function byStretch(rounds: Round[], baseline: [number, number][]): GroupL
       pick((hs) => hs.slice(0, 3)),
       baseline,
     ),
-    ...worstPosition(rs, played, baseline),
     line(
       'Last 3 holes',
       rs,
       pick((hs) => hs.slice(-3)),
       baseline,
     ),
+    ...worstPosition(rs, played, baseline),
   ];
   if (eighteens.length) {
     out.push(
@@ -166,7 +166,10 @@ function worstPosition(rs: Round[], played: (r: Round) => Hole[], baseline: [num
     });
   const lines = [...spots.entries()]
     .filter(([, holes]) => holes.length >= MIN_AT_SPOT)
-    .map(([i, holes]) => line(`Worst hole: the ${ordinalOf(i + 1)}`, rs, holes, baseline))
+    .map(([i, holes]) => ({
+      ...line(`Worst hole: the ${ordinalOf(i + 1)}`, rs, holes, baseline),
+      rounds: holes.length,
+    }))
     .filter((l) => l.sg !== null);
   if (!lines.length) return [];
   return [lines.reduce((a, l) => (l.sg! < a.sg! ? l : a))];
