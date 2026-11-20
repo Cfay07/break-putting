@@ -53,9 +53,15 @@ describe('comparisons', () => {
 
   it('reads the first and last three holes in the order played', () => {
     const holes = Array.from({ length: 9 }, (_, i) => [4, i < 3 ? 3 : 2] as [number, number]);
-    const [first, , last] = byStretch([round('a', holes)], B);
-    expect(first.label).toBe('First 3 holes');
-    expect(first.threes).toBe(18);
-    expect(last.threes).toBe(0);
+    const lines = byStretch([round('a', holes)], B);
+    expect(lines.find((l) => l.label === 'First 3 holes')!.threes).toBe(18);
+    expect(lines.find((l) => l.label === 'Last 3 holes')!.threes).toBe(0);
+  });
+
+  it('names the spot in the round you lose the most on, once ten rounds stand behind it', () => {
+    const holes = Array.from({ length: 9 }, (_, i) => [4, i === 4 ? 3 : 2] as [number, number]);
+    const rs = Array.from({ length: 10 }, (_, i) => round(`r${i}`, holes));
+    expect(byStretch(rs, B).find((l) => l.label.startsWith('Worst'))!.label).toBe('Worst hole: the 5th');
+    expect(byStretch(rs.slice(0, 9), B).some((l) => l.label.startsWith('Worst'))).toBe(false);
   });
 });

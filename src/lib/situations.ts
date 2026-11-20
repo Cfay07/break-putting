@@ -71,14 +71,18 @@ function line(label: string, rounds: Round[], holes: Hole[], baseline: [number, 
 }
 
 /** Rounds split into named groups, each read the same way. Empty groups are left out. */
-export function compare(
-  groups: { label: string; rounds: Round[] }[],
-  baseline: [number, number][],
-): GroupLine[] {
+export function compare(groups: { label: string; rounds: Round[] }[], baseline: [number, number][]): GroupLine[] {
   return groups
     .map((g) => ({ ...g, rounds: counted(g.rounds) }))
     .filter((g) => g.rounds.length > 0)
-    .map((g) => line(g.label, g.rounds, g.rounds.flatMap((r) => r.holes), baseline));
+    .map((g) =>
+      line(
+        g.label,
+        g.rounds,
+        g.rounds.flatMap((r) => r.holes),
+        baseline,
+      ),
+    );
 }
 
 export const tournamentVsCasual = (rounds: Round[], baseline: [number, number][]) =>
@@ -102,8 +106,8 @@ export const byTrueness = (rounds: Round[], baseline: [number, number][]) =>
   );
 
 /**
- * Each stage of a round, in the order the holes were played: the first three, the middle, the
- * last three, then the two nines of an eighteen. A shotgun start still reads right, since it goes
+ * Each stage of a round, in the order the holes were played: the first three, the hole you lose
+ * the most on, the last three, then the two nines of an eighteen. A shotgun start still reads right, since it goes
  * by order played rather than hole number.
  */
 export function byStretch(rounds: Round[], baseline: [number, number][]): GroupLine[] {
@@ -112,15 +116,58 @@ export function byStretch(rounds: Round[], baseline: [number, number][]): GroupL
   const pick = (f: (holes: Hole[]) => Hole[]) => rs.flatMap((r) => f(played(r)));
   const eighteens = rs.filter((r) => played(r).length >= 18);
   const out = [
-    line('First 3 holes', rs, pick((hs) => hs.slice(0, 3)), baseline),
-    line('Middle holes', rs, pick((hs) => hs.slice(3, -3)), baseline),
-    line('Last 3 holes', rs, pick((hs) => hs.slice(-3)), baseline),
+    line(
+      'First 3 holes',
+      rs,
+      pick((hs) => hs.slice(0, 3)),
+      baseline,
+    ),
+    ...worstPosition(rs, played, baseline),
+    line(
+      'Last 3 holes',
+      rs,
+      pick((hs) => hs.slice(-3)),
+      baseline,
+    ),
   ];
   if (eighteens.length) {
     out.push(
-      line('Front nine', eighteens, eighteens.flatMap((r) => played(r).slice(0, 9)), baseline),
-      line('Back nine', eighteens, eighteens.flatMap((r) => played(r).slice(9, 18)), baseline),
+      line(
+        'Front nine',
+        eighteens,
+        eighteens.flatMap((r) => played(r).slice(0, 9)),
+        baseline,
+      ),
+      line(
+        'Back nine',
+        eighteens,
+        eighteens.flatMap((r) => played(r).slice(9, 18)),
+        baseline,
+      ),
     );
   }
   return out.filter((l) => l.holes > 0);
+}
+
+/** Holes at one spot in the order before that spot can be called your worst. */
+const MIN_AT_SPOT = 10;
+
+const ordinalOf = (n: number) => {
+  const t = n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  return `${n}${t}`;
+};
+
+/** The spot in the round (the 1st hole played, the 2nd...) where you give back the most, on average. */
+function worstPosition(rs: Round[], played: (r: Round) => Hole[], baseline: [number, number][]): GroupLine[] {
+  const spots = new Map<number, Hole[]>();
+  for (const r of rs)
+    played(r).forEach((h, i) => {
+      if (h.putts.length) spots.set(i, [...(spots.get(i) ?? []), h]);
+    });
+  const lines = [...spots.entries()]
+    .filter(([, holes]) => holes.length >= MIN_AT_SPOT)
+    .map(([i, holes]) => line(`Worst hole: the ${ordinalOf(i + 1)}`, rs, holes, baseline))
+    .filter((l) => l.sg !== null);
+  if (!lines.length) return [];
+  return [lines.reduce((a, l) => (l.sg! < a.sg! ? l : a))];
 }
