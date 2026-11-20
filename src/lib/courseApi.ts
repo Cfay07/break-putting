@@ -1,7 +1,5 @@
+import { callFunction } from './cloud';
 import type { SavedCourse, SavedTee } from './types';
-
-const BASE = 'https://api.golfcourseapi.com/v1';
-const KEY = 'Key 3VIUZUIXPFVAJPBAWNTJLGW7JQ';
 
 export interface CourseHit {
   id: string;
@@ -17,26 +15,29 @@ interface ApiTee {
   holes?: { par?: number }[];
 }
 
-async function get(path: string): Promise<unknown> {
-  const res = await fetch(`${BASE}${path}`, { headers: { Authorization: KEY } });
-  if (res.status === 401) throw new Error('The API key was rejected.');
+/** Through the course-lookup function, which holds the course service's key so the app never does. */
+async function get(params: Record<string, string>): Promise<unknown> {
+  const res = await callFunction('course-lookup', params);
   if (!res.ok) throw new Error(`The course service answered ${res.status}.`);
   return res.json();
 }
 
 export async function searchCourses(query: string): Promise<CourseHit[]> {
-  const data = (await get(`/search?search_query=${encodeURIComponent(query)}`)) as {
+  const data = (await get({ q: query })) as {
     courses?: { id: string; club_name?: string; course_name?: string; location?: { city?: string; state?: string } }[];
   };
   return (data.courses ?? []).map((c) => ({
     id: String(c.id),
-    name: c.course_name && c.course_name !== c.club_name ? `${c.club_name} · ${c.course_name}` : (c.club_name ?? c.course_name ?? 'Unnamed'),
+    name:
+      c.course_name && c.course_name !== c.club_name
+        ? `${c.club_name} · ${c.course_name}`
+        : (c.club_name ?? c.course_name ?? 'Unnamed'),
     place: [c.location?.city, c.location?.state].filter(Boolean).join(', '),
   }));
 }
 
 export async function loadCourse(id: string): Promise<SavedCourse> {
-  const data = (await get(`/courses/${id}`)) as {
+  const data = (await get({ id })) as {
     course?: {
       club_name?: string;
       course_name?: string;
@@ -69,7 +70,8 @@ export async function loadCourse(id: string): Promise<SavedCourse> {
 
   return {
     id: String(id),
-    name: c.course_name && c.course_name !== c.club_name ? `${c.club_name} · ${c.course_name}` : (c.club_name ?? 'Unnamed'),
+    name:
+      c.course_name && c.course_name !== c.club_name ? `${c.club_name} · ${c.course_name}` : (c.club_name ?? 'Unnamed'),
     place: [c.location?.city, c.location?.state].filter(Boolean).join(', '),
     tees: tees.sort((a, b) => (b.yards ?? 0) - (a.yards ?? 0)),
   };

@@ -10,6 +10,13 @@ const ANON =
 
 const SESSION_KEY = 'break.session';
 
+/** A Supabase Edge Function, called with the public key like the REST calls. */
+export function callFunction(name: string, params: Record<string, string>): Promise<Response> {
+  return fetch(`${URL}/functions/v1/${name}?${new URLSearchParams(params)}`, {
+    headers: { apikey: ANON, Authorization: `Bearer ${ANON}` },
+  });
+}
+
 export interface Session {
   accessToken: string;
   refreshToken: string;
