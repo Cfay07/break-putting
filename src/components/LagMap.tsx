@@ -97,7 +97,7 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
         .map((l, i) => {
           const a = base + (i - (ls.length - 1) / 2) * step;
           const r = Math.min(l.leave!, CAP) * SCALE;
-          return { ...l, cx: Math.cos(a) * r, cy: Math.sin(a) * r };
+          return { ...l, cx: Math.cos(a) * r, cy: Math.sin(a) * r, a };
         });
     })
     // Three-putts last, so no plain dot is ever drawn over their 3.
@@ -154,6 +154,24 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
           ),
         )}
         <circle r={4.2} className="lm-cup" />
+        {/* Past the edge: a tick pointing on out and the real length, so it never reads as 12. */}
+        {placed
+          .filter((l) => l.leave! > CAP)
+          .map((l) => {
+            const r = CAP * SCALE;
+            const at = (k: number) => [Math.cos(l.a) * (r + k), Math.sin(l.a) * (r + k)];
+            const [x1, y1] = at(6);
+            const [x2, y2] = at(12);
+            const [tx, ty] = at(19);
+            return (
+              <g key={`${l.key}-past`}>
+                <line x1={x1} y1={y1} x2={x2} y2={y2} className="lm-past" />
+                <text x={tx} y={ty + 2.5} className="lm-past-label">
+                  {l.leave} ft
+                </text>
+              </g>
+            );
+          })}
         {RINGS.map((r) => (
           <text key={r} x={3} y={r * SCALE + 9} className="lm-ring-label">
             {r} ft
@@ -183,7 +201,9 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
         {cut ? `Your last ${limit} lags from ${LAG_FROM}+ ft` : `Your lags from ${LAG_FROM}+ ft`}, each at the length it
         left you. Short is left, long is right, the high side is up.
         {holed ? ` ${holed} went in.` : ''}
-        {plotted.some((l) => l.leave! > CAP) ? ` Anything past ${CAP} ft sits on the edge.` : ''}
+        {plotted.some((l) => l.leave! > CAP)
+          ? ` A tick on the edge means it went past ${CAP} ft, with the real length beside it.`
+          : ''}
         {untagged > 0 ? ` ${untagged} had no finish tagged, so they are not on the map.` : ''}
       </p>
     </div>
