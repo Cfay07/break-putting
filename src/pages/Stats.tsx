@@ -13,6 +13,7 @@ import { byStretch, byTrueness, conversion, tournamentVsCasual } from '../lib/si
 import { CompareRows, CompareTable } from '../components/CompareTable';
 import { DistanceTable } from '../components/DistanceTable';
 import { InsightList } from '../components/InsightList';
+import { LagMap } from '../components/LagMap';
 import { LagPanel } from '../components/LagPanel';
 import { MissAnatomyPanel } from '../components/MissAnatomyPanel';
 import { MissShapesPanel } from '../components/MissShapesPanel';
@@ -613,6 +614,7 @@ function RoundStats() {
           <p className="act">What it costs you</p>
           <h2>Lag control</h2>
           <LagPanel stats={o.pooled} lag={lag} />
+          <LagMap rounds={rounds} />
           <p className="small muted" style={{ margin: '8px 0 0' }}>
             Typical leave is every lag you hit. The comeback is only the ones that finished {DANGER_FROM}+ feet away,
             which is why it is the bigger number.

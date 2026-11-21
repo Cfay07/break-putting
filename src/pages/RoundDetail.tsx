@@ -16,6 +16,7 @@ import { teeOf } from '../lib/courses';
 import { useCourseRatings } from '../lib/useCourseRatings';
 import { RoundStory } from '../components/RoundTrophies';
 import { DistanceTable } from '../components/DistanceTable';
+import { LagMap } from '../components/LagMap';
 import { LagPanel } from '../components/LagPanel';
 import { ReadPanel } from '../components/ReadPanel';
 import { PatternPanel } from '../components/PatternPanel';
@@ -414,7 +415,12 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       {tab === 'practice' && <RoundPractice round={round} stats={s} baseline={state.baseline} />}
       {tab === 'distance' && <DistanceTable stats={s} countsOnly />}
       {tab === 'stroke' && <RoundStroke round={round} rounds={state.rounds} baseline={state.baseline} form={form} />}
-      {tab === 'lag' && <LagPanel stats={s} lag={lagSaves([round])} />}
+      {tab === 'lag' && (
+        <>
+          <LagPanel stats={s} lag={lagSaves([round])} />
+          <LagMap rounds={[round]} />
+        </>
+      )}
       {tab === 'misses' && (
         <>
           {read.judged > 0 && <ReadPanel read={read} />}

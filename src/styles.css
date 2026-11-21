@@ -2550,3 +2550,15 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
   position: sticky; bottom: calc(36px + env(safe-area-inset-bottom)); z-index: 5;
   margin-top: 18px; padding: 10px 0; background: var(--paper);
 }
+
+/* Where lags stopped, drawn around the hole. */
+.lag-map { margin-top: 12px; }
+.lag-map svg { display: block; width: 100%; max-width: 380px; margin: 0 auto; }
+.lm-axis { stroke: var(--line); }
+.lm-ring { fill: none; stroke: rgba(20, 57, 43, 0.25); stroke-dasharray: 3 3; }
+.lm-ring-label { font-size: 8px; fill: var(--ink-2); paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
+.lm-edge { font-size: 9px; fill: var(--ink-2); font-weight: 600; }
+.lm-dot { fill-opacity: 0.88; stroke: var(--card); stroke-width: 1; }
+.lm-cup { fill: var(--ink); }
+.lm-key { display: flex; gap: 14px; justify-content: center; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
+.lm-key i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
