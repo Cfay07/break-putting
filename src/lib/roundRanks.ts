@@ -2,7 +2,7 @@ import { fmtDate } from './format';
 import { holeSG } from './sg';
 import { readError } from './readError';
 import { conversion } from './situations';
-import { roundStats } from './stats';
+import { LAG_FROM, roundStats } from './stats';
 import { faultyOf } from './xp';
 import { holeVsPar, type Round } from './types';
 
@@ -28,9 +28,9 @@ interface Metric {
 const madeLengths = (r: Round) => r.holes.flatMap((h) => h.putts.filter((p) => p.made).map((p) => p.d));
 const playedHoles = (r: Round) => r.holes.filter((h) => h.putts.length > 0).length;
 
-/** First putts from 30 ft and out: how far from the hole they finished, on average. A make is zero. */
+/** Lags (first putts from LAG_FROM out): how far from the hole they finished, on average. A make is zero. */
 function lagLeave(r: Round): number | null {
-  const lags = r.holes.filter((h) => h.putts.length && h.putts[0].d >= 30);
+  const lags = r.holes.filter((h) => h.putts.length && h.putts[0].d >= LAG_FROM);
   if (lags.length < 2) return null;
   return lags.reduce((a, h) => a + (h.putts[0].made ? 0 : (h.putts[1]?.d ?? 0)), 0) / lags.length;
 }

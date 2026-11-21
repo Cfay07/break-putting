@@ -1,4 +1,4 @@
-import { pct, readBias, type Stats } from './stats';
+import { LAG_FROM, pct, readBias, type Stats } from './stats';
 
 export interface Insight {
   id: string;
@@ -137,7 +137,7 @@ export function insights(s: Stats, ctx: InsightContext | number = {}): Insight[]
         id: 'good-lag',
         tone: 'good',
         title: 'Lag putting is holding up',
-        detail: `${s.lagInside} of ${s.lagAttempts} from outside 30 feet finished inside a tenth of the putt, averaging ${s.avgLeave?.toFixed(1)} feet.`,
+        detail: `${s.lagInside} of ${s.lagAttempts} from ${LAG_FROM} feet and out finished inside a tenth of the putt, averaging ${s.avgLeave?.toFixed(1)} feet.`,
         drill: 'Nothing to fix here. Spend the practice time inside 8 feet.',
       });
     } else if (s.threePlus === 0 && s.holesPlayed >= 9) {

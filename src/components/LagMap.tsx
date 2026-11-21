@@ -1,4 +1,4 @@
-import { LAG_FROM } from '../lib/stats';
+import { DANGER_FROM, LAG_FROM } from '../lib/stats';
 import { breakDirsOf, type MissSide, type Round, type Speed } from '../lib/types';
 
 type Slope = 'up' | 'down' | 'flat';
@@ -14,7 +14,8 @@ interface Dot {
 }
 
 const SCALE = 7;
-const RINGS = [3, 6, 9];
+/** The comeback line first, solid: inside it the next putt is a tap-in, outside it can be missed. */
+const RINGS = [DANGER_FROM, 8, 12];
 const CAP = 12;
 const COLOR: Record<Slope, string> = { down: '#c0533a', up: '#1d7a5a', flat: '#9aa79f' };
 const LABEL: Record<Slope, string> = { down: 'Downhill', up: 'Uphill', flat: 'Flat' };
@@ -34,14 +35,19 @@ function direction(side: MissSide, speed: Speed): [number, number] {
  * the miss grid cell, so dots in the same cell fan out side by side rather than pretending to a
  * precision the tag never had.
  */
-export function LagMap({ rounds }: { rounds: Round[] }) {
+export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
   let lags = 0;
+  let cut = false;
   let holed = 0;
   const dots: Dot[] = [];
-  for (const r of rounds) {
-    r.holes.forEach((h) => {
+  // Newest first, so a limit keeps the lags that say how you putt now. Every count below covers
+  // the same lags the map draws.
+  const newest = [...rounds].sort((a, b) => b.date.localeCompare(a.date));
+  for (const r of newest) {
+    [...r.holes].reverse().forEach((h) => {
       const p = h.putts[0];
       if (!p || p.d < LAG_FROM) return;
+      if (limit !== undefined && dots.length >= limit) return void (cut = true);
       lags++;
       if (p.made) return void holed++;
       if (!p.missSide || !p.speed) return;
@@ -81,14 +87,26 @@ export function LagMap({ rounds }: { rounds: Round[] }) {
   const slopes = (['down', 'up', 'flat'] as Slope[]).filter((s) => dots.some((d) => d.slope === s));
   const untagged = lags - holed - dots.length;
   const threes = dots.filter((d) => d.three).length;
+  // Only the lags on the map, so the line and the dots always agree.
+  const comebacks = dots.filter((d) => d.leave >= DANGER_FROM).length;
+  const comebacksHoled = dots.filter((d) => d.leave >= DANGER_FROM && !d.three).length;
 
   return (
     <div className="card lag-map">
+      {comebacks > 0 && (
+        <p className="lm-head">
+          <b>{comebacks}</b> left you {DANGER_FROM}+ ft, outside the solid ring. You holed{' '}
+          <b className={comebacksHoled === comebacks ? 'pos' : comebacksHoled / comebacks < 0.6 ? 'neg' : undefined}>
+            {comebacksHoled} of {comebacks}
+          </b>{' '}
+          comebacks{comebacksHoled < comebacks ? '; each 3 is one you missed' : ''}.
+        </p>
+      )}
       <svg viewBox="-130 -108 260 216" role="img" aria-label="Where your lag putts finished around the hole">
         <line x1={-98} y1={0} x2={98} y2={0} className="lm-axis" />
         <line x1={0} y1={-104} x2={0} y2={104} className="lm-axis" />
         {RINGS.map((r) => (
-          <circle key={r} r={r * SCALE} className="lm-ring" />
+          <circle key={r} r={r * SCALE} className={r === DANGER_FROM ? 'lm-ring lm-danger' : 'lm-ring'} />
         ))}
         <text x={-128} y={3} className="lm-edge">
           Short
@@ -136,8 +154,10 @@ export function LagMap({ rounds }: { rounds: Round[] }) {
         )}
       </div>
       <p className="small muted" style={{ margin: '8px 0 0' }}>
-        Every first putt from {LAG_FROM}+ ft you missed, at the length it left you. Short is left, long is right, the
-        high side is up.
+        {cut
+          ? `Your last ${limit} missed lags from ${LAG_FROM}+ ft`
+          : `Every first putt from ${LAG_FROM}+ ft you missed`}
+        , at the length it left you. Short is left, long is right, the high side is up.
         {holed ? ` ${holed} holed.` : ''}
         {dots.some((d) => d.leave > CAP) ? ` Anything past ${CAP} ft sits on the edge.` : ''}
         {untagged > 0 ? ` ${untagged} had no finish tagged, so they are not on the map.` : ''}

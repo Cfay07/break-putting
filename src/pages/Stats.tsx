@@ -614,7 +614,7 @@ function RoundStats() {
           <p className="act">What it costs you</p>
           <h2>Lag control</h2>
           <LagPanel stats={o.pooled} lag={lag} />
-          <LagMap rounds={rounds} />
+          <LagMap rounds={rounds} limit={50} />
           <p className="small muted" style={{ margin: '8px 0 0' }}>
             Typical leave is every lag you hit. The comeback is only the ones that finished {DANGER_FROM}+ feet away,
             which is why it is the bigger number.

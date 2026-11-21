@@ -2,7 +2,7 @@ import { bleedsIn } from './bleed';
 import { fmtDateLong, puttSequence } from './format';
 import { insights } from './insights';
 import { holeSG } from './sg';
-import { BUCKETS, courseLabel, lagSaves, pct, readBias, type Stats } from './stats';
+import { BUCKETS, courseLabel, LAG_FROM, lagSaves, pct, readBias, type Stats } from './stats';
 import {
   BREAK_BUCKETS,
   BREAK_BUCKET_LABELS,
@@ -202,7 +202,7 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
 
   const lagRows: [string, string][] = [];
   if (lag.lags > 0) {
-    lagRows.push(['First putts from 30+ ft', String(lag.lags)]);
+    lagRows.push([`First putts from ${LAG_FROM}+ ft`, String(lag.lags)]);
     if (s.avgLeave !== null) {
       lagRows.push([
         'Typical leave',
