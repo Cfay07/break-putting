@@ -151,7 +151,7 @@ export function StatsFilter({
               type="date"
               value={f.from ?? ''}
               max={f.to ?? latest}
-              onChange={(e) => setF({ ...f, from: e.target.value || undefined })}
+              onChange={(e) => setF({ ...f, from: e.target.value || undefined, last: undefined })}
             />
           </label>
           <label>
@@ -160,22 +160,28 @@ export function StatsFilter({
               type="date"
               value={f.to ?? ''}
               min={f.from}
-              onChange={(e) => setF({ ...f, to: e.target.value || undefined })}
+              onChange={(e) => setF({ ...f, to: e.target.value || undefined, last: undefined })}
             />
           </label>
         </div>
         <div className="chips chips-sm" style={{ marginTop: 8 }}>
           <button
-            className={!f.from && !f.to ? 'chip chip-sel' : 'chip'}
-            onClick={() => setF({ ...f, from: undefined, to: undefined })}
+            className={!f.from && !f.to && !f.last ? 'chip chip-sel' : 'chip'}
+            onClick={() => setF({ ...f, from: undefined, to: undefined, last: undefined })}
           >
             All time
+          </button>
+          <button
+            className={f.last === 10 ? 'chip chip-sel' : 'chip'}
+            onClick={() => setF({ ...f, from: undefined, to: undefined, last: 10 })}
+          >
+            Last 10 rounds
           </button>
           {quick.map((q) => (
             <button
               key={q.label}
-              className={f.from === q.from && !f.to ? 'chip chip-sel' : 'chip'}
-              onClick={() => setF({ ...f, from: q.from, to: undefined })}
+              className={f.from === q.from && !f.to && !f.last ? 'chip chip-sel' : 'chip'}
+              onClick={() => setF({ ...f, from: q.from, to: undefined, last: undefined })}
             >
               {q.label}
             </button>

@@ -2571,3 +2571,35 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .lm-slopes { margin-bottom: 6px; }
 .form-story { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
 .end-mark { color: #2c8c54; font-weight: 800; font-size: 12px; }
+
+/* Stats home: the score card, then one row per topic. */
+.shoot-split .ss-title { margin: 0 0 6px; font-size: 16px; font-weight: 800; }
+.ss-big { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 10px; }
+.ss-big span { display: block; font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3); }
+.ss-big strong { font-size: 30px; font-weight: 900; line-height: 1.05; }
+.ss-arrow { color: var(--ink-3); font-size: 18px; padding-bottom: 5px; }
+.ss-lead { margin: 0 0 4px; font-size: 13px; font-weight: 700; }
+.ss-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; }
+.ss-bar i { display: block; height: 100%; border-right: 2px solid var(--card); }
+.ss-bar i:last-child { border-right: 0; }
+.ss-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); margin: 3px 0 6px; }
+.ss-leg { display: grid; grid-template-columns: 12px minmax(0, 1fr) 46px 40px; gap: 8px; align-items: center; font-size: 13px; padding: 5px 0; border-top: 1px solid var(--line); }
+.ss-leg i { width: 10px; height: 10px; border-radius: 3px; display: block; }
+.ss-leg b { text-align: right; }
+.ss-leg small { text-align: right; color: var(--ink-3); }
+.ss-within { margin: 10px 0 0; padding: 8px 10px; border-radius: 9px; background: rgba(165, 42, 31, 0.07); font-size: 13px; line-height: 1.45; }
+.ss-within b { color: #a52a1f; }
+.topic-group { margin: 18px 0 6px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.topic-list { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.topic-row { display: grid; grid-template-columns: minmax(0, 1fr) 48px 78px 10px; gap: 8px; align-items: center; width: 100%; padding: 10px 12px; background: none; border: 0; border-top: 1px solid var(--line); text-align: left; color: var(--ink); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.topic-row:first-child { border-top: 0; }
+.topic-row:active { background: rgba(20, 57, 43, 0.04); }
+.tr-name b { display: block; font-size: 14px; }
+.tr-name small { display: block; font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-bar { position: relative; height: 6px; border-radius: 3px; background: rgba(20, 57, 43, 0.08); overflow: hidden; }
+.tr-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.tr-val { text-align: right; font-weight: 800; font-size: 14px; white-space: nowrap; }
+.tr-val small { display: block; font-size: 10.5px; font-weight: 700; }
+.tr-val small.up { color: #1f7a4d; }
+.tr-val small.down { color: #a52a1f; }
+.tr-val small.flat { color: var(--ink-3); }

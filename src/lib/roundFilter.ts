@@ -12,12 +12,14 @@ export interface RoundFilter {
   /** Inclusive ISO dates. */
   from?: string;
   to?: string;
+  /** Only your most recent this many rounds, after everything else narrows them. */
+  last?: number;
 }
 
 export const NO_FILTER: RoundFilter = { kind: 'all' };
 
 export function applyFilter(rounds: Round[], f: RoundFilter): Round[] {
-  return rounds.filter(
+  const kept = rounds.filter(
     (r) =>
       r.finished &&
       (f.kind === 'all' || !!r.competitive === (f.kind === 'competitive')) &&
@@ -27,10 +29,13 @@ export function applyFilter(rounds: Round[], f: RoundFilter): Round[] {
       (!f.from || r.date >= f.from) &&
       (!f.to || r.date <= f.to),
   );
+  if (!f.last) return kept;
+  const real = kept.filter((r) => !r.practice).sort((a, b) => a.date.localeCompare(b.date));
+  return real.slice(-f.last);
 }
 
 export function isFiltered(f: RoundFilter): boolean {
-  return f.kind !== 'all' || !!f.putterId || !!f.greens || !!f.course || !!f.from || !!f.to;
+  return f.kind !== 'all' || !!f.putterId || !!f.greens || !!f.course || !!f.from || !!f.to || !!f.last;
 }
 
 const GREEN_WORD: Record<GreenSpeed, string> = { slow: 'Slow', medium: 'Medium', fast: 'Fast', glass: 'Glass' };
@@ -49,7 +54,7 @@ export function filterLabel(f: RoundFilter, putters: Putter[]): string {
     f.putterId ? (putters.find((p) => p.id === f.putterId)?.name ?? 'One putter') : null,
     f.kind === 'competitive' ? 'Competitive' : f.kind === 'casual' ? 'Casual' : null,
     f.greens ? `${GREEN_WORD[f.greens]} greens` : null,
-    dateRangeText(f),
+    f.last ? `Last ${f.last} rounds` : dateRangeText(f),
   ].filter(Boolean);
   return parts.length ? parts.join(' · ') : 'All rounds';
 }
