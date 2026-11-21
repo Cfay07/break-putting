@@ -18,17 +18,11 @@ export function FormVenn({ venn }: { venn: Venn }) {
       <div className="field-label">Where the two numbers disagree</div>
       <div className="card">
         <div className="stat-row">
-          <span className="k">
-            Went in off a bad stroke
-            <span className="small muted"> · strokes gained paid you, Form did not</span>
-          </span>
+          <span className="k">Went in off a bad stroke</span>
           <span className="v num">{gotAway}</span>
         </div>
         <div className="stat-row">
-          <span className="k">
-            Good stroke, did not drop
-            <span className="small muted"> · Form paid you, strokes gained did not</span>
-          </span>
+          <span className="k">Good stroke, didn&apos;t drop</span>
           <span className="v num">{robbed}</span>
         </div>
       </div>

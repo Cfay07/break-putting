@@ -18,6 +18,15 @@ import { breakDirsOf, type Round } from './types';
 /** Below this a made putt never reached the tagging screen, so it can carry no process. */
 const LONG_MAKE = 4;
 /**
+ * A miss had the right pace when it finished this close: a tenth of the putt, and never less than
+ * 2 feet, which is about where a firm putt that just slides by ends up. Short or long is how a miss
+ * gets tagged, and nearly every miss is one or the other, so the tag alone called almost every miss
+ * bad pace and the "good stroke, did not drop" putt could never happen.
+ */
+const PACE_FLOOR = 2;
+const paceOk = (d: number, leave: number | undefined, speed: string | undefined) =>
+  leave !== undefined ? leave <= Math.max(PACE_FLOOR, d * LEAVE_STANDARD) : speed === 'good';
+/**
  * Enough tagged putts in one round for the process layer to speak. Only a read or a strike
  * counts towards it: pace and start line get logged as part of tagging an ordinary miss, so
  * letting them unlock the layer would mark nearly every round as fully measured and the faint
@@ -193,12 +202,13 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
       }
       // Quitting on it and jabbing at it are pace faults with a cause attached, and they were
       // feeding nothing at all before: tagged, counted on the stats page, and invisible here.
-      // A lag's pace is already judged by its leave: one that died a foot short is a good lag, and
-      // its short tag must not count against it twice. A tempo fault on a lag still counts.
+      // Pace on a miss is judged by where it finished. A lag already is, in its own part, so it only
+      // comes here on a tempo fault. A make needs no pace judgment: it got there.
       const tempo = !!p.decel || !!p.accel;
-      if (lag ? tempo : p.speed || tempo) {
+      const finishedClose = p.made || paceOk(p.d, leave, p.speed);
+      if (lag ? tempo : (!p.made && (leave !== undefined || p.speed)) || tempo) {
         parts.pace.of++;
-        if (p.speed === 'good' && !tempo) parts.pace.right++;
+        if (finishedClose && !tempo) parts.pace.right++;
       }
       if (p.lip) {
         parts.lip.of++;
@@ -216,8 +226,7 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
         const readOk = p.readAs === undefined || !readWrong;
         const strikeOk = p.strike === undefined || p.strike === 'centre';
         const lineOk = !p.push && !p.pull;
-        const paceOk = !p.decel && !p.accel && p.speed !== 'short' && p.speed !== 'long';
-        const clean = readOk && strikeOk && lineOk && paceOk && !p.uncommitted;
+        const clean = readOk && strikeOk && lineOk && !tempo && finishedClose && !p.uncommitted;
         if (p.made && clean) venn.earned++;
         else if (p.made) venn.gotAway++;
         else if (clean) venn.robbed++;
@@ -237,4 +246,20 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
   const score = process === null ? outcome : outcome * 0.5 + process * 0.5;
 
   return { score, outcome, process, tagged, parts, venn, sg18 };
+}
+
+/** How far apart the two halves sit before the round is called one way or the other. */
+export const STORY_GAP = 1;
+
+/**
+ * The round in one line, only when how you hit them and how they finished disagree. Most rounds
+ * get nothing, which is what makes it worth reading when it shows up.
+ */
+export function formStory(form: Form): { line: string; better: boolean } | null {
+  if (form.process === null) return null;
+  const gap = form.process - form.outcome;
+  if (Math.abs(gap) < STORY_GAP) return null;
+  return gap > 0
+    ? { line: 'You putted better than the result.', better: true }
+    : { line: 'The result was better than the putting.', better: false };
 }

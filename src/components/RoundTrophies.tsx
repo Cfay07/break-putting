@@ -4,6 +4,7 @@ import { go } from '../lib/router';
 import { headlineRanks, rankedRounds, rankText, roundRanks, swingHoles, type RankLine } from '../lib/roundRanks';
 import { courseLabel, type Stats } from '../lib/stats';
 import { roundStreaks } from '../lib/streaks';
+import { formOf, formStory } from '../lib/form';
 import { holeVsPar, type Round } from '../lib/types';
 import { Sheet } from './Sheet';
 import { fmtIndex, indexAt, indexMove } from '../lib/handicap';
@@ -35,6 +36,8 @@ export function RoundStory({
   const toPar = scored.reduce((a, h) => a + holeVsPar(h)!, 0);
   const heads = useMemo(() => headlineRanks(roundRanks(round, rounds, baseline)), [round, rounds, baseline]);
   const runs = useMemo(() => roundStreaks(round, rounds, baseline), [round, rounds, baseline]);
+  const form = useMemo(() => formOf(round, baseline), [round, baseline]);
+  const story = form && formStory(form);
   const [open, setOpen] = useState<string | null>(null);
   const list = open ? rankedRounds(round, rounds, baseline, open) : null;
   const courses = useCourseRatings();
@@ -84,6 +87,13 @@ export function RoundStory({
           </div>
         )}
       </div>
+
+      {form && (
+        <p className="story-form">
+          Form <b>{form.score.toFixed(1)}</b>
+          {story ? <span className={story.better ? 'up' : 'down'}> · {story.line}</span> : null}
+        </p>
+      )}
 
       {heads.map((l, i) => (
         <button key={l.key} className="story-rank" onClick={() => setOpen(l.key)}>
