@@ -409,7 +409,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
           <button className="linkish tiny" onClick={() => go('/stats')}>
             ‹ Stats
           </button>
-          <h1 className="page-title" style={{ marginTop: 4 }}>
+          <h1 className="page-title topic-title">
             {TOPICS[topic]}
           </h1>
         </>

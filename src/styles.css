@@ -2603,3 +2603,6 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .tr-val small.up { color: #1f7a4d; }
 .tr-val small.down { color: #a52a1f; }
 .tr-val small.flat { color: var(--ink-3); }
+/* A topic page: room under the title, and under the filter bar before the first card. */
+.topic-title { margin: 4px 0 14px; }
+.topic-title + .filter-bar { margin-bottom: 14px; }

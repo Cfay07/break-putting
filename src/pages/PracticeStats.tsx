@@ -149,7 +149,7 @@ export function PracticeStats({ topic }: { topic?: PracticeTopic }) {
           <button className="linkish tiny" onClick={() => go('/stats/practice')}>
             ‹ Practice stats
           </button>
-          <h1 className="page-title" style={{ marginTop: 4 }}>
+          <h1 className="page-title topic-title">
             {PRACTICE_TOPICS[topic]}
           </h1>
         </>
