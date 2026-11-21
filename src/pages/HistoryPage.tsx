@@ -12,6 +12,15 @@ import type { Round } from '../lib/types';
 
 const RECENT = 10;
 
+/**
+ * The number alone, so every record reads the same: "93% struck in the middle" and "5 birdies"
+ * become "93%" and "5". The title says what it counts, and the ranked list it opens has the rest.
+ */
+function shortValue(v: string): string {
+  const m = v.match(/^[+−-]?[\d.,]+(%| ft)?/);
+  return m ? m[0] : v;
+}
+
 const played = (r: Round) => r.holes.filter((h) => h.putts.length > 0).length;
 
 /**
@@ -109,7 +118,9 @@ export function HistoryPage() {
                 {b.title}
                 <small>{b.where}</small>
               </span>
-              <span className="val num">{b.best}</span>
+              <span className="val num" title={b.best}>
+                {shortValue(b.best)}
+              </span>
               <span className="chev">›</span>
             </button>
             {b.key === 'longest' && holeRuns.map((t) => <TrophyRow key={t.key} t={t} />)}
