@@ -41,16 +41,19 @@ export function TopicRows({ rows, base = '/stats/t/' }: { rows: TopicRow[]; base
             <b>{row.title}</b>
             <small>{row.sub}</small>
           </span>
-          <span className="tr-bar">
-            {row.bar !== undefined && (
+          {/* No track at all when there is no number to draw: an empty bar reads as a missing one. */}
+          {row.bar !== undefined ? (
+            <span className="tr-bar">
               <i
                 style={{
                   width: `${Math.max(0, Math.min(1, row.bar)) * 100}%`,
                   background: row.better === 'down' ? '#a52a1f' : '#2e8a5c',
                 }}
               />
-            )}
-          </span>
+            </span>
+          ) : (
+            <span />
+          )}
           <span className="tr-val num">
             {row.num && row.fmt ? row.fmt(row.num.now) : (row.note ?? '')}
             {row.num && row.fmt && <Trend r={row.num} fmt={row.fmt} better={row.better ?? 'up'} />}
