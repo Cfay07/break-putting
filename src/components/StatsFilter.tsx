@@ -23,6 +23,10 @@ const GREENS: { k: GreenSpeed; label: string }[] = [
  * leave given the rest of the filter, so a choice that empties the page is visible before
  * it is tapped.
  */
+
+/** Courses shown before the rest fold away, and how many before a search box earns its place. */
+const COURSES_SHOWN = 5;
+const SEARCH_FROM = 8;
 export function StatsFilter({
   value,
   rounds,
@@ -37,26 +41,44 @@ export function StatsFilter({
   onClose: () => void;
 }) {
   const [f, setF] = useState<RoundFilter>(value);
+  const [allCourses, setAllCourses] = useState(false);
+  const [courseQuery, setCourseQuery] = useState('');
   const count = (p: Partial<RoundFilter>) => applyFilter(rounds, { ...f, ...p }).length;
   const finished = rounds.filter((r) => r.finished);
   const latest = finished.reduce((a, r) => (r.date > a ? r.date : a), today());
 
   const putterRows = putters
     .map((p) => {
-      const rs = finished.filter((r) => r.putterId === p.id).map((r) => r.date).sort();
+      const rs = finished
+        .filter((r) => r.putterId === p.id)
+        .map((r) => r.date)
+        .sort();
       return rs.length ? { p, from: rs[0], to: rs[rs.length - 1] } : null;
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
     .sort((a, b) => b.to.localeCompare(a.to));
-  const courseRows = [...finished.reduce((m, r) => {
-    const name = r.course?.trim();
-    if (!name) return m;
-    const key = courseKey(name);
-    const row = m.get(key) ?? { key, label: name, n: 0 };
-    row.n += 1;
-    if (name.length > row.label.length) row.label = name;
-    return m.set(key, row);
-  }, new Map<string, { key: string; label: string; n: number }>()).values()].sort((a, b) => b.n - a.n);
+  const courseRows = [
+    ...finished
+      .reduce((m, r) => {
+        const name = r.course?.trim();
+        if (!name) return m;
+        const key = courseKey(name);
+        const row = m.get(key) ?? { key, label: name, n: 0 };
+        row.n += 1;
+        if (name.length > row.label.length) row.label = name;
+        return m.set(key, row);
+      }, new Map<string, { key: string; label: string; n: number }>())
+      .values(),
+  ].sort((a, b) => b.n - a.n);
+  // Most played first, the rest a tap away: a season of courses as buttons is a wall. The picked one
+  // always stays in view, wherever it ranks.
+  const q = courseQuery.trim().toLowerCase();
+  const shownCourses = allCourses
+    ? courseRows.filter((c) => !q || c.label.toLowerCase().includes(q))
+    : [
+        ...courseRows.slice(0, COURSES_SHOWN),
+        ...courseRows.slice(COURSES_SHOWN).filter((c) => c.key === f.course?.key),
+      ];
   const greens = GREENS.filter((g) => finished.some((r) => r.greenSpeed === g.k));
 
   const quick = [
@@ -108,11 +130,20 @@ export function StatsFilter({
         <div className="filter-group">
           <span className="filter-h">Course</span>
           <div className="filter-list">
+            {allCourses && courseRows.length > SEARCH_FROM && (
+              <input
+                className="filter-search"
+                type="search"
+                placeholder="Find a course"
+                value={courseQuery}
+                onChange={(e) => setCourseQuery(e.target.value)}
+              />
+            )}
             <button aria-pressed={!f.course} onClick={() => setF({ ...f, course: undefined })}>
               <span>Any course</span>
               <span className="filter-n">{count({ course: undefined })}</span>
             </button>
-            {courseRows.map((c) => (
+            {shownCourses.map((c) => (
               <button
                 key={c.key}
                 aria-pressed={f.course?.key === c.key}
@@ -123,6 +154,14 @@ export function StatsFilter({
               </button>
             ))}
           </div>
+          {courseRows.length > COURSES_SHOWN && (
+            <button
+              className="linkish small filter-more"
+              onClick={() => (setAllCourses(!allCourses), setCourseQuery(''))}
+            >
+              {allCourses ? 'Show your most played' : `All ${courseRows.length} courses`}
+            </button>
+          )}
         </div>
       )}
 
@@ -134,7 +173,11 @@ export function StatsFilter({
               Any
             </button>
             {greens.map((g) => (
-              <button key={g.k} className={f.greens === g.k ? 'chip chip-sel' : 'chip'} onClick={() => setF({ ...f, greens: g.k })}>
+              <button
+                key={g.k}
+                className={f.greens === g.k ? 'chip chip-sel' : 'chip'}
+                onClick={() => setF({ ...f, greens: g.k })}
+              >
                 {g.label} <span className="filter-n">{count({ greens: g.k })}</span>
               </button>
             ))}
