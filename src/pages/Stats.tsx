@@ -43,6 +43,7 @@ import {
   type Tally,
 } from '../lib/topicFindings';
 import { GREEN_SPEED_LABELS } from '../lib/types';
+import { findingsFor, locksFor, TOPIC_ABOUT, type Lock } from '../lib/statsLocks';
 import { insights } from '../lib/insights';
 import { go } from '../lib/router';
 import { FOCUS, startSession } from '../lib/starters';
@@ -217,6 +218,12 @@ function RoundStats({ topic }: { topic?: Topic }) {
     [rounds, state.putters, state.baseline],
   );
   const birdie = useMemo(() => birdieVsPar(rounds), [rounds]);
+  const locks = useMemo(() => locksFor(rounds, state.baseline), [rounds, state.baseline]);
+  const findings = useMemo(
+    () => findingsFor(rounds, state.putters, state.baseline),
+    [rounds, state.putters, state.baseline],
+  );
+  const lock: Lock | undefined = topic ? locks[topic] : undefined;
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const read = useMemo(() => readError(rounds), [rounds]);
   const strike = useMemo(() => byStrike(rounds), [rounds]);
@@ -292,27 +299,38 @@ function RoundStats({ topic }: { topic?: Topic }) {
   const focus = biggest ? FOCUS.find((f) => f.band === (BAND_FOCUS[biggest.key] ?? 'long')) : undefined;
   const pctF = (v: number) => `${Math.round(v * 100)}%`;
   const row = (r: TopicRow) => r;
+  /** A row that has not got enough yet. Under a filter it says so, rather than how to unlock it. */
+  const locked = (key: string, title: string): TopicRow | false =>
+    !!locks[key] &&
+    row({
+      key,
+      title,
+      sub: filtered ? 'Not enough in this filter' : locks[key].how,
+      locked: filtered ? '' : (locks[key].need ?? ''),
+    });
   const where: TopicRow[] = [
-    nums.short &&
-      row({
-        key: 'distance',
-        title: 'By distance',
-        sub: '3 to 10 ft holed',
-        num: nums.short,
-        fmt: pctF,
-        better: 'up',
-        bar: nums.short.now,
-      }),
-    nums.lag &&
-      row({
-        key: 'lag',
-        title: 'Lag',
-        sub: 'Inside 10% of the putt',
-        num: nums.lag,
-        fmt: pctF,
-        better: 'up',
-        bar: nums.lag.now,
-      }),
+    locked('distance', 'By distance') ||
+      (nums.short &&
+        row({
+          key: 'distance',
+          title: 'By distance',
+          sub: '3 to 10 ft holed',
+          num: nums.short,
+          fmt: pctF,
+          better: 'up',
+          bar: nums.short.now,
+        })),
+    locked('lag', 'Lag') ||
+      (nums.lag &&
+        row({
+          key: 'lag',
+          title: 'Lag',
+          sub: 'Inside 10% of the putt',
+          num: nums.lag,
+          fmt: pctF,
+          better: 'up',
+          bar: nums.lag.now,
+        })),
     nums.bleed &&
       row({
         key: 'bleed',
@@ -325,52 +343,68 @@ function RoundStats({ topic }: { topic?: Topic }) {
       }),
   ].filter((r): r is TopicRow => !!r);
   const why: TopicRow[] = [
-    nums.reads &&
-      row({
-        key: 'reads',
-        title: 'Reads',
-        sub: 'Read it right',
-        num: nums.reads,
-        fmt: pctF,
-        better: 'up',
-        bar: nums.reads.now,
-      }),
-    nums.misses &&
-      row({
-        key: 'misses',
-        title: 'Misses',
-        sub: 'Finished off line',
-        num: nums.misses,
-        fmt: pctF,
-        better: 'down',
-        bar: nums.misses.now,
-      }),
-    nums.strike &&
-      row({
-        key: 'strike',
-        title: 'Strike',
-        sub: 'Middle of the face',
-        num: nums.strike,
-        fmt: pctF,
-        better: 'up',
-        bar: nums.strike.now,
-      }),
+    locked('reads', 'Reads') ||
+      (nums.reads &&
+        row({
+          key: 'reads',
+          title: 'Reads',
+          sub: 'Read it right',
+          num: nums.reads,
+          fmt: pctF,
+          better: 'up',
+          bar: nums.reads.now,
+        })),
+    locked('misses', 'Misses') ||
+      (nums.misses &&
+        row({
+          key: 'misses',
+          title: 'Misses',
+          sub: 'Finished off line',
+          num: nums.misses,
+          fmt: pctF,
+          better: 'down',
+          bar: nums.misses.now,
+        })),
+    locked('strike', 'Strike') ||
+      (nums.strike &&
+        row({
+          key: 'strike',
+          title: 'Strike',
+          sub: 'Middle of the face',
+          num: nums.strike,
+          fmt: pctF,
+          better: 'up',
+          bar: nums.strike.now,
+        })),
   ].filter((r): r is TopicRow => !!r);
   const worstSpot = stretches.find((l) => l.label.startsWith('Worst hole'));
   const usedPutters = state.putters.filter((p) => rounds.some((r) => r.putterId === p.id));
   const when: TopicRow[] = [
-    (speeds.length > 1 || trueness.length > 1) && row({ key: 'greens', title: 'Greens', sub: 'Speed and how true' }),
-    pressure.length === 2 && row({ key: 'pressure', title: 'Tournament vs casual', sub: 'Same putter split too' }),
+    locked('greens', 'Greens') ||
+      ((speeds.length > 1 || trueness.length > 1) &&
+        row({ key: 'greens', title: 'Greens', sub: findings.greens?.text ?? 'Speed and how true' })),
+    locked('pressure', 'Tournament vs casual') ||
+      (pressure.length === 2 &&
+        row({
+          key: 'pressure',
+          title: 'Tournament vs casual',
+          sub: findings.pressure?.text ?? 'Same putter split too',
+        })),
     stretches.length > 1 &&
       row({
         key: 'timing',
         title: 'When in the round',
-        sub: worstSpot ? worstSpot.label.replace('Worst hole: ', 'Worst: ') : 'First holes, last holes, nines',
+        sub:
+          findings.timing?.text ??
+          (worstSpot ? worstSpot.label.replace('Worst hole: ', 'Worst: ') : 'First holes, last holes, nines'),
       }),
     usedPutters.length > 0 &&
-      row({ key: 'putter', title: 'By putter', sub: usedPutters.map((p) => p.name).join(' and ') }),
-    birdie.bands.some((b) => b.birdie.tried > 0) &&
-      row({ key: 'birdie', title: 'Birdie vs par', sub: birdieSub(birdie) }),
+      row({
+        key: 'putter',
+        title: 'By putter',
+        sub: findings.putter?.text ?? usedPutters.map((p) => p.name).join(' and '),
+      }),
+    locked('birdie', 'Birdie vs par') || row({ key: 'birdie', title: 'Birdie vs par', sub: birdieSub(birdie) }),
   ].filter((r): r is TopicRow => !!r);
   const cards = insights(o.pooled, { rounds: o.rounds, threePuttsPerRound: o.threePuttsPerRound, taggedRounds });
   const time: TopicRow[] = [
@@ -472,8 +506,9 @@ function RoundStats({ topic }: { topic?: Topic }) {
       ) : (
         <>
           {!topic && home}
+          {topic && lock && <LockedTopic topic={topic} lock={lock} filtered={filtered} />}
 
-          {topic === 'improving' && (
+          {!lock && topic === 'improving' && (
             <>
               {avgScore !== null && avgIfNeutral !== null && (
                 <>
@@ -696,7 +731,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'form' && (
+          {!lock && topic === 'form' && (
             <>
               {form && (
                 <>
@@ -779,7 +814,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'distance' && (
+          {!lock && topic === 'distance' && (
             <>
               {spread.n > 0 && (
                 <>
@@ -819,7 +854,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'strike' && (
+          {!lock && topic === 'strike' && (
             <>
               {strike.length > 0 && (
                 <>
@@ -830,7 +865,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'misses' && (
+          {!lock && topic === 'misses' && (
             <>
               <MissAnatomyPanel miss={miss} />
 
@@ -842,7 +877,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'reads' && (
+          {!lock && topic === 'reads' && (
             <>
               {read.judged > 0 && <ReadPanel read={read} />}
 
@@ -889,7 +924,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'lag' && (
+          {!lock && topic === 'lag' && (
             <>
               <LagPanel stats={o.pooled} lag={lag} />
               <p className="small muted" style={{ margin: '8px 0 0' }}>
@@ -931,7 +966,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'bleed' && (
+          {!lock && topic === 'bleed' && (
             <>
               {bleed.shotsPerRound !== null && bleed.shotsPerRound > 0 && (
                 <>
@@ -1009,7 +1044,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'greens' && (
+          {!lock && topic === 'greens' && (
             <>
               {greensSplit && (
                 <>
@@ -1066,7 +1101,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'pressure' && (
+          {!lock && topic === 'pressure' && (
             <>
               {samePutter && <PressureSplit p={samePutter} />}
               {pressure.length === 2 && (
@@ -1102,7 +1137,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'timing' && (
+          {!lock && topic === 'timing' && (
             <>
               {stretches.length > 1 && (
                 <>
@@ -1118,7 +1153,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'putter' && (
+          {!lock && topic === 'putter' && (
             <>
               {pair ? (
                 <PutterSplit pair={pair} />
@@ -1178,7 +1213,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'birdie' && (
+          {!lock && topic === 'birdie' && (
             <>
               <p className="topic-answer">{birdieStory(birdie)}</p>
               {birdie.bands.length > 0 && (
@@ -1197,7 +1232,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
-          {topic === 'work' && (
+          {!lock && topic === 'work' && (
             <>
               <InsightList
                 stats={o.pooled}
@@ -1290,5 +1325,24 @@ function PutterSplit({ pair }: { pair: NonNullable<ReturnType<typeof putterPair>
         ]}
       />
     </>
+  );
+}
+
+/** A page without enough yet: what it will show, and what to log to open it. */
+function LockedTopic({ topic, lock, filtered }: { topic: Topic; lock: Lock; filtered: boolean }) {
+  return (
+    <div className="card locked-topic">
+      {TOPIC_ABOUT[topic] && <p className="topic-answer">{TOPIC_ABOUT[topic]}</p>}
+      {filtered ? (
+        <p className="small muted" style={{ margin: 0 }}>
+          Not enough in this filter. Widen it to see this page.
+        </p>
+      ) : (
+        <p className="small" style={{ margin: 0 }}>
+          {lock.how}
+          {lock.need ? <span className="muted"> · {lock.need}</span> : null}
+        </p>
+      )}
+    </div>
   );
 }

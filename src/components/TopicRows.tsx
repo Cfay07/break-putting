@@ -13,6 +13,8 @@ export interface TopicRow {
   bar?: number;
   /** Shown in place of a trend, when there is a number but no comparison worth one. */
   note?: string;
+  /** Not enough yet: the row greys out and this says how far there is to go. */
+  locked?: string;
 }
 
 /** How far a number has to move before it earns an arrow, in its own units. */
@@ -36,12 +38,19 @@ export function TopicRows({ rows, base = '/stats/t/' }: { rows: TopicRow[]; base
   return (
     <div className="topic-list">
       {rows.map((row) => (
-        <button key={row.key} className="topic-row" onClick={() => go(`${base}${row.key}`)}>
+        <button
+          key={row.key}
+          className={['topic-row', row.bar === undefined && 'nobar', row.locked !== undefined && 'locked']
+            .filter(Boolean)
+            .join(' ')}
+          onClick={() => go(`${base}${row.key}`)}
+        >
           <span className="tr-name">
             <b>{row.title}</b>
             <small>{row.sub}</small>
           </span>
-          {/* No track at all when there is no number to draw: an empty bar reads as a missing one. */}
+          {/* No track at all when there is no number to draw: an empty bar reads as a missing one, and the
+              row's text takes the room. */}
           {row.bar !== undefined ? (
             <span className="tr-bar">
               <i
@@ -51,12 +60,13 @@ export function TopicRows({ rows, base = '/stats/t/' }: { rows: TopicRow[]; base
                 }}
               />
             </span>
-          ) : (
-            <span />
-          )}
+          ) : null}
           <span className="tr-val num">
-            {row.num && row.fmt ? row.fmt(row.num.now) : (row.note ?? '')}
-            {row.num && row.fmt && <Trend r={row.num} fmt={row.fmt} better={row.better ?? 'up'} />}
+            {row.locked !== undefined && <small className="flat">{row.locked}</small>}
+            {row.locked === undefined && (row.num && row.fmt ? row.fmt(row.num.now) : (row.note ?? ''))}
+            {row.locked === undefined && row.num && row.fmt && (
+              <Trend r={row.num} fmt={row.fmt} better={row.better ?? 'up'} />
+            )}
           </span>
           <span className="chev">›</span>
         </button>

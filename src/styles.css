@@ -2615,3 +2615,14 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .tally-table td:first-child { color: var(--ink-2); }
 .tally-table th { text-align: right; }
 .tally-table td.num { text-align: right; }
+.topic-row.locked .tr-name b, .topic-row.locked .tr-name small { color: var(--ink-3); }
+.topic-row.locked .tr-val small { white-space: nowrap; }
+
+/* One line on the round page when this round opened a Stats page or changed a finding. */
+.news-line { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.news-line b { display: block; font-size: 14px; }
+.news-line small { display: block; font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+.topic-row.nobar { grid-template-columns: minmax(0, 1fr) auto 10px; }
+.topic-row.nobar .tr-val { min-width: 78px; }
+.topic-row.nobar .tr-val:empty { display: none; }
+.topic-row.nobar:has(.tr-val:empty) { grid-template-columns: minmax(0, 1fr) 10px; }

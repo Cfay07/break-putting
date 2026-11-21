@@ -34,6 +34,7 @@ import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
 import { backLabel, go, previousRouteBut, replaceRoute } from '../lib/router';
 import { lagSaves, ninesOf, pct, roundStats, suspectHoles } from '../lib/stats';
 import { findRound, useApp } from '../lib/store';
+import { newsFrom } from '../lib/statsLocks';
 import { breakDirsOf, breakLabel, holeVsPar, holedOut } from '../lib/types';
 
 /**
@@ -106,6 +107,14 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const [whyXp, setWhyXp] = useState(false);
   // One breakdown at a time under the numbers. Holes first: it is the round itself.
   const [tab, setTab] = useState<RoundTab>('holes');
+  // Only the latest round can say what it changed on Stats. An old one would announce stale news.
+  const news = useMemo(() => {
+    if (!round || !round.finished || round.practice) return null;
+    const latest = state.rounds
+      .filter((r) => r.finished && !r.practice)
+      .reduce<typeof round | null>((m, r) => (!m || r.date > m.date ? r : m), null);
+    return latest?.id === round.id ? newsFrom(round, state.rounds, state.putters, state.baseline) : null;
+  }, [round, state.rounds, state.putters, state.baseline]);
 
   if (!round) {
     return (
@@ -535,6 +544,16 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
               🩸 is a putting mistake, a dot an over-par hole that came after it, and ✓ the par that ended it.{' '}
               {bleeds.map(bleedStory).join(' ')}
             </p>
+          )}
+
+          {news && (
+            <button className="card news-line" onClick={() => go(`/stats/t/${news.topic}`)}>
+              <span>
+                <b>{news.title}</b>
+                <small>{news.sub}</small>
+              </span>
+              <span className="chev">›</span>
+            </button>
           )}
         </>
       )}

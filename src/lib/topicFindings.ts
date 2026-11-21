@@ -354,3 +354,55 @@ export function birdieSub(b: BirdieVsPar): string {
   if (b.verdict === 'lean') return `Leans ${b.better ? 'better' : 'worse'} for birdie`;
   return `${b.better ? 'Better' : 'Worse'} for birdie`;
 }
+
+// One-line findings for the home rows
+
+/** A row's finding and a key for it, so a change in what it says can be told from a change in its numbers. */
+export interface Finding {
+  text: string;
+  key: string;
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export function greensSub(lines: SpeedLine[]): Finding | null {
+  const x = speedExtremes(lines);
+  if (!x) return null;
+  if (x.verdict === 'none') return { text: 'No clear difference yet', key: 'none' };
+  if (x.verdict === 'lean') return { text: `Leans worse on ${x.worst.speed} greens`, key: `lean:${x.worst.speed}` };
+  return {
+    text: `${cap(x.worst.speed)} greens ${pct(x.worst.short)}%, ${x.best.speed} ${pct(x.best.short)}%`,
+    key: `clear:${x.worst.speed}`,
+  };
+}
+
+export function pressureSub(p: Pressure): Finding | null {
+  const { tournament: t, casual: c } = p;
+  if (t.short.tried < MIN_PUTTS || c.short.tried < MIN_PUTTS) return null;
+  const { verdict, better } = compareRates(t.short, c.short);
+  const word = better ? 'better' : 'worse';
+  if (verdict === 'none') return { text: 'No clear difference yet', key: 'none' };
+  if (verdict === 'lean') return { text: `Leans ${word}, not called yet`, key: `lean:${better}` };
+  return { text: `${cap(word)} in tournaments`, key: `clear:${better}` };
+}
+
+export function timingSub(lines: GroupLine[]): Finding | null {
+  const first = lines.find((l) => l.label === 'First 3 holes');
+  const last = lines.find((l) => l.label === 'Last 3 holes');
+  if (!first || !last || first.short.tried < MIN_PUTTS || last.short.tried < MIN_PUTTS) return null;
+  const { verdict, better } = compareRates(last.short, first.short);
+  const word = better ? 'better' : 'worse';
+  if (verdict === 'none') return { text: 'No clear change', key: 'none' };
+  if (verdict === 'lean') return { text: `Leans ${word} late, not called yet`, key: `lean:${better}` };
+  return { text: `${cap(word)} late in a round`, key: `clear:${better}` };
+}
+
+export function putterSub([a, b]: [PutterLine, PutterLine]): Finding | null {
+  const [sa, sb] = [a.bands[0], b.bands[0]];
+  if (sa.tried < MIN_PUTTS || sb.tried < MIN_PUTTS) return null;
+  const { verdict, better } = compareRates(sb, sa);
+  const name = b.putter.name.split(' ')[0];
+  if (verdict === 'none') return { text: 'No clear difference yet', key: 'none' };
+  if (verdict === 'lean') return { text: `${name} leans ${better ? 'better' : 'worse'}`, key: `lean:${better}` };
+  return { text: `${name}: 3 to 5 ft went ${pct(sa)}% to ${pct(sb)}%`, key: `clear:${better}` };
+}
