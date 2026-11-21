@@ -13,8 +13,8 @@ export function MissAnatomyPanel({ miss }: { miss: MissAnatomy }) {
   if (miss.judged < MIN_JUDGED) {
     return (
       <p className="small muted" style={{ margin: 0 }}>
-        Needs {MIN_JUDGED} misses tagged with both a side and a pace, and has {miss.judged}. The
-        grid sets both in one tap.
+        Needs {MIN_JUDGED} misses tagged with both a side and a pace, and has {miss.judged}. The grid sets both in one
+        tap.
       </p>
     );
   }
@@ -26,23 +26,25 @@ export function MissAnatomyPanel({ miss }: { miss: MissAnatomy }) {
     <div>
       <div className="lp-grid">
         <div className="lp-cell">
-          <span className="tiny">Line wrong</span>
+          <span className="tiny">Finished off line</span>
           <span className="lp-val">{line}%</span>
-          <span className="small muted">{miss.lineWrong} of {miss.judged}</span>
+          <span className="small muted">
+            {miss.lineWrong} of {miss.judged}
+          </span>
         </div>
         <div className="lp-cell">
-          <span className="tiny">Pace wrong</span>
+          <span className="tiny">Finished short or long</span>
           <span className="lp-val">{pace}%</span>
-          <span className="small muted">{miss.paceWrong} of {miss.judged}</span>
+          <span className="small muted">
+            {miss.paceWrong} of {miss.judged}
+          </span>
         </div>
       </div>
       <p className="small muted" style={{ margin: '8px 0 0' }}>
-        Both wrong {pct(miss.bothWrong, miss.judged)}% · line only{' '}
-        {pct(miss.lineOnly, miss.judged)}% · pace only {pct(miss.paceOnly, miss.judged)}% · lip out{' '}
-        {pct(miss.lipOut, miss.judged)}%. A putt can have both wrong, so the two above overlap.{' '}
-        {line > pace
-          ? 'Your read is costing you more than your stroke.'
-          : 'Your speed is costing you more than your read.'}
+        Both wrong {pct(miss.bothWrong, miss.judged)}% · line only {pct(miss.lineOnly, miss.judged)}% · pace only{' '}
+        {pct(miss.paceOnly, miss.judged)}% · lip out {pct(miss.lipOut, miss.judged)}%. A putt can be both, so the two
+        above overlap. Where a miss finished says what happened, not why: off line can be the read or the start line, so
+        the Reads section and your stroke tags say which.
       </p>
     </div>
   );

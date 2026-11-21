@@ -65,6 +65,14 @@ export interface Pattern {
   committed: number;
   uncommitted: number;
   tagged: number;
+  /**
+   * Why misses finished high or low, from the tags that can say: the read against what it broke,
+   * and the pace. Where a miss finished says what happened; these say why, when they can.
+   */
+  sideWhy: Record<
+    'high' | 'low',
+    { reads: number; tooMuch: number; tooLittle: number; paced: number; short: number; long: number }
+  >;
   byBucket: Record<BucketKey, { high: number; low: number; online: number }>;
   /** Every tagged putt lands in exactly one break bucket, double breakers included. */
   byBreak: Record<BreakBucket, BreakTally>;
@@ -156,6 +164,10 @@ function emptyPattern(): Pattern {
     accel: 0,
     committed: 0,
     uncommitted: 0,
+    sideWhy: {
+      high: { reads: 0, tooMuch: 0, tooLittle: 0, paced: 0, short: 0, long: 0 },
+      low: { reads: 0, tooMuch: 0, tooLittle: 0, paced: 0, short: 0, long: 0 },
+    },
     tagged: 0,
     breakMakes: 0,
     breakMisses: 0,
@@ -278,6 +290,19 @@ export function statsForHoles(holes: Hole[], baseline: [number, number][]): Stat
         pattern[p.missSide]++;
         pattern.byBucket[b][p.missSide]++;
         pattern.tagged++;
+        if (!p.made && p.missSide !== 'online') {
+          const why = pattern.sideWhy[p.missSide];
+          if (p.readAs !== undefined && p.brokeAs !== undefined) {
+            why.reads++;
+            if (p.readAs > p.brokeAs) why.tooMuch++;
+            if (p.readAs < p.brokeAs) why.tooLittle++;
+          } else if (p.readAs !== undefined) why.reads++;
+          if (p.speed) {
+            why.paced++;
+            if (p.speed === 'short') why.short++;
+            if (p.speed === 'long') why.long++;
+          }
+        }
       }
       if (p.speed) pattern[p.speed]++;
       const dirs = breakDirsOf(p);
@@ -872,14 +897,22 @@ export function suspectHoles(round: Round): { hole: number; from: number; to: nu
   return out;
 }
 
-/** A strike row needs this many putts before its percentages are worth printing. */
-export const MIN_STRIKE = 10;
+/** A strike row needs this many putts before its numbers are worth printing. */
+export const MIN_STRIKE = 20;
+/** Feet bands for a player's own make rate, so a strike is judged against putts of the same length. */
+const STRIKE_BANDS = [3, 6, 10, 15, 25, Infinity];
+const strikeBand = (d: number) => STRIKE_BANDS.findIndex((max) => d <= max);
 
 export interface StrikeRow {
   key: 'centre' | 'toe' | 'heel';
   label: string;
   putts: number;
-  makePct: number | null;
+  makes: number;
+  /**
+   * What your own make rate at each putt's length says you would have holed. Raw make rates lied:
+   * toe strikes read 40% against 28% for the middle off ten putts that happened to be short.
+   */
+  expected: number | null;
   /** Leave as a share of the putt, so a 40 footer and a 6 footer can sit in one column. */
   leavePct: number | null;
   avgLeave: number | null;
@@ -897,11 +930,27 @@ export function byStrike(rounds: Round[]): StrikeRow[] {
     heel: { putts: 0, makes: 0, leaves: [], ratios: [] },
   };
 
+  // Usual comes only from rounds where strike was tagged, so the comparison is the same putter and
+  // the same stretch of your putting, not every putt you have ever logged.
+  const rate = STRIKE_BANDS.map(() => ({ made: 0, tried: 0 }));
+  for (const r of rounds) {
+    if (!r.finished || !r.holes.some((h) => h.putts.some((p) => p.strike))) continue;
+    for (const hole of r.holes)
+      for (const p of hole.putts) {
+        const b = rate[strikeBand(p.d)];
+        b.tried++;
+        if (p.made) b.made++;
+      }
+  }
+  const expectedOf: Record<string, number> = { centre: 0, toe: 0, heel: 0 };
+
   for (const r of rounds) {
     if (!r.finished) continue;
     for (const hole of r.holes) {
       hole.putts.forEach((p, i) => {
         if (!p.strike) return;
+        const b = rate[strikeBand(p.d)];
+        expectedOf[p.strike] += b.tried ? b.made / b.tried : 0;
         const a = acc[p.strike];
         a.putts++;
         if (p.made) {
@@ -924,7 +973,8 @@ export function byStrike(rounds: Round[]): StrikeRow[] {
         key,
         label: key === 'centre' ? 'Middle' : key === 'toe' ? 'Toe' : 'Heel',
         putts: a.putts,
-        makePct: a.putts >= MIN_STRIKE ? (a.makes / a.putts) * 100 : null,
+        makes: a.makes,
+        expected: a.putts >= MIN_STRIKE ? expectedOf[key] : null,
         leavePct: a.ratios.length >= MIN_STRIKE ? mean(a.ratios) : null,
         avgLeave: a.leaves.length >= MIN_STRIKE ? mean(a.leaves) : null,
       };

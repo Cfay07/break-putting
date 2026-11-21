@@ -1,9 +1,10 @@
 import { MIN_STRIKE, type StrikeRow } from '../lib/stats';
 
 /**
- * Strike against distance control. The leave column is a share of the putt rather than feet,
- * so a forty footer and a six footer can sit in the same column without the long ones deciding
- * the answer on their own.
+ * Strike against what the ball did. Holed sits beside what your own make rate at those lengths
+ * says you would have holed, because different strikes come from different lengths and a raw make
+ * rate turned a handful of short toe putts into a toe that looked better than the middle. Left is
+ * a share of the putt, so a forty footer and a six footer can share the column.
  */
 export function StrikePanel({ rows }: { rows: StrikeRow[] }) {
   const total = rows.reduce((n, r) => n + r.putts, 0);
@@ -17,7 +18,8 @@ export function StrikePanel({ rows }: { rows: StrikeRow[] }) {
             <tr>
               <th>Strike</th>
               <th>Putts</th>
-              <th>Made</th>
+              <th>Holed</th>
+              <th>Usual</th>
               <th>Left</th>
             </tr>
           </thead>
@@ -26,20 +28,18 @@ export function StrikePanel({ rows }: { rows: StrikeRow[] }) {
               <tr key={r.key}>
                 <td>{r.label}</td>
                 <td className="num">{r.putts}</td>
-                <td className="num">{r.makePct === null ? '--' : `${Math.round(r.makePct)}%`}</td>
-                <td className="num">
-                  {r.leavePct === null ? '--' : `${r.leavePct.toFixed(1)}% of the putt`}
-                </td>
+                <td className="num">{r.expected === null ? '--' : r.makes}</td>
+                <td className="num">{r.expected === null ? '--' : Math.round(r.expected)}</td>
+                <td className="num">{r.leavePct === null ? '--' : `${r.leavePct.toFixed(1)}%`}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <p className="small muted" style={{ margin: '6px 0 0' }}>
-        Left is how far past or short the ball finished as a share of the putt, counting misses
-        only, so a toe strike that leaks distance shows up whatever length you hit it from. A row
-        needs {MIN_STRIKE} putts before it prints a number, and a count on its own with two dashes
-        beside it means you have tagged it but not enough of it yet.
+        Usual is what you hole from those same lengths on every putt you have logged, so Holed above Usual means that
+        strike did better than normal. Left is how far a miss finished as a share of the putt. A row needs {MIN_STRIKE}{' '}
+        putts before it shows numbers.
       </p>
     </>
   );

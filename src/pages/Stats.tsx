@@ -63,6 +63,7 @@ function StatsSwitch({ practice }: { practice: boolean }) {
   );
 }
 
+const fmtToPar = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`;
 export function Stats({ practice = false }: { practice?: boolean }) {
   if (practice) {
     return (
@@ -574,7 +575,8 @@ function RoundStats() {
             <>
               <div className="field-label">Too much break or not enough</div>
               <Why lead="From where your misses finished on putts that turn.">
-                A miss finishing high is more break than it took; one finishing low is not enough.
+                A miss finishing high often means more break than it took, and low not enough, but pace can send a putt
+                either side too. The read tags above say which it was.
               </Why>
               <div className="biasbar">
                 <span className="bias-seg over" style={{ width: `${(bias.over / bias.n) * 100}%` }} />
@@ -654,11 +656,20 @@ function RoundStats() {
             <>
               <h2>Bleed</h2>
               <div className="card">
-                <div className="shoot-for num neg">{bleed.shotsPerRound?.toFixed(1)}</div>
-                <p className="small" style={{ margin: '4px 0 0' }}>
-                  Shots a round you drop on the holes that follow a putting mistake. That is on top of what the mistake
-                  itself already cost you.
-                </p>
+                {bleed.shotsPerRound !== null && bleed.afterToPar !== null && bleed.normalToPar !== null && (
+                  <>
+                    <div className={bleed.shotsPerRound >= 0.05 ? 'shoot-for num neg' : 'shoot-for num'}>
+                      {bleed.shotsPerRound >= 0.05 ? `+${bleed.shotsPerRound.toFixed(1)}` : '0.0'}
+                    </div>
+                    <p className="small" style={{ margin: '4px 0 0' }}>
+                      {bleed.shotsPerRound >= 0.05
+                        ? 'Extra shots a round on the holes after a putting mistake, beyond what you score on your other holes.'
+                        : 'Extra shots a round after a putting mistake. None: the hole after one scores the same as your others.'}{' '}
+                      The hole after a mistake averages {fmtToPar(bleed.afterToPar)}, every other hole{' '}
+                      {fmtToPar(bleed.normalToPar)}.
+                    </p>
+                  </>
+                )}
                 <p className="small muted" style={{ margin: '6px 0 0' }}>
                   A mistake is a three-putt, or a putt missed from three to six feet, whatever the hole ended up
                   scoring. The bleeding runs until you bounce back, meaning the first hole after it you play at par or
@@ -683,7 +694,7 @@ function RoundStats() {
                     />
                     <p className="small muted" style={{ margin: '6px 0 0' }}>
                       {bleed.afterRate < bleed.normalRate
-                        ? `You bounce back ${Math.round(bleed.afterRate * 100)} times in 100 after a mistake, against ${Math.round(bleed.normalRate * 100)} the rest of the time. Bleed is what the mistakes cost you. Bounce back is how fast you stop them.`
+                        ? `Par or better ${Math.round(bleed.afterRate * 100)} times in 100 after a mistake, against ${Math.round(bleed.normalRate * 100)} the rest of the time.`
                         : 'You bounce back as often after a mistake as on any other hole, so a mistake does not follow you.'}
                     </p>
                   </>

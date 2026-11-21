@@ -27,9 +27,7 @@ export function triggerOn(h: Hole): string | null {
   if (!h.putts.length) return null;
   if (h.putts.length >= 4) return 'four-putt';
   if (h.putts.length >= 3) return 'three-putt';
-  const missed = h.putts
-    .slice(0, -1)
-    .find((p) => !p.made && p.d <= MAKEABLE.max);
+  const missed = h.putts.slice(0, -1).find((p) => !p.made && p.d <= MAKEABLE.max);
   return missed ? `missed ${missed.d} ft` : null;
 }
 
@@ -81,7 +79,15 @@ export interface BleedSummary {
   perRound: number | null;
   stoppedAtOnce: number | null;
   averageLength: number | null;
+  /**
+   * Strokes a round the holes after a mistake cost beyond what your other holes score. Not every
+   * over-par stroke after a mistake: you make bogeys anyway, and counting those too said a mistake
+   * cost 1.6 a round when the holes after one scored the same as the rest.
+   */
   shotsPerRound: number | null;
+  /** Average score to par on the hole after a mistake, and on every other hole. */
+  afterToPar: number | null;
+  normalToPar: number | null;
   compound: number;
   worst: Bleed | null;
   lengths: { label: string; count: number }[];
@@ -99,16 +105,21 @@ export function bleedSummary(rounds: Round[]): BleedSummary {
   let afterGood = 0;
   let other = 0;
   let otherGood = 0;
+  let afterSum = 0;
+  let otherSum = 0;
 
   for (const round of rounds) {
     const holes = round.holes.filter((h) => holeVsPar(h) !== undefined);
     for (let i = 1; i < holes.length; i++) {
-      const good = (holeVsPar(holes[i]) ?? 1) <= 0;
+      const toPar = holeVsPar(holes[i]) ?? 0;
+      const good = toPar <= 0;
       if (triggerOn(holes[i - 1])) {
         after += 1;
+        afterSum += toPar;
         if (good) afterGood += 1;
       } else {
         other += 1;
+        otherSum += toPar;
         if (good) otherGood += 1;
       }
     }
@@ -125,7 +136,9 @@ export function bleedSummary(rounds: Round[]): BleedSummary {
     perRound: n ? all.length / n : null,
     stoppedAtOnce: all.length ? all.filter((b) => b.holes.length === 0).length / all.length : null,
     averageLength: all.length ? all.reduce((s, b) => s + b.holes.length, 0) / all.length : null,
-    shotsPerRound: n ? all.reduce((s, b) => s + b.shots, 0) / n : null,
+    shotsPerRound: n && after && other ? ((afterSum / after - otherSum / other) * after) / n : null,
+    afterToPar: after ? afterSum / after : null,
+    normalToPar: other ? otherSum / other : null,
     compound: all.filter((b) => b.triggers > 1).length,
     worst: all.length ? all.reduce((w, b) => (b.shots > w.shots ? b : w)) : null,
     lengths,

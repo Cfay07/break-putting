@@ -25,8 +25,7 @@ const MIN_PACE_SAMPLE = 6;
 const MAX_CARDS = 3;
 
 export function insights(s: Stats, ctx: InsightContext | number = {}): Insight[] {
-  const { rounds = 1, threePuttsPerRound = null, taggedRounds = 1 } =
-    typeof ctx === 'number' ? { rounds: ctx } : ctx;
+  const { rounds = 1, threePuttsPerRound = null, taggedRounds = 1 } = typeof ctx === 'number' ? { rounds: ctx } : ctx;
   const out: Insight[] = [];
   const p = s.pattern;
   const paceTotal = p.short + p.long;
@@ -36,16 +35,16 @@ export function insights(s: Stats, ctx: InsightContext | number = {}): Insight[]
   const over = oneRound ? 'this round' : `across ${rounds} rounds`;
 
   if (s.threePlus >= 2) {
-    const rate =
-      !oneRound && threePuttsPerRound !== null ? `, ${threePuttsPerRound.toFixed(1)} a round` : '';
+    const rate = !oneRound && threePuttsPerRound !== null ? `, ${threePuttsPerRound.toFixed(1)} a round` : '';
     out.push({
       id: 'three-putts',
       tone: 'warn',
       title: 'Kill the three-putts',
       detail: `${s.threePlus} three-putts${
         oneRound && s.threePuttHoles.length ? ` (holes ${s.threePuttHoles.join(', ')})` : ''
-      }${rate}. That is where your putting strokes are going.`,
-      drill: 'Ladder drill: one ball each to 20, 30, 40 feet. Every leave has to finish inside a tenth of the putt before you move on.',
+      }${rate}.`,
+      drill:
+        'Ladder drill: one ball each to 20, 30, 40 feet. Every leave has to finish inside a tenth of the putt before you move on.',
     });
   }
 
@@ -56,7 +55,7 @@ export function insights(s: Stats, ctx: InsightContext | number = {}): Insight[]
       title: 'Short putts are costing you',
       detail: `${s.scoring.makes} of ${s.scoring.attempts} from 3 to 10 feet (${scoringPct.toFixed(
         0,
-      )}%), which cost ${Math.abs(s.scoring.sg).toFixed(1)} strokes ${over}. This is the range that decides your score.`,
+      )}%), which cost ${Math.abs(s.scoring.sg).toFixed(1)} strokes ${over} against tour.`,
       drill: 'Circle drill: eight balls at 4 feet around the hole. Make all eight or start over.',
     });
   }
@@ -67,7 +66,8 @@ export function insights(s: Stats, ctx: InsightContext | number = {}): Insight[]
       tone: 'warn',
       title: 'Your long putts are leaving too much',
       detail: `${s.lagInside} of ${s.lagAttempts} putts from outside ${30} feet finished inside a tenth of the putt. Your average leave ran ${s.avgLeavePct?.toFixed(0)}% of the distance.`,
-      drill: 'Ladder from 30, 40, 50 and 60 feet with a tenth of the putt as the target: 3 feet from 30, 6 feet from 60. Three in a row at each station before you move back.',
+      drill:
+        'Ladder from 30, 40, 50 and 60 feet with a tenth of the putt as the target: 3 feet from 30, 6 feet from 60. Three in a row at each station before you move back.',
     });
   }
 
@@ -76,19 +76,33 @@ export function insights(s: Stats, ctx: InsightContext | number = {}): Insight[]
   if ((bias.verdict === 'read' || bias.verdict === 'leaning') && bias.side) {
     const sided = p.high + p.low;
     const high = bias.side === 'high';
+    // Only the causes the tags back up. Where a miss finished says it went high; whether that was
+    // the read or the pace is a separate question the read and pace tags can answer.
+    const why = p.sideWhy[bias.side];
+    const causes: string[] = [];
+    if (why.reads >= 5) {
+      const wrong = high ? why.tooMuch : why.tooLittle;
+      if (wrong / why.reads >= 0.5)
+        causes.push(
+          `you read ${high ? 'more' : 'less'} break than it took on ${wrong} of the ${why.reads} with a read tagged`,
+        );
+    }
+    if (why.paced >= 5) {
+      if (why.short / why.paced >= 0.5) causes.push(`${why.short} of ${why.paced} finished short`);
+      if (why.long / why.paced >= 0.5) causes.push(`${why.long} of ${why.paced} ran long`);
+    }
+    const because = causes.length
+      ? ` Of those misses, ${causes.join(', and ')}.`
+      : ' Your read and pace tags do not point at one cause yet.';
     const hedge =
       bias.verdict === 'leaning'
         ? ` That is only ${bias.rounds} round${bias.rounds === 1 ? '' : 's'} of tagging, so treat it as a lead rather than a verdict.`
-        : ` That holds across ${bias.rounds} rounds, so it is the read, not the day.`;
+        : ` That holds across ${bias.rounds} rounds, so it is a pattern, not one day.`;
     out.push({
       id: high ? 'high-bias' : 'low-bias',
       tone: 'warn',
       title: `You are missing on the ${bias.side} side`,
-      detail: `${high ? p.high : p.low} of ${sided} break-side misses went ${bias.side}. ${
-        high
-          ? 'You are playing too much break or rolling it too soft.'
-          : 'You are under-reading the break or starting it inside your line.'
-      }${hedge}`,
+      detail: `${high ? p.high : p.low} of ${sided} break-side misses went ${bias.side}.${because}${hedge}`,
       drill: high
         ? 'Gate drill from 6 feet: two tees a putterhead apart, play half the break you read, hit it firm enough to take the last foot out.'
         : 'Pick an apex point, put a tee there, and roll ten putts over the tee from 8 feet. Read more break than feels right.',
@@ -101,7 +115,8 @@ export function insights(s: Stats, ctx: InsightContext | number = {}): Insight[]
       tone: 'warn',
       title: 'You are leaving lag putts short',
       detail: `${p.short} of ${paceTotal} pace misses came up short. A putt that never reaches never breaks in.`,
-      drill: 'Roll every putt over 20 feet with the intent of finishing 12 to 18 inches past. Ten in a row past the hole, no exceptions.',
+      drill:
+        'Roll every putt over 20 feet with the intent of finishing 12 to 18 inches past. Ten in a row past the hole, no exceptions.',
     });
   } else if (paceTotal >= MIN_PACE_SAMPLE && p.long / paceTotal >= 0.6) {
     out.push({
@@ -118,8 +133,10 @@ export function insights(s: Stats, ctx: InsightContext | number = {}): Insight[]
       id: 'lips',
       tone: 'warn',
       title: `${p.lip} lip-outs is a speed problem`,
-      detail: 'Putts that catch the edge and stay out were almost always a fraction too slow or too quick, not a bad read.',
-      drill: 'From 8 feet, pick the speed that would leave the ball 14 inches past. Roll fifteen and watch how many more take the lip.',
+      detail:
+        'Putts that catch the edge and stay out were almost always a fraction too slow or too quick, not a bad read.',
+      drill:
+        'From 8 feet, pick the speed that would leave the ball 14 inches past. Roll fifteen and watch how many more take the lip.',
     });
   }
 
