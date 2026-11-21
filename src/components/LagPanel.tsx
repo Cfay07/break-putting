@@ -1,50 +1,43 @@
-import { DANGER_FROM, LAG_FROM, type LagSave, type Stats } from '../lib/stats';
+import { LAG_FROM, type LagSave, type Stats } from '../lib/stats';
 
 /**
- * Reads top to bottom as one sequence: what you typically leave, how often that is trouble, how
- * bad it is when it is, whether you save it. The order is what tells you the leave and the
- * comeback are not the same number, which two flat rows labelled "average" never did.
+ * Reads top to bottom as one story: how many lags, where they finished on average, how many were
+ * good for their length, and what the rest cost. A good lag is judged against its own length, a
+ * tenth of the putt, so a 4 footer counts as good from 40 and not from 30.
  */
 export function LagPanel({ stats, lag }: { stats: Stats; lag: LagSave }) {
-  const badPct = lag.lags ? Math.round((lag.bad / lag.lags) * 100) : null;
-  const savePct = lag.bad ? Math.round((lag.saved / lag.bad) * 100) : null;
+  const goodShare = lag.lags ? lag.good / lag.lags : null;
+  const holedShare = lag.comebacks ? lag.comebacksHoled / lag.comebacks : null;
 
   return (
     <div className="card">
       <div className="stat-row">
-        <span className="k">First putts from {LAG_FROM}+ ft</span>
+        <span className="k">Lags from {LAG_FROM}+ ft</span>
         <span className="v num">{lag.lags}</span>
       </div>
       <div className="stat-row">
-        <span className="k">Typical leave</span>
-        <span className="v num">
-          {stats.avgLeave === null ? '--' : `${stats.avgLeave.toFixed(1)} ft`}
-          {stats.avgLeavePct !== null && (
-            <span className={stats.avgLeavePct > 10 ? 'small neg' : 'small muted'}>
-              {' '}· {stats.avgLeavePct.toFixed(0)}% of the putt
-            </span>
-          )}
-        </span>
+        <span className="k">Average leave</span>
+        <span className="v num">{stats.avgLeave === null ? '--' : `${stats.avgLeave.toFixed(1)} ft`}</span>
       </div>
       <div className="stat-row">
-        <span className="k">Left yourself {DANGER_FROM}+ ft</span>
-        <span className={badPct !== null && badPct > 30 ? 'v num neg' : 'v num'}>
-          {badPct === null ? '--' : `${badPct}%`}
-          <span className="small muted"> · {lag.bad} of {lag.lags}</span>
+        <span className="k">Inside 10% of the putt</span>
+        <span className={goodShare !== null && goodShare >= 0.5 ? 'v num pos' : 'v num'}>
+          {lag.good} of {lag.lags}
         </span>
       </div>
-      {lag.avgBadLeave !== null && (
+      {lag.avgComeback !== null && (
         <div className="stat-row">
-          <span className="k">When you did, the comeback</span>
-          <span className="v num">{lag.avgBadLeave.toFixed(1)} ft</span>
+          <span className="k">The rest left a comeback</span>
+          <span className="v num">
+            {lag.avgComeback.toFixed(1)} ft<span className="small muted"> on average</span>
+          </span>
         </div>
       )}
-      {savePct !== null && (
+      {holedShare !== null && (
         <div className="stat-row">
-          <span className="k">Holed the comeback</span>
-          <span className={savePct < 60 ? 'v num neg' : 'v num pos'}>
-            {savePct}%
-            <span className="small muted"> · {lag.saved} of {lag.bad}</span>
+          <span className="k">Comebacks holed</span>
+          <span className={holedShare === 1 ? 'v num pos' : holedShare < 0.6 ? 'v num neg' : 'v num'}>
+            {lag.comebacksHoled} of {lag.comebacks}
           </span>
         </div>
       )}

@@ -38,7 +38,6 @@ import { fmtDate, pctText, signed } from '../lib/format';
 import { Bar } from '../components/Bar';
 import {
   byGreenSpeed,
-  DANGER_FROM,
   lagSaves,
   missAnatomy,
   missShapes,
@@ -614,11 +613,11 @@ function RoundStats() {
           <p className="act">What it costs you</p>
           <h2>Lag control</h2>
           <LagPanel stats={o.pooled} lag={lag} />
-          <LagMap rounds={rounds} limit={50} />
           <p className="small muted" style={{ margin: '8px 0 0' }}>
-            Typical leave is every lag you hit. The comeback is only the ones that finished {DANGER_FROM}+ feet away,
-            which is why it is the bigger number.
+            Inside 10% means it went in or finished within a tenth of the putt's length. The comeback is the putt the
+            rest left you.
           </p>
+          <LagMap rounds={rounds} limit={50} />
 
           {lag.bySource.some((b) => b.threePutts > 0) && (
             <>

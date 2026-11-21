@@ -3,14 +3,7 @@ import { fmtDateLong, puttSequence } from './format';
 import { insights } from './insights';
 import { holeSG } from './sg';
 import { BUCKETS, courseLabel, LAG_FROM, lagSaves, pct, readBias, type Stats } from './stats';
-import {
-  BREAK_BUCKETS,
-  BREAK_BUCKET_LABELS,
-  GREEN_SPEED_STIMP,
-  holeVsPar,
-  holedOut,
-  type Round,
-} from './types';
+import { BREAK_BUCKETS, BREAK_BUCKET_LABELS, GREEN_SPEED_STIMP, holeVsPar, holedOut, type Round } from './types';
 
 /**
  * A whole round as one tall image, the way a fantasy app sends a week. One send instead of five
@@ -36,8 +29,7 @@ const HOLE_ROW = 48;
 const HEAD = 100;
 const LEAD = 38;
 
-const FONT = (w: number, s: number) =>
-  `${w} ${s}px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
+const FONT = (w: number, s: number) => `${w} ${s}px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
 
 interface Pen {
   c: CanvasRenderingContext2D;
@@ -74,13 +66,7 @@ function text(
   }
 }
 
-function wrapLines(
-  c: CanvasRenderingContext2D,
-  s: string,
-  maxW: number,
-  size: number,
-  weight: number,
-): string[] {
+function wrapLines(c: CanvasRenderingContext2D, s: string, maxW: number, size: number, weight: number): string[] {
   c.font = FONT(weight, size);
   const out: string[] = [];
   let line = '';
@@ -196,29 +182,15 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
   }
   if (bled > 0) numbers.push(['Shots lost after a mistake', `-${bled}`, RED]);
 
-  const distance = BUCKETS.map((b) => ({ b, t: s.buckets[b.key] })).filter(
-    ({ t }) => t.attempts > 0,
-  );
+  const distance = BUCKETS.map((b) => ({ b, t: s.buckets[b.key] })).filter(({ t }) => t.attempts > 0);
 
   const lagRows: [string, string][] = [];
   if (lag.lags > 0) {
     lagRows.push([`First putts from ${LAG_FROM}+ ft`, String(lag.lags)]);
-    if (s.avgLeave !== null) {
-      lagRows.push([
-        'Typical leave',
-        `${s.avgLeave.toFixed(1)} ft${
-          s.avgLeavePct !== null ? ` · ${s.avgLeavePct.toFixed(0)}% of the putt` : ''
-        }`,
-      ]);
-    }
-    lagRows.push([
-      'Left yourself 4+ ft',
-      `${share(lag.bad, lag.lags)} · ${lag.bad} of ${lag.lags}`,
-    ]);
-    if (lag.avgBadLeave !== null) lagRows.push(['The comeback', `${lag.avgBadLeave.toFixed(1)} ft`]);
-    if (lag.bad > 0) {
-      lagRows.push(['Holed the comeback', `${share(lag.saved, lag.bad)} · ${lag.saved} of ${lag.bad}`]);
-    }
+    if (s.avgLeave !== null) lagRows.push(['Average leave', `${s.avgLeave.toFixed(1)} ft`]);
+    lagRows.push(['Inside 10% of the putt', `${lag.good} of ${lag.lags}`]);
+    if (lag.avgComeback !== null) lagRows.push(['The rest left a comeback', `${lag.avgComeback.toFixed(1)} ft`]);
+    if (lag.comebacks > 0) lagRows.push(['Comebacks holed', `${lag.comebacksHoled} of ${lag.comebacks}`]);
   }
 
   const sidedAll = p0.high + p0.low + p0.online;
@@ -255,9 +227,7 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
     { label: 'Downhill', t: p0.downhill },
   ].filter(({ t }) => t.attempts > 0);
 
-  const sideRows = BUCKETS.map((b) => ({ b, t: p0.byBucket[b.key] })).filter(
-    ({ t }) => t.high + t.low + t.online > 0,
-  );
+  const sideRows = BUCKETS.map((b) => ({ b, t: p0.byBucket[b.key] })).filter(({ t }) => t.high + t.low + t.online > 0);
 
   const insightBlocks = cards.map((card) => ({
     title: card.title,
@@ -323,9 +293,7 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
     [
       courseLabel(round),
       putter,
-      round.greenSpeed
-        ? `${round.greenSpeed} greens, stimp ${GREEN_SPEED_STIMP[round.greenSpeed]}`
-        : null,
+      round.greenSpeed ? `${round.greenSpeed} greens, stimp ${GREEN_SPEED_STIMP[round.greenSpeed]}` : null,
       round.competitive ? 'competitive' : null,
     ]
       .filter(Boolean)
@@ -462,7 +430,11 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
     const vs = holeVsPar(hole);
     if (vs !== undefined) carried += vs;
     const gained = hole.putts.length
-      ? holeSG(baseline, hole.putts.map((x) => x.d), hole.putts.length)
+      ? holeSG(
+          baseline,
+          hole.putts.map((x) => x.d),
+          hole.putts.length,
+        )
       : null;
     const mark = triggers.has(hole.hole) ? '• ' : bledInto.has(hole.hole) ? '· ' : '';
     const seq = hole.putts.length ? puttSequence(hole.putts) : holedOut(hole) ? 'chipped in' : '--';
@@ -497,13 +469,20 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
 
   for (const band of bands) {
     const inBand = holes.filter((x) => x.hole >= band.from && x.hole <= band.to);
-    const par = inBand.reduce((n, x) => n + (x.strokes !== undefined ? x.par ?? 0 : 0), 0);
+    const par = inBand.reduce((n, x) => n + (x.strokes !== undefined ? (x.par ?? 0) : 0), 0);
     const strokes = inBand.reduce((n, x) => n + (x.strokes ?? 0), 0);
     const putts = inBand.reduce((n, x) => n + x.putts.length, 0);
     const rel = inBand.reduce((n, x) => n + (holeVsPar(x) ?? 0), 0);
     const bandSg = inBand.reduce(
       (n, x) =>
-        n + (x.putts.length ? holeSG(baseline, x.putts.map((q) => q.d), x.putts.length) : 0),
+        n +
+        (x.putts.length
+          ? holeSG(
+              baseline,
+              x.putts.map((q) => q.d),
+              x.putts.length,
+            )
+          : 0),
       0,
     );
     p.y += HOLE_ROW;
@@ -512,7 +491,15 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
     text(p, String(par || ''), PAD + 74, 24, 700, INK3);
     text(p, band.label, PAD + 128, 26, 800, INK2);
     text(p, String(strokes || ''), W - PAD - 250, 27, 800, INK, 'right');
-    text(p, rel === 0 ? 'E' : rel > 0 ? `+${rel}` : String(rel), W - PAD - 165, 24, 700, rel < 0 ? GOOD : INK3, 'right');
+    text(
+      p,
+      rel === 0 ? 'E' : rel > 0 ? `+${rel}` : String(rel),
+      W - PAD - 165,
+      24,
+      700,
+      rel < 0 ? GOOD : INK3,
+      'right',
+    );
     text(p, String(putts || ''), W - PAD - 95, 27, 800, INK, 'right');
     text(p, signed2(bandSg), W - PAD, 24, 800, bandSg >= 0 ? GOOD : RED, 'right');
   }

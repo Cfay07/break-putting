@@ -1,24 +1,32 @@
-import { DANGER_FROM, LAG_FROM } from '../lib/stats';
+import { useState } from 'react';
+import { LAG_FROM, LEAVE_STANDARD } from '../lib/stats';
 import { breakDirsOf, type MissSide, type Round, type Speed } from '../lib/types';
 
 type Slope = 'up' | 'down' | 'flat';
+type Result = 'good' | 'two' | 'three';
 
-interface Dot {
+interface Lag {
   key: string;
-  side: MissSide;
-  speed: Speed;
-  leave: number;
+  d: number;
+  made: boolean;
+  /** Missing on a hole that stopped after the first putt, so it cannot be placed or averaged. */
+  leave: number | null;
+  side?: MissSide;
+  speed?: Speed;
   slope: Slope;
-  /** The comeback missed too, so the hole took three or more. */
-  three: boolean;
+  result: Result;
 }
 
 const SCALE = 7;
-/** The comeback line first, solid: inside it the next putt is a tap-in, outside it can be missed. */
-const RINGS = [DANGER_FROM, 8, 12];
+const RINGS = [3, 6, 9, 12];
 const CAP = 12;
-const COLOR: Record<Slope, string> = { down: '#c0533a', up: '#1d7a5a', flat: '#9aa79f' };
-const LABEL: Record<Slope, string> = { down: 'Downhill', up: 'Uphill', flat: 'Flat' };
+const COLOR: Record<Result, string> = { good: '#2e8a5c', two: '#9aa79f', three: '#a52a1f' };
+const SLOPES: [Slope | 'all', string][] = [
+  ['all', 'All'],
+  ['up', 'Uphill'],
+  ['down', 'Downhill'],
+  ['flat', 'Flat'],
+];
 
 /** Which way it finished, laid out like the miss grid: short left, long right, the high side up. */
 function direction(side: MissSide, speed: Speed): [number, number] {
@@ -29,85 +37,98 @@ function direction(side: MissSide, speed: Speed): [number, number] {
   return [x, y];
 }
 
-/**
- * Where your lags stopped. Every missed first putt from the lag distance that was tagged with
- * where it finished, drawn around the hole at the length of the putt it left. The direction is
- * the miss grid cell, so dots in the same cell fan out side by side rather than pretending to a
- * precision the tag never had.
- */
-export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
-  let lags = 0;
-  let cut = false;
-  let holed = 0;
-  const dots: Dot[] = [];
-  // Newest first, so a limit keeps the lags that say how you putt now. Every count below covers
-  // the same lags the map draws.
-  const newest = [...rounds].sort((a, b) => b.date.localeCompare(a.date));
-  for (const r of newest) {
-    [...r.holes].reverse().forEach((h) => {
+/** Newest first, so a limit keeps the lags that say how you putt now. */
+function lagsOf(rounds: Round[]): Lag[] {
+  const out: Lag[] = [];
+  for (const r of [...rounds].sort((a, b) => b.date.localeCompare(a.date))) {
+    for (const h of [...r.holes].reverse()) {
       const p = h.putts[0];
-      if (!p || p.d < LAG_FROM) return;
-      if (limit !== undefined && dots.length >= limit) return void (cut = true);
-      lags++;
-      if (p.made) return void holed++;
-      if (!p.missSide || !p.speed) return;
+      if (!p || p.d < LAG_FROM) continue;
+      const leave = p.made ? 0 : (h.putts[1]?.d ?? null);
       const dirs = breakDirsOf(p);
-      dots.push({
+      out.push({
         key: `${r.id}-${h.hole}`,
+        d: p.d,
+        made: p.made,
+        leave,
         side: p.missSide,
         speed: p.speed,
-        leave: h.putts[1]?.d ?? 0,
         slope: dirs.includes('uphill') ? 'up' : dirs.includes('downhill') ? 'down' : 'flat',
-        three: h.putts.length >= 3,
+        result: h.putts.length >= 3 ? 'three' : leave !== null && leave <= p.d * LEAVE_STANDARD ? 'good' : 'two',
       });
-    });
+    }
   }
-  if (dots.length < 3) return null;
+  return out;
+}
 
-  const groups = new Map<string, Dot[]>();
-  for (const d of dots) {
-    const k = direction(d.side, d.speed).join(',');
-    groups.set(k, [...(groups.get(k) ?? []), d]);
+/**
+ * Where your lags stopped, colored by how they turned out: inside a tenth of the putt, a comeback
+ * you holed, or a three-putt. The direction is the miss grid cell, so dots in the same cell fan
+ * out side by side rather than pretending to a precision the tag never had. The dashed ring is
+ * the average leave of the lags shown, holed ones counting as zero.
+ */
+export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
+  const [slope, setSlope] = useState<Slope | 'all'>('all');
+  const all = lagsOf(rounds);
+  const recent = limit === undefined ? all : all.slice(0, limit);
+  const cut = recent.length < all.length;
+  if (recent.filter((l) => !l.made && l.side && l.speed).length < 3) return null;
+
+  const shown = recent.filter((l) => slope === 'all' || l.slope === slope);
+  const plotted = shown.filter((l) => !l.made && l.side && l.speed && l.leave !== null);
+  const left = shown.filter((l) => l.leave !== null);
+  const avg = left.length ? left.reduce((a, l) => a + l.leave!, 0) / left.length : null;
+  const holed = shown.filter((l) => l.made).length;
+  const untagged = shown.filter((l) => !l.made && (!l.side || !l.speed)).length;
+
+  const groups = new Map<string, Lag[]>();
+  for (const l of plotted) {
+    const k = direction(l.side!, l.speed!).join(',');
+    groups.set(k, [...(groups.get(k) ?? []), l]);
   }
-  const placed = [...groups.entries()].flatMap(([k, ds]) => {
-    const [x, y] = k.split(',').map(Number);
-    const base = Math.atan2(y, x);
-    // Cells sit 45 degrees apart, so a fan stays inside about 35 of them however many it holds.
-    const step = ds.length > 1 ? Math.min(0.14, 0.6 / (ds.length - 1)) : 0;
-    return ds
-      .sort((a, b) => a.leave - b.leave)
-      .map((d, i) => {
-        const a = base + (i - (ds.length - 1) / 2) * step;
-        const r = Math.min(d.leave, CAP) * SCALE;
-        return { ...d, cx: Math.cos(a) * r, cy: Math.sin(a) * r };
-      });
-  });
-  // Three-putts last, so no plain dot is ever drawn over their 3.
-  placed.sort((a, b) => Number(a.three) - Number(b.three));
-  const slopes = (['down', 'up', 'flat'] as Slope[]).filter((s) => dots.some((d) => d.slope === s));
-  const untagged = lags - holed - dots.length;
-  const threes = dots.filter((d) => d.three).length;
-  // Only the lags on the map, so the line and the dots always agree.
-  const comebacks = dots.filter((d) => d.leave >= DANGER_FROM).length;
-  const comebacksHoled = dots.filter((d) => d.leave >= DANGER_FROM && !d.three).length;
+  const placed = [...groups.entries()]
+    .flatMap(([k, ls]) => {
+      const [x, y] = k.split(',').map(Number);
+      const base = Math.atan2(y, x);
+      // Cells sit 45 degrees apart, so a fan stays inside about 35 of them however many it holds.
+      const step = ls.length > 1 ? Math.min(0.14, 0.6 / (ls.length - 1)) : 0;
+      return ls
+        .sort((a, b) => a.leave! - b.leave!)
+        .map((l, i) => {
+          const a = base + (i - (ls.length - 1) / 2) * step;
+          const r = Math.min(l.leave!, CAP) * SCALE;
+          return { ...l, cx: Math.cos(a) * r, cy: Math.sin(a) * r };
+        });
+    })
+    // Three-putts last, so no plain dot is ever drawn over their 3.
+    .sort((a, b) => Number(a.result === 'three') - Number(b.result === 'three'));
+  const present = new Set(recent.map((l) => l.slope));
+  const ring = avg !== null && avg > 0 ? Math.min(avg, CAP) * SCALE : null;
 
   return (
     <div className="card lag-map">
-      {comebacks > 0 && (
-        <p className="lm-head">
-          <b>{comebacks}</b> left you {DANGER_FROM}+ ft, outside the solid ring. You holed{' '}
-          <b className={comebacksHoled === comebacks ? 'pos' : comebacksHoled / comebacks < 0.6 ? 'neg' : undefined}>
-            {comebacksHoled} of {comebacks}
-          </b>{' '}
-          comebacks{comebacksHoled < comebacks ? '; each 3 is one you missed' : ''}.
-        </p>
+      {present.size > 1 && (
+        <div className="chips chips-sm lm-slopes">
+          {SLOPES.filter(([k]) => k === 'all' || present.has(k)).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              className={slope === k ? 'chip chip-sel' : 'chip'}
+              aria-pressed={slope === k}
+              onClick={() => setSlope(k)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       )}
       <svg viewBox="-130 -108 260 216" role="img" aria-label="Where your lag putts finished around the hole">
         <line x1={-98} y1={0} x2={98} y2={0} className="lm-axis" />
         <line x1={0} y1={-104} x2={0} y2={104} className="lm-axis" />
         {RINGS.map((r) => (
-          <circle key={r} r={r * SCALE} className={r === DANGER_FROM ? 'lm-ring lm-danger' : 'lm-ring'} />
+          <circle key={r} r={r * SCALE} className="lm-ring" />
         ))}
+        {ring !== null && <circle r={ring} className="lm-avg" />}
         <text x={-128} y={3} className="lm-edge">
           Short
         </text>
@@ -120,16 +141,16 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
         <text x={4} y={104} className="lm-edge">
           Low
         </text>
-        {placed.map((d) =>
-          d.three ? (
-            <g key={d.key}>
-              <circle cx={d.cx} cy={d.cy} r={5.6} fill={COLOR[d.slope]} className="lm-dot three" />
-              <text x={d.cx} y={d.cy + 2.4} className="lm-three">
+        {placed.map((l) =>
+          l.result === 'three' ? (
+            <g key={l.key}>
+              <circle cx={l.cx} cy={l.cy} r={5.6} fill={COLOR.three} className="lm-dot" />
+              <text x={l.cx} y={l.cy + 2.4} className="lm-three">
                 3
               </text>
             </g>
           ) : (
-            <circle key={d.key} cx={d.cx} cy={d.cy} r={4} fill={COLOR[d.slope]} className="lm-dot" />
+            <circle key={l.key} cx={l.cx} cy={l.cy} r={4} fill={COLOR[l.result]} className="lm-dot" />
           ),
         )}
         <circle r={4.2} className="lm-cup" />
@@ -138,28 +159,31 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
             {r} ft
           </text>
         ))}
+        {ring !== null && (
+          <text x={Math.cos(-0.75) * ring + 3} y={Math.sin(-0.75) * ring - 3} className="lm-avg-label">
+            Avg {avg!.toFixed(1)} ft
+          </text>
+        )}
       </svg>
       <div className="lm-key">
-        {slopes.map((s) => (
-          <span key={s}>
-            <i style={{ background: COLOR[s] }} />
-            {LABEL[s]}
-          </span>
-        ))}
-        {threes > 0 && (
-          <span>
-            <b className="lm-three-key">3</b>
-            Three-putt
-          </span>
-        )}
+        <span>
+          <i style={{ background: COLOR.good }} />
+          Inside 10%
+        </span>
+        <span>
+          <i style={{ background: COLOR.two }} />
+          Comeback holed
+        </span>
+        <span>
+          <b className="lm-three-key">3</b>
+          Three-putt
+        </span>
       </div>
       <p className="small muted" style={{ margin: '8px 0 0' }}>
-        {cut
-          ? `Your last ${limit} missed lags from ${LAG_FROM}+ ft`
-          : `Every first putt from ${LAG_FROM}+ ft you missed`}
-        , at the length it left you. Short is left, long is right, the high side is up.
-        {holed ? ` ${holed} holed.` : ''}
-        {dots.some((d) => d.leave > CAP) ? ` Anything past ${CAP} ft sits on the edge.` : ''}
+        {cut ? `Your last ${limit} lags from ${LAG_FROM}+ ft` : `Your lags from ${LAG_FROM}+ ft`}, each at the length it
+        left you. Short is left, long is right, the high side is up.
+        {holed ? ` ${holed} went in.` : ''}
+        {plotted.some((l) => l.leave! > CAP) ? ` Anything past ${CAP} ft sits on the edge.` : ''}
         {untagged > 0 ? ` ${untagged} had no finish tagged, so they are not on the map.` : ''}
       </p>
     </div>

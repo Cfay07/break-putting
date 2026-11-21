@@ -418,6 +418,9 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       {tab === 'lag' && (
         <>
           <LagPanel stats={s} lag={lagSaves([round])} />
+          <p className="small muted" style={{ margin: '8px 0 0' }}>
+            Inside 10% means it went in or finished within a tenth of the putt's length.
+          </p>
           <LagMap rounds={[round]} />
         </>
       )}

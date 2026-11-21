@@ -404,9 +404,6 @@ export function overall(rounds: Round[], baseline: [number, number][]): Overall 
   };
 }
 
-/** The distance a leave stops being a tap-in and starts being a putt you can miss. */
-export const DANGER_FROM = 4;
-
 export interface MissShape {
   label: string;
   n: number;
@@ -499,11 +496,13 @@ export function missAnatomy(rounds: Round[]): MissAnatomy {
 export interface LagSave {
   /** Every first putt from the lag line out, holed ones included. */
   lags: number;
-  /** Lags that finished outside the danger line, so the next putt could be missed. */
-  bad: number;
+  /** Holed, or finished inside a tenth of the putt: 4 ft from 40, 7 from 70. */
+  good: number;
+  /** The rest: lags that left a real second putt. */
+  comebacks: number;
   /** Of those, the ones still holed in two. */
-  saved: number;
-  avgBadLeave: number | null;
+  comebacksHoled: number;
+  avgComeback: number | null;
   /** Three-putts by where the first putt came from. */
   bySource: { label: string; holes: number; threePutts: number }[];
 }
@@ -517,9 +516,9 @@ export function lagSaves(rounds: Round[]): LagSave {
   ];
   const bySource = bands.map((b) => ({ label: b.label, holes: 0, threePutts: 0 }));
   let lags = 0;
-  let bad = 0;
-  let saved = 0;
-  const badLeaves: number[] = [];
+  let good = 0;
+  let comebacksHoled = 0;
+  const comebackLeaves: number[] = [];
 
   for (const r of rounds) {
     for (const h of r.holes) {
@@ -532,22 +531,30 @@ export function lagSaves(rounds: Round[]): LagSave {
       }
       if (first.d < LAG_FROM) continue;
       lags++;
-      // Holing the lag counts as a lag you did not leave yourself anything on. Skipping it
-      // entirely shrank the denominator and quietly inflated the trouble rate.
-      if (first.made) continue;
+      // Holing the lag is the best lag there is, so it counts as a good one rather than leaving
+      // the count, which shrank the denominator and quietly inflated the trouble rate.
+      if (first.made) {
+        good++;
+        continue;
+      }
       const leave = h.putts[1]?.d;
-      if (leave === undefined || leave < DANGER_FROM) continue;
-      bad++;
-      badLeaves.push(leave);
-      if (h.putts.length === 2) saved++;
+      if (leave === undefined) continue;
+      // Judged against its own length: a 4 footer is a fine leave from 40 and a poor one from 30.
+      if (leave <= first.d * LEAVE_STANDARD) {
+        good++;
+        continue;
+      }
+      comebackLeaves.push(leave);
+      if (h.putts.length === 2) comebacksHoled++;
     }
   }
 
   return {
     lags,
-    bad,
-    saved,
-    avgBadLeave: badLeaves.length ? badLeaves.reduce((a, b) => a + b, 0) / badLeaves.length : null,
+    good,
+    comebacks: comebackLeaves.length,
+    comebacksHoled,
+    avgComeback: comebackLeaves.length ? comebackLeaves.reduce((a, b) => a + b, 0) / comebackLeaves.length : null,
     bySource: bySource.filter((b) => b.holes > 0),
   };
 }
