@@ -20,7 +20,9 @@ interface Lag {
 const SCALE = 7;
 const RINGS = [3, 6, 9, 12];
 const CAP = 12;
-const OUTSIDE = 9;
+/** How far a dot can sit from the hole before it would leave the card. */
+const EDGE_X = 122;
+const EDGE_Y = 100;
 const COLOR: Record<Result, string> = { good: '#2e8a5c', two: '#9aa79f', three: '#a52a1f' };
 const SLOPES: [Slope | 'all', string][] = [
   ['all', 'All'],
@@ -97,10 +99,12 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
         .sort((a, b) => a.leave! - b.leave!)
         .map((l, i) => {
           const a = base + (i - (ls.length - 1) / 2) * step;
-          // Past the last ring a leave sits just outside it, labelled, rather than to scale: one
-          // 25 footer drawn true would shrink every other lag into the cup.
-          const r = l.leave! > CAP ? CAP * SCALE + OUTSIDE : l.leave! * SCALE;
-          return { ...l, cx: Math.cos(a) * r, cy: Math.sin(a) * r, a };
+          // To scale out past the last ring too, as far as the card allows in that direction. Only
+          // a leave longer than the card is pulled in to its edge, so one huge miss never shrinks
+          // every other lag into the cup.
+          const room = Math.min(EDGE_X / Math.abs(Math.cos(a) || 1e-6), EDGE_Y / Math.abs(Math.sin(a) || 1e-6));
+          const r = Math.min(l.leave! * SCALE, room);
+          return { ...l, cx: Math.cos(a) * r, cy: Math.sin(a) * r };
         });
     })
     // Three-putts last, so no plain dot is ever drawn over their 3.
@@ -157,19 +161,6 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
           ),
         )}
         <circle r={4.2} className="lm-cup" />
-        {placed
-          .filter((l) => l.leave! > CAP)
-          .map((l) => (
-            <text
-              key={`${l.key}-past`}
-              x={l.cx + (Math.cos(l.a) >= 0 ? 8 : -8)}
-              y={l.cy + 3}
-              textAnchor={Math.cos(l.a) >= 0 ? 'start' : 'end'}
-              className="lm-past-label"
-            >
-              {l.leave} ft
-            </text>
-          ))}
         {RINGS.map((r) => (
           <text key={r} x={3} y={r * SCALE + 9} className="lm-ring-label">
             {r} ft
@@ -199,9 +190,7 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
         {cut ? `Your last ${limit} lags from ${LAG_FROM}+ ft` : `Your lags from ${LAG_FROM}+ ft`}, each at the length it
         left you. Short is left, long is right, the high side is up.
         {holed ? ` ${holed} went in.` : ''}
-        {plotted.some((l) => l.leave! > CAP)
-          ? ` A dot outside the ${CAP} ft ring went further, with its real length beside it.`
-          : ''}
+        {plotted.some((l) => l.leave! > CAP) ? ` A dot outside the ${CAP} ft ring went further than that.` : ''}
         {untagged > 0 ? ` ${untagged} had no finish tagged, so they are not on the map.` : ''}
       </p>
     </div>
