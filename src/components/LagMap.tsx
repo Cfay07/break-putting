@@ -20,6 +20,7 @@ interface Lag {
 const SCALE = 7;
 const RINGS = [3, 6, 9, 12];
 const CAP = 12;
+const OUTSIDE = 9;
 const COLOR: Record<Result, string> = { good: '#2e8a5c', two: '#9aa79f', three: '#a52a1f' };
 const SLOPES: [Slope | 'all', string][] = [
   ['all', 'All'],
@@ -96,7 +97,9 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
         .sort((a, b) => a.leave! - b.leave!)
         .map((l, i) => {
           const a = base + (i - (ls.length - 1) / 2) * step;
-          const r = Math.min(l.leave!, CAP) * SCALE;
+          // Past the last ring a leave sits just outside it, labelled, rather than to scale: one
+          // 25 footer drawn true would shrink every other lag into the cup.
+          const r = l.leave! > CAP ? CAP * SCALE + OUTSIDE : l.leave! * SCALE;
           return { ...l, cx: Math.cos(a) * r, cy: Math.sin(a) * r, a };
         });
     })
@@ -154,24 +157,19 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
           ),
         )}
         <circle r={4.2} className="lm-cup" />
-        {/* Past the edge: a tick pointing on out and the real length, so it never reads as 12. */}
         {placed
           .filter((l) => l.leave! > CAP)
-          .map((l) => {
-            const r = CAP * SCALE;
-            const at = (k: number) => [Math.cos(l.a) * (r + k), Math.sin(l.a) * (r + k)];
-            const [x1, y1] = at(6);
-            const [x2, y2] = at(12);
-            const [tx, ty] = at(19);
-            return (
-              <g key={`${l.key}-past`}>
-                <line x1={x1} y1={y1} x2={x2} y2={y2} className="lm-past" />
-                <text x={tx} y={ty + 2.5} className="lm-past-label">
-                  {l.leave} ft
-                </text>
-              </g>
-            );
-          })}
+          .map((l) => (
+            <text
+              key={`${l.key}-past`}
+              x={l.cx + (Math.cos(l.a) >= 0 ? 8 : -8)}
+              y={l.cy + 3}
+              textAnchor={Math.cos(l.a) >= 0 ? 'start' : 'end'}
+              className="lm-past-label"
+            >
+              {l.leave} ft
+            </text>
+          ))}
         {RINGS.map((r) => (
           <text key={r} x={3} y={r * SCALE + 9} className="lm-ring-label">
             {r} ft
@@ -202,7 +200,7 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
         left you. Short is left, long is right, the high side is up.
         {holed ? ` ${holed} went in.` : ''}
         {plotted.some((l) => l.leave! > CAP)
-          ? ` A tick on the edge means it went past ${CAP} ft, with the real length beside it.`
+          ? ` A dot outside the ${CAP} ft ring went further, with its real length beside it.`
           : ''}
         {untagged > 0 ? ` ${untagged} had no finish tagged, so they are not on the map.` : ''}
       </p>
