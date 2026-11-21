@@ -2626,3 +2626,5 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .topic-row.nobar .tr-val { min-width: 78px; }
 .topic-row.nobar .tr-val:empty { display: none; }
 .topic-row.nobar:has(.tr-val:empty) { grid-template-columns: minmax(0, 1fr) 10px; }
+.level-table tr.level-you td { font-weight: 800; color: var(--ink); background: rgba(46, 138, 92, 0.08); }
+.level-table th, .level-table td { white-space: nowrap; }

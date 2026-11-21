@@ -35,7 +35,12 @@ export type Action =
   | { t: 'insertPutt'; roundId: string; hole: number; putt: Putt }
   | { t: 'removePutt'; roundId: string; hole: number; index: number }
   | { t: 'updatePutt'; roundId: string; hole: number; index: number; patch: Partial<Putt> }
-  | { t: 'setHoleScore'; roundId: string; hole: number; patch: Partial<Pick<Hole, 'par' | 'strokes' | 'vsPar' | 'holedOut'>> }
+  | {
+      t: 'setHoleScore';
+      roundId: string;
+      hole: number;
+      patch: Partial<Pick<Hole, 'par' | 'strokes' | 'vsPar' | 'holedOut'>>;
+    }
   | {
       t: 'applyCourse';
       roundId: string;
@@ -51,6 +56,7 @@ export type Action =
   | { t: 'deleteRound'; id: string }
   | { t: 'setBaseline'; baseline: [number, number][] }
   | { t: 'setQuietTrack'; on: boolean }
+  | { t: 'setQuickTags'; on: boolean }
   | { t: 'addPracticeSet'; set: PracticeSet }
   | { t: 'deletePracticeSet'; id: string }
   | { t: 'deletePracticeSets'; ids: string[] }
@@ -92,9 +98,7 @@ export function makeRound(fields: {
     course: fields.course?.trim() || undefined,
     putterId: fields.putterId,
     holeCount: fields.holeCount,
-    holes: blankHoles(fields.holeCount).map((h, i) =>
-      fields.pars?.[i] ? { ...h, par: fields.pars[i] } : h,
-    ),
+    holes: blankHoles(fields.holeCount).map((h, i) => (fields.pars?.[i] ? { ...h, par: fields.pars[i] } : h)),
     finished: false,
   };
 }
@@ -116,9 +120,7 @@ function unionById<T extends { id: string }>(mine: T[], theirs: T[]): T[] {
 }
 
 function upsert<T extends { id: string }>(list: T[], item: T): T[] {
-  return list.some((x) => x.id === item.id)
-    ? list.map((x) => (x.id === item.id ? item : x))
-    : [...list, item];
+  return list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item];
 }
 
 /** Newer copy wins, and a local deletion outranks any copy older than it. */
@@ -163,9 +165,7 @@ export function reducer(state: AppState, a: Action): AppState {
     case 'renamePutter':
       return {
         ...state,
-        putters: state.putters.map((p) =>
-          p.id === a.id ? { ...p, name: a.name.trim(), updated: now() } : p,
-        ),
+        putters: state.putters.map((p) => (p.id === a.id ? { ...p, name: a.name.trim(), updated: now() } : p)),
       };
     case 'setActivePutter':
       return {
@@ -176,9 +176,7 @@ export function reducer(state: AppState, a: Action): AppState {
       return {
         ...state,
         putters: state.putters.map((p) =>
-          p.id === a.id
-            ? { ...p, retired: a.retired, active: a.retired ? false : p.active, updated: now() }
-            : p,
+          p.id === a.id ? { ...p, retired: a.retired, active: a.retired ? false : p.active, updated: now() } : p,
         ),
       };
     case 'deletePutter': {
@@ -234,6 +232,7 @@ export function reducer(state: AppState, a: Action): AppState {
         ...state,
         rounds: [{ ...a.round, updated: now() }, ...state.rounds],
         track: freshTrack,
+        quickTags: state.quickTags ?? !state.rounds.some((r) => r.finished),
       };
 
     case 'addPutt': {
@@ -242,9 +241,7 @@ export function reducer(state: AppState, a: Action): AppState {
       const h = state.track.hole;
       const next = mapRound(state, live.id, (r) => ({
         ...r,
-        holes: r.holes.map((hole) =>
-          hole.hole === h ? { ...hole, putts: [...hole.putts, a.putt] } : hole,
-        ),
+        holes: r.holes.map((hole) => (hole.hole === h ? { ...hole, putts: [...hole.putts, a.putt] } : hole)),
       }));
       return { ...next, track: { ...freshTrack, hole: h } };
     }
@@ -269,9 +266,7 @@ export function reducer(state: AppState, a: Action): AppState {
       return mapRound(state, a.roundId, (r) => ({
         ...r,
         holes: r.holes.map((hole) =>
-          hole.hole === a.hole
-            ? { ...hole, putts: hole.putts.filter((_, i) => i !== a.index) }
-            : hole,
+          hole.hole === a.hole ? { ...hole, putts: hole.putts.filter((_, i) => i !== a.index) } : hole,
         ),
       }));
 
@@ -376,13 +371,13 @@ export function reducer(state: AppState, a: Action): AppState {
       return {
         ...state,
         rounds: state.rounds.filter((r) => r.id !== a.id),
-        tombstones: [
-          ...state.tombstones.filter((t) => t.id !== a.id),
-          { id: a.id, kind: 'round' as const, at: now() },
-        ],
+        tombstones: [...state.tombstones.filter((t) => t.id !== a.id), { id: a.id, kind: 'round' as const, at: now() }],
         track: wasLive ? freshTrack : state.track,
       };
     }
+
+    case 'setQuickTags':
+      return { ...state, quickTags: a.on };
 
     case 'setQuietTrack':
       return { ...state, quietTrack: a.on };
@@ -438,7 +433,10 @@ export function reducer(state: AppState, a: Action): AppState {
     case 'setLevel':
       return {
         ...state,
-        levels: { ...state.levels, [a.drill]: { ft: a.ft, ...(a.askAfter !== undefined ? { askAfter: a.askAfter } : {}) } },
+        levels: {
+          ...state.levels,
+          [a.drill]: { ft: a.ft, ...(a.askAfter !== undefined ? { askAfter: a.askAfter } : {}) },
+        },
         settingsUpdated: now(),
       };
 
@@ -480,7 +478,9 @@ export function reducer(state: AppState, a: Action): AppState {
     }
 
     case 'goToBlock':
-      return state.run ? { ...state, run: { ...state.run, block: a.block, blockStartedAt: now(), lastLogged: now() } } : state;
+      return state.run
+        ? { ...state, run: { ...state.run, block: a.block, blockStartedAt: now(), lastLogged: now() } }
+        : state;
 
     case 'endRun':
       return { ...state, run: undefined };
@@ -493,15 +493,10 @@ export function reducer(state: AppState, a: Action): AppState {
 
     case 'mergeState': {
       const newPutters = a.state.putters.filter((p) => !state.putters.some((x) => x.id === p.id));
-      const newCourses = (a.state.courses ?? []).filter(
-        (c) => !state.courses.some((x) => x.id === c.id),
-      );
+      const newCourses = (a.state.courses ?? []).filter((c) => !state.courses.some((x) => x.id === c.id));
       // Same day and same number of holes is the same round, whatever id it arrived with.
       const newRounds = a.state.rounds.filter(
-        (r) =>
-          !state.rounds.some(
-            (x) => x.id === r.id || (x.date === r.date && x.holeCount === r.holeCount),
-          ),
+        (r) => !state.rounds.some((x) => x.id === r.id || (x.date === r.date && x.holeCount === r.holeCount)),
       );
       return {
         ...state,
@@ -526,10 +521,7 @@ export function reducer(state: AppState, a: Action): AppState {
       return {
         ...state,
         rounds: [...a.state.rounds, ...kept],
-        putters: [
-          ...state.putters,
-          ...a.state.putters.filter((p) => !putterIds.has(p.id)),
-        ],
+        putters: [...state.putters, ...a.state.putters.filter((p) => !putterIds.has(p.id))],
         practice: unionById(state.practice, a.state.practice ?? []),
         drills: unionById(state.drills, a.state.drills ?? []),
         sessions: unionById(state.sessions, a.state.sessions ?? []),

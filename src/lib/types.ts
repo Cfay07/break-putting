@@ -294,6 +294,11 @@ export interface AppState {
   settingsUpdated?: string;
   /** Hides the running score and the bleed drop while playing, for competitive rounds. */
   quietTrack?: boolean;
+  /**
+   * A miss asks only where it finished, with every other tag one tap away. Set on the first round
+   * this phone logs: on for a new player, off for one who already logs everything.
+   */
+  quickTags?: boolean;
   /** Drill sets. Kept apart from rounds so nothing that reads a round can ever read these. */
   practice: PracticeSet[];
   /** Drills you built or imported, and your edited copies of anyone else's. */

@@ -48,6 +48,7 @@ export function Track() {
   const [courseOpen, setCourseOpen] = useState(false);
   const [choice, setChoice] = useState<CourseChoice>({ name: '' });
   const [score, setScore] = useState('');
+  const [moreFor, setMoreFor] = useState<string | null>(null);
 
   if (!round) {
     return (
@@ -88,6 +89,12 @@ export function Track() {
   const onTarget =
     !!draft.d && !!targetRange && !round?.practice && draft.d >= targetRange[0] && draft.d <= targetRange[1];
   const hasPars = round.holes.some((h) => h.par !== undefined);
+  // Quick logging keeps the tag screen to where a miss finished. A putt from your target's distance
+  // still asks for everything, because that putt is the one the target is checked on.
+  const inTarget = (ft: number) => !!targetRange && !round.practice && ft >= targetRange[0] && ft <= targetRange[1];
+  const quick = !!state.quickTags && !onTarget;
+  const puttKey = `${track.hole}:${hole.putts.length}`;
+  const showMore = !quick || moreFor === puttKey;
   // A practice round is only putts: no course, no par, no score on the hole.
   const practice = !!round.practice;
 
@@ -248,7 +255,7 @@ export function Track() {
               className="btn btn-primary"
               disabled={!canSubmit}
               onClick={() =>
-                d >= BREAK_PROMPT_FROM
+                d >= BREAK_PROMPT_FROM && (!state.quickTags || inTarget(d))
                   ? dispatch({ t: 'setTrack', patch: { phase: 'tags', draft: { d, made: true } } })
                   : dispatch({ t: 'addPutt', putt: { d, made: true } })
               }
@@ -314,58 +321,76 @@ export function Track() {
               counts toward the check.
             </p>
           )}
-          <div className="field-label">
-            How it broke
-            {!breakStory(draft.breakDirs ?? []) && breakLabel(draft.breakDirs ?? []) ? (
-              <span className="muted"> · {breakLabel(draft.breakDirs ?? [])}</span>
-            ) : null}
-          </div>
-          <SegMulti
-            quiet
-            options={BREAK_DIRS}
-            labels={BREAK_LABELS}
-            values={draft.breakDirs ?? []}
-            onToggle={(v) => setDraft({ breakDirs: toggleBreak(draft.breakDirs ?? [], v) })}
-          />
-          {breakStory(draft.breakDirs ?? []) && <p className="small brk-story">{breakStory(draft.breakDirs ?? [])}</p>}
-
-          {slopeOf(draft.breakDirs ?? []) && (
+          {!showMore && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-wide"
+              style={{ marginTop: 12 }}
+              onClick={() => setMoreFor(puttKey)}
+            >
+              More tags
+            </button>
+          )}
+          {showMore && (
             <>
               <div className="field-label">
-                {slopeOf(draft.breakDirs ?? []) === 'uphill' ? 'Uphill' : 'Downhill'}, how much
+                How it broke
+                {!breakStory(draft.breakDirs ?? []) && breakLabel(draft.breakDirs ?? []) ? (
+                  <span className="muted"> · {breakLabel(draft.breakDirs ?? [])}</span>
+                ) : null}
               </div>
-              <div className="chips chips-sm">
-                {SLOPE_STEPS.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    className={draft.slopeAs === n ? 'chip chip-on' : 'chip'}
-                    aria-pressed={draft.slopeAs === n}
-                    onClick={() => setDraft({ slopeAs: draft.slopeAs === n ? undefined : n })}
-                  >
-                    {SLOPE_LABELS[n]}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Only on a putt that actually turned. There is no read to be wrong about on a
-              straight one. */}
-          {(draft.breakDirs ?? []).some((d) => d === 'L→R' || d === 'R→L' || d === 'straight') && (
-            <>
-              <div className="field-label">The read</div>
-              <ReadBreak
-                dirs={draft.breakDirs ?? []}
-                readAs={draft.readAs}
-                brokeAs={draft.brokeAs}
-                wrongWay={!!draft.wrongWay}
-                onPick={(readAs, brokeAs, wrongWay) => setDraft({ readAs, brokeAs, wrongWay: wrongWay || undefined })}
+              <SegMulti
+                quiet
+                options={BREAK_DIRS}
+                labels={BREAK_LABELS}
+                values={draft.breakDirs ?? []}
+                onToggle={(v) => setDraft({ breakDirs: toggleBreak(draft.breakDirs ?? [], v) })}
               />
+              {breakStory(draft.breakDirs ?? []) && (
+                <p className="small brk-story">{breakStory(draft.breakDirs ?? [])}</p>
+              )}
+
+              {slopeOf(draft.breakDirs ?? []) && (
+                <>
+                  <div className="field-label">
+                    {slopeOf(draft.breakDirs ?? []) === 'uphill' ? 'Uphill' : 'Downhill'}, how much
+                  </div>
+                  <div className="chips chips-sm">
+                    {SLOPE_STEPS.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className={draft.slopeAs === n ? 'chip chip-on' : 'chip'}
+                        aria-pressed={draft.slopeAs === n}
+                        onClick={() => setDraft({ slopeAs: draft.slopeAs === n ? undefined : n })}
+                      >
+                        {SLOPE_LABELS[n]}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Only on a putt that actually turned. There is no read to be wrong about on a
+              straight one. */}
+              {(draft.breakDirs ?? []).some((d) => d === 'L→R' || d === 'R→L' || d === 'straight') && (
+                <>
+                  <div className="field-label">The read</div>
+                  <ReadBreak
+                    dirs={draft.breakDirs ?? []}
+                    readAs={draft.readAs}
+                    brokeAs={draft.brokeAs}
+                    wrongWay={!!draft.wrongWay}
+                    onPick={(readAs, brokeAs, wrongWay) =>
+                      setDraft({ readAs, brokeAs, wrongWay: wrongWay || undefined })
+                    }
+                  />
+                </>
+              )}
+
+              <StrokeTags putt={draft} onPatch={setDraft} />
             </>
           )}
-
-          <StrokeTags putt={draft} onPatch={setDraft} />
 
           {/* Pinned above the tab bar: a fully tagged miss runs past the bottom of a phone, and
               scrolling to save every putt adds up over a round. */}

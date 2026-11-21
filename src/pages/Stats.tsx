@@ -24,6 +24,8 @@ import { SampleTag } from '../components/SampleTag';
 import { ShootSplitCard } from '../components/ShootSplitCard';
 import { TopicRows, type TopicRow } from '../components/TopicRows';
 import { TallyTable, tonePair } from '../components/TallyTable';
+import { LevelCard } from '../components/LevelCard';
+import { levelOf } from '../lib/level';
 import {
   birdieStory,
   birdieSub,
@@ -218,6 +220,23 @@ function RoundStats({ topic }: { topic?: Topic }) {
     [rounds, state.putters, state.baseline],
   );
   const birdie = useMemo(() => birdieVsPar(rounds), [rounds]);
+  const level = useMemo(() => levelOf(rounds), [rounds]);
+  // Two putters in one set average a before and an after. The newest one on its own says where you are now.
+  const latestLevel = useMemo(() => {
+    const ids = new Set(rounds.map((r) => r.putterId));
+    if (ids.size < 2) return null;
+    const newest = [...rounds].sort((a, b) => b.date.localeCompare(a.date))[0];
+    const own = levelOf(rounds.filter((r) => r.putterId === newest.putterId));
+    const putter = state.putters.find((p) => p.id === newest.putterId);
+    return own && putter ? { name: putter.name, level: own } : null;
+  }, [rounds, state.putters]);
+  const firstPuttCount = useMemo(
+    () =>
+      rounds
+        .filter((r) => r.finished && !r.practice)
+        .reduce((n, r) => n + r.holes.filter((h) => h.putts.length && h.putts[h.putts.length - 1].made).length, 0),
+    [rounds],
+  );
   const locks = useMemo(() => locksFor(rounds, state.baseline), [rounds, state.baseline]);
   const findings = useMemo(
     () => findingsFor(rounds, state.putters, state.baseline),
@@ -816,6 +835,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {!lock && topic === 'distance' && (
             <>
+              <LevelCard level={level} firstPutts={firstPuttCount} latest={latestLevel} />
               {spread.n > 0 && (
                 <>
                   <h2>How often you beat the number</h2>

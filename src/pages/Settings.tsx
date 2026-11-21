@@ -345,6 +345,20 @@ export function Settings() {
       <h2>While you play</h2>
       <div className="list">
         <Row
+          title="Quick logging"
+          sub="A miss asks only where it finished. Every other tag is one tap away under More tags."
+          end={
+            <button
+              type="button"
+              role="switch"
+              className="switch"
+              aria-checked={!!state.quickTags}
+              aria-label="Quick logging"
+              onClick={() => dispatch({ t: 'setQuickTags', on: !state.quickTags })}
+            />
+          }
+        />
+        <Row
           title="Hide score on the Track screen"
           sub="For competitive rounds. Every stat still works out afterwards."
           end={
