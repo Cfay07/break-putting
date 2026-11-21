@@ -23,6 +23,26 @@ import { StrikePanel } from '../components/StrikePanel';
 import { SampleTag } from '../components/SampleTag';
 import { ShootSplitCard } from '../components/ShootSplitCard';
 import { TopicRows, type TopicRow } from '../components/TopicRows';
+import { TallyTable, tonePair } from '../components/TallyTable';
+import {
+  birdieStory,
+  birdieSub,
+  birdieVsPar,
+  compareRates,
+  greensFor,
+  greensStory,
+  MIN_COMMITTED_ROUNDS,
+  MIN_MISTAKES,
+  pressureFor,
+  pressureStory,
+  PUTTER_BANDS,
+  putterPair,
+  putterStory,
+  speedExtremes,
+  timingStory,
+  type Tally,
+} from '../lib/topicFindings';
+import { GREEN_SPEED_LABELS } from '../lib/types';
 import { insights } from '../lib/insights';
 import { go } from '../lib/router';
 import { FOCUS, startSession } from '../lib/starters';
@@ -95,6 +115,7 @@ export const TOPICS = {
   pressure: 'Tournament vs casual',
   timing: 'When in the round',
   putter: 'By putter',
+  birdie: 'Birdie vs par',
   improving: 'Am I improving',
   form: 'Form',
   work: 'What to work on',
@@ -188,6 +209,14 @@ function RoundStats({ topic }: { topic?: Topic }) {
   const spread = useMemo(() => beatSpread(state.baseline, rounds), [state.baseline, rounds]);
   const bias = useMemo(() => readBias(rounds), [rounds]);
   const speeds = useMemo(() => byGreenSpeed(rounds, state.baseline), [rounds, state.baseline]);
+  // The answer lines and splits on the "When it changes" pages, all one putter at a time.
+  const greensSplit = useMemo(() => greensFor(rounds, state.putters), [rounds, state.putters]);
+  const pair = useMemo(() => putterPair(rounds, state.putters), [rounds, state.putters]);
+  const samePutter = useMemo(
+    () => pressureFor(rounds, state.putters, (rs) => tournamentVsCasual(rs, state.baseline)),
+    [rounds, state.putters, state.baseline],
+  );
+  const birdie = useMemo(() => birdieVsPar(rounds), [rounds]);
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const read = useMemo(() => readError(rounds), [rounds]);
   const strike = useMemo(() => byStrike(rounds), [rounds]);
@@ -340,6 +369,8 @@ function RoundStats({ topic }: { topic?: Topic }) {
       }),
     usedPutters.length > 0 &&
       row({ key: 'putter', title: 'By putter', sub: usedPutters.map((p) => p.name).join(' and ') }),
+    birdie.bands.some((b) => b.birdie.tried > 0) &&
+      row({ key: 'birdie', title: 'Birdie vs par', sub: birdieSub(birdie) }),
   ].filter((r): r is TopicRow => !!r);
   const cards = insights(o.pooled, { rounds: o.rounds, threePuttsPerRound: o.threePuttsPerRound, taggedRounds });
   const time: TopicRow[] = [
@@ -409,9 +440,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
           <button className="linkish tiny" onClick={() => go('/stats')}>
             ‹ Stats
           </button>
-          <h1 className="page-title topic-title">
-            {TOPICS[topic]}
-          </h1>
+          <h1 className="page-title topic-title">{TOPICS[topic]}</h1>
         </>
       ) : (
         <StatsSwitch practice={false} />
@@ -982,9 +1011,33 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {topic === 'greens' && (
             <>
+              {greensSplit && (
+                <>
+                  {greensStory(greensSplit.lines, greensSplit.putter.name) && (
+                    <p className="topic-answer">{greensStory(greensSplit.lines, greensSplit.putter.name)}</p>
+                  )}
+                  <div className="field-label">By speed, {greensSplit.putter.name} only</div>
+                  <TallyTable
+                    heads={['Rounds', '3 to 10 ft', 'Lags']}
+                    rows={greensSplit.lines.map((l) => {
+                      const x = speedExtremes(greensSplit.lines);
+                      const clear = x?.verdict === 'clear';
+                      return {
+                        label: GREEN_SPEED_LABELS[l.speed],
+                        cells: [String(l.rounds), l.short, l.lags],
+                        tone: [undefined, clear && l === x.worst ? 'neg' : clear && l === x.best ? 'pos' : undefined],
+                      };
+                    })}
+                  />
+                  <p className="small muted" style={{ margin: '8px 0 0' }}>
+                    One putter at a time, so a putter switch can't pass for green speed. Lags are first putts from 30 ft
+                    or more that finish inside 10% of their length.
+                  </p>
+                </>
+              )}
               {speeds.length > 1 && (
                 <>
-                  <div className="field-label">By speed</div>
+                  <div className="field-label">By speed, all putters</div>
                   <SpeedPanel splits={speeds} />
                   <p className="small muted" style={{ margin: '8px 0 0' }}>
                     Per eighteen holes. If the miss line swings between bands, the greens moved your miss and not your
@@ -1001,17 +1054,31 @@ function RoundStats({ topic }: { topic?: Topic }) {
                   </p>
                 </>
               )}
+              {trueness.length < 2 && rounds.some((r) => r.bumpy) && (
+                <>
+                  <div className="field-label">How true they rolled</div>
+                  <p className="small muted" style={{ margin: 0 }}>
+                    Shows once two kinds have 3 rounds each. You've marked{' '}
+                    {rounds.filter((r) => r.bumpy && r.finished && !r.practice).length}.
+                  </p>
+                </>
+              )}
             </>
           )}
 
           {topic === 'pressure' && (
             <>
+              {samePutter && <PressureSplit p={samePutter} />}
               {pressure.length === 2 && (
                 <>
+                  <div className="field-label">All putters together</div>
                   <CompareTable lines={pressure} />
+                  <p className="small muted" style={{ margin: '8px 0 0' }}>
+                    Mixes putters, so a putter switch shows up here as pressure.
+                  </p>
                   {pressureByPutter.length > 0 && (
                     <>
-                      <div className="field-label">Same putter only</div>
+                      <div className="field-label">Each putter, gained per 18</div>
                       <div className="card">
                         {pressureByPutter.map(({ p, lines }) => (
                           <div className="stat-row" key={p.id}>
@@ -1039,6 +1106,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             <>
               {stretches.length > 1 && (
                 <>
+                  {timingStory(stretches) && <p className="topic-answer">{timingStory(stretches)}</p>}
                   <CompareRows lines={stretches} />
                   <p className="small muted" style={{ margin: '8px 0 0' }}>
                     Gained is strokes gained per hole on average; 3-putts is how often a hole there took three. In the
@@ -1052,6 +1120,17 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {topic === 'putter' && (
             <>
+              {pair ? (
+                <PutterSplit pair={pair} />
+              ) : (
+                usedPutters.length === 1 &&
+                state.putters.length > 1 && (
+                  <p className="small muted" style={{ margin: '0 0 10px' }}>
+                    Filtered to one putter. Clear the putter filter to compare them.
+                  </p>
+                )
+              )}
+              <div className="field-label">Every putter</div>
               {anyShort && (
                 <p className="small muted" style={{ margin: '0 0 6px' }}>
                   Per eighteen holes, so a nine-hole round counts double.
@@ -1099,6 +1178,25 @@ function RoundStats({ topic }: { topic?: Topic }) {
             </>
           )}
 
+          {topic === 'birdie' && (
+            <>
+              <p className="topic-answer">{birdieStory(birdie)}</p>
+              {birdie.bands.length > 0 && (
+                <>
+                  <div className="field-label">First putt on the green</div>
+                  <TallyTable
+                    heads={['For birdie', 'For par']}
+                    rows={birdie.bands.map((b) => ({ label: b.label, cells: [b.birdie, b.par] }))}
+                  />
+                  <p className="small muted" style={{ margin: '8px 0 0' }}>
+                    First putts only, so a comeback that already saw the line never counts as a par putt. Each birdie
+                    putt is judged against par putts with the same putter from the same lengths.
+                  </p>
+                </>
+              )}
+            </>
+          )}
+
           {topic === 'work' && (
             <>
               <InsightList
@@ -1112,5 +1210,85 @@ function RoundStats({ topic }: { topic?: Topic }) {
         </>
       )}
     </div>
+  );
+}
+
+/** Tournament against casual with one putter, so nerves are measured and not the switch. */
+function PressureSplit({ p }: { p: NonNullable<ReturnType<typeof pressureFor>> }) {
+  const { tournament: t, casual: c } = p;
+  const name = p.putter.name;
+  const shortClear = compareRates(t.short, c.short).verdict === 'clear';
+  const over = (x: number | null) => (x === null ? '--' : `${Math.round(x * 100)}%`);
+  return (
+    <>
+      <p className="topic-answer">{pressureStory(p)}</p>
+      <div className="field-label">Same putter only, {name}</div>
+      <TallyTable
+        heads={['Tournament', 'Casual']}
+        rows={[
+          { label: 'Rounds', cells: [String(t.rounds), String(c.rounds)] },
+          { label: '3 to 10 ft', cells: [t.short, c.short], tone: tonePair(t.short, c.short, shortClear) },
+          {
+            label: 'Gained per 18',
+            cells: [t.sg === null ? '--' : signed(t.sg, 1), c.sg === null ? '--' : signed(c.sg, 1)],
+          },
+          {
+            label: 'Bleed a round',
+            cells: [t.bleed === null ? '--' : t.bleed.toFixed(1), c.bleed === null ? '--' : c.bleed.toFixed(1)],
+          },
+        ]}
+      />
+      <div className="field-label">Next hole over par, after a mistake</div>
+      {t.mistakes >= MIN_MISTAKES && c.mistakes >= MIN_MISTAKES ? (
+        <TallyTable
+          heads={['Tournament', 'Casual']}
+          rows={[
+            { label: 'After a mistake', cells: [over(t.afterOver), over(c.afterOver)] },
+            { label: 'Every other hole', cells: [over(t.normalOver), over(c.normalOver)] },
+          ]}
+        />
+      ) : (
+        <p className="small muted" style={{ margin: 0 }}>
+          Shows at {MIN_MISTAKES} mistakes on each side with one putter. You have {t.mistakes} in tournaments and{' '}
+          {c.mistakes} casual with the {name}.
+        </p>
+      )}
+      <div className="field-label">Committed</div>
+      {t.committedRounds >= MIN_COMMITTED_ROUNDS && c.committedRounds >= MIN_COMMITTED_ROUNDS ? (
+        <TallyTable
+          heads={['Tournament', 'Casual']}
+          rows={[{ label: 'Committed', cells: [t.committed, c.committed] }]}
+        />
+      ) : (
+        <p className="small muted" style={{ margin: 0 }}>
+          Shows once {MIN_COMMITTED_ROUNDS} tournament and {MIN_COMMITTED_ROUNDS} casual rounds have it tagged. You have{' '}
+          {t.committedRounds} and {c.committedRounds}.
+        </p>
+      )}
+    </>
+  );
+}
+
+/** The two putters used most lately over the same distances, older first. */
+function PutterSplit({ pair }: { pair: NonNullable<ReturnType<typeof putterPair>> }) {
+  const [a, b] = pair;
+  const line = (label: string, x: Tally, y: Tally) => ({
+    label,
+    cells: [x, y],
+    tone: tonePair(x, y, compareRates(x, y).verdict === 'clear'),
+  });
+  return (
+    <>
+      <p className="topic-answer">{putterStory(pair)}</p>
+      <div className="field-label">Same distances, each putter</div>
+      <TallyTable
+        heads={[a.putter.name, b.putter.name]}
+        rows={[
+          ...PUTTER_BANDS.map((band, i) => line(band.label, a.bands[i], b.bands[i])),
+          line('Lags inside 10%', a.lags, b.lags),
+          line('Comebacks holed', a.comebacks, b.comebacks),
+        ]}
+      />
+    </>
   );
 }

@@ -2609,3 +2609,9 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .topic-title + .filter-bar { margin-bottom: 14px; }
 .filter-more { margin-top: 8px; }
 .filter-search { width: 100%; margin-bottom: 6px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); font: inherit; color: var(--ink); }
+
+/* The plain answer on top of a topic page, before any table. */
+.topic-answer { font-size: 15px; line-height: 1.45; margin: 0 0 12px; color: var(--ink); }
+.tally-table td:first-child { color: var(--ink-2); }
+.tally-table th { text-align: right; }
+.tally-table td.num { text-align: right; }
