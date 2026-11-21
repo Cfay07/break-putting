@@ -217,7 +217,7 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
     ]);
     if (lag.avgBadLeave !== null) lagRows.push(['The comeback', `${lag.avgBadLeave.toFixed(1)} ft`]);
     if (lag.bad > 0) {
-      lagRows.push(['Holed it', `${share(lag.saved, lag.bad)} · ${lag.saved} of ${lag.bad}`]);
+      lagRows.push(['Holed the comeback', `${share(lag.saved, lag.bad)} · ${lag.saved} of ${lag.bad}`]);
     }
   }
 

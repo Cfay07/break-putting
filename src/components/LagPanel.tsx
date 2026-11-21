@@ -41,7 +41,7 @@ export function LagPanel({ stats, lag }: { stats: Stats; lag: LagSave }) {
       )}
       {savePct !== null && (
         <div className="stat-row">
-          <span className="k">Holed it</span>
+          <span className="k">Holed the comeback</span>
           <span className={savePct < 60 ? 'v num neg' : 'v num pos'}>
             {savePct}%
             <span className="small muted"> · {lag.saved} of {lag.bad}</span>
