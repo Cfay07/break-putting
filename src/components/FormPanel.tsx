@@ -1,4 +1,5 @@
 import { formBand, type Form, type Tally } from '../lib/form';
+import { LAG_FROM } from '../lib/stats';
 import { FormVenn } from './FormVenn';
 
 const share = (t: Tally) => (t.of ? Math.round((t.right / t.of) * 100) : null);
@@ -8,6 +9,7 @@ const ROWS: { key: keyof Form['parts']; label: string; note: string }[] = [
   { key: 'strike', label: 'Caught the middle', note: 'not the toe or the heel' },
   { key: 'line', label: 'Started it on line', note: 'no push, no pull' },
   { key: 'pace', label: 'Right pace', note: 'not short, not running out' },
+  { key: 'lag', label: 'Lagged it close', note: `inside a tenth of the putt from ${LAG_FROM}+ ft` },
   { key: 'commit', label: 'Committed', note: 'sure of the line and the pace' },
   { key: 'lip', label: 'Lipped out', note: 'everything right, no reward' },
 ];

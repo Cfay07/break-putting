@@ -1,4 +1,4 @@
-import { statsForHoles } from './stats';
+import { LAG_FROM, LEAVE_STANDARD, statsForHoles } from './stats';
 import { breakDirsOf, type Round } from './types';
 
 /**
@@ -93,6 +93,8 @@ export interface FormParts {
   lip: Tally;
   /** Committed to the putt. Only putts where it was said either way. */
   commit: Tally;
+  /** Lags that went in or finished inside a tenth of the putt. Distance control, judged on the leave. */
+  lag: Tally;
 }
 
 /**
@@ -146,14 +148,22 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
     pace: empty(),
     lip: empty(),
     commit: empty(),
+    lag: empty(),
   };
   const venn: Venn = { earned: 0, gotAway: 0, robbed: 0, deserved: 0 };
   let tagged = 0;
 
   for (const hole of round.holes) {
-    for (const p of hole.putts) {
+    for (const [i, p] of hole.putts.entries()) {
       // Tap-ins never reach the tagging screen, so counting them would only dilute.
       if (p.made && p.d < LONG_MAKE) continue;
+      // A lag is judged on where it finished, which every round knows, tagged or not.
+      const lag = i === 0 && p.d >= LAG_FROM;
+      const leave = p.made ? 0 : hole.putts[i + 1]?.d;
+      if (lag && leave !== undefined) {
+        parts.lag.of++;
+        if (leave <= p.d * LEAVE_STANDARD) parts.lag.right++;
+      }
       let touched = false;
       let readWrong = false;
 
@@ -183,8 +193,10 @@ export function formOf(round: Round, baseline: [number, number][]): Form | null 
       }
       // Quitting on it and jabbing at it are pace faults with a cause attached, and they were
       // feeding nothing at all before: tagged, counted on the stats page, and invisible here.
+      // A lag's pace is already judged by its leave: one that died a foot short is a good lag, and
+      // its short tag must not count against it twice. A tempo fault on a lag still counts.
       const tempo = !!p.decel || !!p.accel;
-      if (p.speed || tempo) {
+      if (lag ? tempo : p.speed || tempo) {
         parts.pace.of++;
         if (p.speed === 'good' && !tempo) parts.pace.right++;
       }
