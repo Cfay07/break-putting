@@ -4,7 +4,7 @@ import { courseLabel } from '../lib/stats';
 import { backTeeFor } from '../lib/courses';
 import type { Round } from '../lib/types';
 import { useCourseRatings } from '../lib/useCourseRatings';
-import { bleedSummary, MAKEABLE, stitchSummary, type BleedSummary } from '../lib/bleed';
+import { afterMistake, bleedSummary, MAKEABLE, type AfterMistake, type BleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
 import { formTrial } from '../lib/formTrial';
 import { formOf, formBand } from '../lib/form';
@@ -63,12 +63,19 @@ function StatsSwitch({ practice }: { practice: boolean }) {
 }
 
 /** One plain line on whether mistakes spiral: only a gap of five points or more counts as one. */
-function spiralLine(b: BleedSummary): string {
+function spiralLine(b: BleedSummary, a: AfterMistake): string {
   const over = (b.afterOver ?? 0) - (b.normalOver ?? 0);
   const run = (b.afterRun ?? 0) - (b.normalRun ?? 0);
-  if (run >= 0.05) return 'Mistakes are starting runs of over-par holes.';
-  if (over >= 0.05) return 'The next hole goes over par a bit more often, but it does not turn into a run.';
-  return 'Your mistakes do not spiral: the holes after one go like the rest.';
+  const chain = (a.chainAfter ?? 0) - (a.chainNormal ?? 0);
+  const short = a.nextShort.tried ? (a.nextShort.usual - a.nextShort.made) / a.nextShort.tried : 0;
+  const greens = chain >= 0.05 || short >= 0.05;
+  const score =
+    run >= 0.05
+      ? 'Mistakes are starting runs of over-par holes'
+      : over >= 0.05
+        ? 'The next hole goes over par a bit more often, but not in runs'
+        : 'On the scorecard, the holes after a mistake go like the rest';
+  return `${score}${greens ? '. On the greens it does follow you: the next putts go worse than usual.' : ', and so do the next putts.'}`;
 }
 export function Stats({ practice = false }: { practice?: boolean }) {
   if (practice) {
@@ -167,7 +174,7 @@ function RoundStats() {
   const shapes = useMemo(() => missShapes(rounds), [rounds]);
   const vol = useMemo(() => volatility(rounds, state.baseline), [rounds, state.baseline]);
   const bleed = useMemo(() => bleedSummary(rounds), [rounds]);
-  const stitch = useMemo(() => stitchSummary(rounds), [rounds]);
+  const after = useMemo(() => afterMistake(rounds), [rounds]);
   const withScore = useMemo(
     () =>
       rounds
@@ -705,51 +712,31 @@ function RoundStats() {
                         </span>
                       </div>
                     )}
+                    {after.nextShort.tried > 0 && (
+                      <div className="stat-row">
+                        <span className="k">Next 3 to 10 ft holed</span>
+                        <span className="v num">
+                          {after.nextShort.made} of {after.nextShort.tried}
+                          <span className="small muted"> · usual {Math.round(after.nextShort.usual)}</span>
+                        </span>
+                      </div>
+                    )}
+                    {after.chainAfter !== null && after.chainNormal !== null && (
+                      <div className="stat-row">
+                        <span className="k">Another mistake next</span>
+                        <span className="v num">
+                          {Math.round(after.chainAfter * 100)}%
+                          <span className="small muted"> · {Math.round(after.chainNormal * 100)}% otherwise</span>
+                        </span>
+                      </div>
+                    )}
                     <p className="small muted" style={{ margin: '6px 0 0' }}>
-                      {spiralLine(bleed)} From {bleed.sample} holes played right after a mistake.
+                      {spiralLine(bleed, after)} Usual is what you hole from those lengths with that putter. From{' '}
+                      {bleed.sample} holes played right after a mistake
+                      {bleed.sample < 200 ? ', so read a small gap as a lead, not a verdict' : ''}.
                     </p>
                   </>
                 )}
-              </div>
-            </>
-          )}
-
-          {stitch.sample > 0 && stitch.afterRate !== null && stitch.normalRate !== null && (
-            <>
-              <h2>Stitch</h2>
-              <div className="card">
-                <p className="small muted" style={{ margin: '0 0 6px' }}>
-                  How you answer on the hole after a putting mistake, against every other hole.
-                </p>
-                <div className="stat-row">
-                  <span className="k">Par or better</span>
-                  <span className="v num">
-                    {Math.round(stitch.afterRate * 100)}%
-                    <span className="small muted"> · {Math.round(stitch.normalRate * 100)}% otherwise</span>
-                  </span>
-                </div>
-                {stitch.nextShort.tried > 0 && (
-                  <div className="stat-row">
-                    <span className="k">Next 3 to 10 ft holed</span>
-                    <span className="v num">
-                      {stitch.nextShort.made} of {stitch.nextShort.tried}
-                      <span className="small muted"> · usual {Math.round(stitch.nextShort.usual)}</span>
-                    </span>
-                  </div>
-                )}
-                {stitch.chainAfter !== null && stitch.chainNormal !== null && (
-                  <div className="stat-row">
-                    <span className="k">Another mistake next</span>
-                    <span className="v num">
-                      {Math.round(stitch.chainAfter * 100)}%
-                      <span className="small muted"> · {Math.round(stitch.chainNormal * 100)}% otherwise</span>
-                    </span>
-                  </div>
-                )}
-                <p className="small muted" style={{ margin: '6px 0 0' }}>
-                  Usual is what you hole from those lengths with that putter. From {stitch.sample} holes after a mistake
-                  {stitch.sample < 200 ? ', so read a small gap as a lead, not a verdict' : ''}.
-                </p>
               </div>
             </>
           )}

@@ -74,8 +74,8 @@ export function Track() {
   const runningScore = scored.reduce((sum, h) => sum + (holeVsPar(h) ?? 0), 0);
   const totalStrokes = round.holes.reduce((sum, h) => sum + (h.strokes ?? 0), 0);
   const bleed = liveBleed(round);
-  // Only the first par or better after a mistake, the same hole the scorecard marks as stitched.
-  const stitched = bleedMarks(round).stitched.has(hole.hole) && (holeVsPar(hole) ?? 1) <= 0;
+  // Only the first par or better after a mistake, the same hole the scorecard ticks.
+  const ended = bleedMarks(round).ended.has(hole.hole) && (holeVsPar(hole) ?? 1) <= 0;
   // Competitive rounds hide the score and the bleed drop without anyone remembering a setting.
   const quiet = (state.quietTrack ?? false) || !!round.competitive;
   const d = Number(track.distanceInput);
@@ -200,9 +200,9 @@ export function Track() {
               />
             </div>
           )}
-          {!quiet && stitched && (
+          {!quiet && ended && (
             <p className="small muted" style={{ margin: '10px 0 0' }}>
-              Stitched.
+              Bleeding stopped.
             </p>
           )}
           <div style={{ height: 14 }} />

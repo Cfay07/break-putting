@@ -470,8 +470,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                 <span className="drop-cell">
                   {marks.triggers.has(h.hole) ? (
                     '🩸'
-                  ) : marks.stitched.has(h.hole) ? (
-                    <span className="stitch-mark" aria-label="stitched">
+                  ) : marks.ended.has(h.hole) ? (
+                    <span className="end-mark" aria-label="the par that ended it">
                       ✓
                     </span>
                   ) : marks.bled.has(h.hole) ? (
@@ -532,7 +532,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
 
           {bleeds.length > 0 && (
             <p className="small muted" style={{ marginTop: 8 }}>
-              🩸 is a putting mistake, a dot an over-par hole that came after it, and ✓ the par that stitched it.{' '}
+              🩸 is a putting mistake, a dot an over-par hole that came after it, and ✓ the par that ended it.{' '}
               {bleeds.map(bleedStory).join(' ')}
             </p>
           )}

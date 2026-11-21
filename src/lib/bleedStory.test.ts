@@ -31,7 +31,7 @@ describe('bleed', () => {
     const [b] = bleedsIn(round);
     expect(b.shots).toBe(1);
     expect(b.holes).toEqual([3, 4]);
-    expect(b.stitchHole).toBe(5);
+    expect(b.endHole).toBe(5);
     expect(bleedStory(b)).toBe('Missed 5 ft on the 2nd, 1 stroke. Then over par on 3 and 4.');
     expect(bleedLine(round)).toBe('Bled 1 · missed 5 ft on the 2nd');
   });

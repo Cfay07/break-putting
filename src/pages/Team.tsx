@@ -161,7 +161,7 @@ function PlayerPanel({
         ['Make % from 3 to 10 ft', stats.scoring_pct !== null ? `${(stats.scoring_pct * 100).toFixed(0)}%` : '--'],
         ['Six-footers', stats.make6 !== null ? `${(stats.make6 * 100).toFixed(0)}%` : '--'],
         ['Bleed, strokes a round', stats.bleed_pr !== null ? stats.bleed_pr.toFixed(1) : '--'],
-        ['Stitch, par after a mistake', stats.bounce_back !== null ? `${(stats.bounce_back * 100).toFixed(0)}%` : '--'],
+        ['Par after a mistake', stats.bounce_back !== null ? `${(stats.bounce_back * 100).toFixed(0)}%` : '--'],
         ['Last round', stats.last_round ? fmtDate(stats.last_round) : '--'],
       ]
     : [];

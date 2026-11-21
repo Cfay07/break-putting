@@ -2,8 +2,8 @@ import { roundScale } from './stats';
 import { holeVsPar, type Hole, type Round } from './types';
 
 /**
- * Bleed is what putting mistakes put on your scorecard. Stitch is how you answer on the next
- * hole. Both stay honest the same way: a mistake is charged the strokes it actually cost on its
+ * Bleed is what putting mistakes put on your scorecard, and whether they spiral: on the next
+ * hole's score and on the next hole's putts. It stays honest the same way throughout: a mistake is charged the strokes it actually cost on its
  * own hole, and anything after it is compared against your other holes, never counted as caused.
  * The old Bleed charged every bogey after a miss to the miss and called it 1.6 a round, when the
  * holes after a mistake scored the same as the rest.
@@ -44,8 +44,8 @@ export interface Bleed {
   shots: number;
   triggers: number;
   stopped: boolean;
-  /** The first hole at par or better after it: where you stitched it. */
-  stitchHole: number | null;
+  /** The first hole at par or better after it: where the bleeding stopped. */
+  endHole: number | null;
 }
 
 /**
@@ -68,7 +68,7 @@ export function bleedsIn(round: Round): Bleed[] {
     let shots = mistakeStrokes(holes[i]);
     let triggers = 1;
     let stopped = false;
-    let stitchHole: number | null = null;
+    let endHole: number | null = null;
     let j = i + 1;
 
     while (j < holes.length) {
@@ -76,7 +76,7 @@ export function bleedsIn(round: Round): Bleed[] {
       if (vsPar === undefined) break;
       if (vsPar <= 0 && !triggerOn(holes[j])) {
         stopped = true;
-        stitchHole = holes[j].hole;
+        endHole = holes[j].hole;
         break;
       }
       if (vsPar > 0) followed.push(holes[j].hole);
@@ -95,7 +95,7 @@ export function bleedsIn(round: Round): Bleed[] {
       shots,
       triggers,
       stopped,
-      stitchHole,
+      endHole,
     });
     i = Math.max(j, i + 1);
   }
@@ -186,7 +186,7 @@ export function bleedSummary(rounds: Round[]): BleedSummary {
 const SHORT_BANDS = [4, 6, 8, 10];
 const shortBand = (d: number) => SHORT_BANDS.findIndex((max) => d <= max);
 
-export interface StitchSummary {
+export interface AfterMistake {
   /** Par or better on the hole after a mistake, and on every other hole. */
   afterRate: number | null;
   normalRate: number | null;
@@ -203,7 +203,7 @@ export interface StitchSummary {
  * mistakes clustered in the months with the worse putter and judging those holes against the
  * better one would invent a slump that was really a putter.
  */
-export function stitchSummary(rounds: Round[]): StitchSummary {
+export function afterMistake(rounds: Round[]): AfterMistake {
   const rates = new Map<string, { made: number; tried: number }[]>();
   for (const r of rounds) {
     const bands = rates.get(r.putterId) ?? SHORT_BANDS.map(() => ({ made: 0, tried: 0 }));
@@ -274,19 +274,19 @@ export function bleedLine(round: Round): string | null {
   return `Bled ${strokes} · ${holes.map((h) => `${triggerOn(h)} on the ${ordinal(h.hole)}`).join(', ')}`;
 }
 
-/** Holes marked on a scorecard: the mistake, the over-par holes that followed it, and where you stitched it. */
-export function bleedMarks(round: Round): { triggers: Set<number>; bled: Set<number>; stitched: Set<number> } {
+/** Holes marked on a scorecard: the mistake, the over-par holes that followed it, and the par that ended it. */
+export function bleedMarks(round: Round): { triggers: Set<number>; bled: Set<number>; ended: Set<number> } {
   const triggers = new Set<number>();
   const bled = new Set<number>();
-  const stitched = new Set<number>();
+  const ended = new Set<number>();
   for (const b of bleedsIn(round)) {
     triggers.add(b.triggerHole);
     for (const h of b.holes) bled.add(h);
-    if (b.stitchHole !== null) stitched.add(b.stitchHole);
+    if (b.endHole !== null) ended.add(b.endHole);
   }
   for (const h of round.holes) if (triggerOn(h)) triggers.add(h.hole);
   for (const h of triggers) bled.delete(h);
-  return { triggers, bled, stitched };
+  return { triggers, bled, ended };
 }
 
 /** Mid-round: strokes putting mistakes have put on the card so far. Matches the scorecard. */
