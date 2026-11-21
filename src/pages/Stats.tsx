@@ -36,7 +36,7 @@ import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
 import { StatsFilter } from '../components/StatsFilter';
-import { PracticeStats } from './PracticeStats';
+import { PracticeStats, type PracticeTopic } from './PracticeStats';
 import { applyFilter, filterLabel, isFiltered, NO_FILTER, type RoundFilter } from '../lib/roundFilter';
 import { Trend } from '../components/Trend';
 import { ShootCard } from '../components/ShootCard';
@@ -104,12 +104,20 @@ export type Topic = keyof typeof TOPICS;
 /** The filter outlives the page, so opening a topic and coming back keeps what you picked. */
 let keptFilter: RoundFilter = NO_FILTER;
 
-export function Stats({ practice = false, topic }: { practice?: boolean; topic?: Topic }) {
+export function Stats({
+  practice = false,
+  topic,
+  practiceTopic,
+}: {
+  practice?: boolean;
+  topic?: Topic;
+  practiceTopic?: PracticeTopic;
+}) {
   if (practice) {
     return (
       <div>
-        <StatsSwitch practice />
-        <PracticeStats />
+        {!practiceTopic && <StatsSwitch practice />}
+        <PracticeStats topic={practiceTopic} />
       </div>
     );
   }
@@ -543,7 +551,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
                 </p>
               )}
 
-              <h2>Am I improving</h2>
+              <h2>Handicap and trends</h2>
               {filtered && handicap.length < 2 && (
                 <div className="card trend-card">
                   <span className="tiny">Handicap · {filterLabel(filter, state.putters)}</span>
@@ -663,7 +671,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
             <>
               {form && (
                 <>
-                  <h2>Form</h2>
                   <div className="stat-row">
                     <span className="k">Tells you more than gained?</span>
                     <span className="v small muted">
@@ -796,7 +803,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {topic === 'misses' && (
             <>
-              <h2>Misses</h2>
               <MissAnatomyPanel miss={miss} />
 
               <div className="field-label">Your most common miss</div>
@@ -809,7 +815,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {topic === 'reads' && (
             <>
-              {(read.judged > 0 || bias.n >= 10) && <h2>Reads</h2>}
               {read.judged > 0 && <ReadPanel read={read} />}
 
               {bias.n >= 10 && (
@@ -857,7 +862,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {topic === 'lag' && (
             <>
-              <h2>Lag control</h2>
               <LagPanel stats={o.pooled} lag={lag} />
               <p className="small muted" style={{ margin: '8px 0 0' }}>
                 Inside 10% means it went in or finished within a tenth of the putt's length. The comeback is the putt
@@ -902,7 +906,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
             <>
               {bleed.shotsPerRound !== null && bleed.shotsPerRound > 0 && (
                 <>
-                  <h2>Bleed</h2>
                   <div className="card">
                     <div className="shoot-for num neg">{bleed.shotsPerRound.toFixed(1)}</div>
                     <p className="small" style={{ margin: '4px 0 0' }}>
@@ -979,7 +982,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {topic === 'greens' && (
             <>
-              {(speeds.length > 1 || trueness.length > 1) && <h2>Greens</h2>}
               {speeds.length > 1 && (
                 <>
                   <div className="field-label">By speed</div>
@@ -1006,7 +1008,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
             <>
               {pressure.length === 2 && (
                 <>
-                  <h2>Tournament vs casual</h2>
                   <CompareTable lines={pressure} />
                   {pressureByPutter.length > 0 && (
                     <>
@@ -1038,7 +1039,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
             <>
               {stretches.length > 1 && (
                 <>
-                  <h2>When in the round</h2>
                   <CompareRows lines={stretches} />
                   <p className="small muted" style={{ margin: '8px 0 0' }}>
                     Gained is strokes gained per hole on average; 3-putts is how often a hole there took three. In the
@@ -1052,7 +1052,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {topic === 'putter' && (
             <>
-              <h2>By putter</h2>
               {anyShort && (
                 <p className="small muted" style={{ margin: '0 0 6px' }}>
                   Per eighteen holes, so a nine-hole round counts double.
@@ -1102,7 +1101,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {topic === 'work' && (
             <>
-              <h2>What to work on</h2>
               <InsightList
                 stats={o.pooled}
                 rounds={o.rounds}

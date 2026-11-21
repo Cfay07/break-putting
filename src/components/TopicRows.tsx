@@ -32,11 +32,11 @@ function Trend({ r, fmt, better }: { r: RowNumber; fmt: (v: number) => string; b
 }
 
 /** One row per topic: what it is, its number, and which way it is going. Each opens its own page. */
-export function TopicRows({ rows }: { rows: TopicRow[] }) {
+export function TopicRows({ rows, base = '/stats/t/' }: { rows: TopicRow[]; base?: string }) {
   return (
     <div className="topic-list">
       {rows.map((row) => (
-        <button key={row.key} className="topic-row" onClick={() => go(`/stats/t/${row.key}`)}>
+        <button key={row.key} className="topic-row" onClick={() => go(`${base}${row.key}`)}>
           <span className="tr-name">
             <b>{row.title}</b>
             <small>{row.sub}</small>

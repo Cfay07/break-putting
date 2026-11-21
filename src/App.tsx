@@ -16,6 +16,7 @@ import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
 import { SharedRound } from './pages/SharedRound';
 import { Stats, TOPICS, type Topic } from './pages/Stats';
+import { PRACTICE_TOPICS, type PracticeTopic } from './pages/PracticeStats';
 import { Team } from './pages/Team';
 import { Privacy, Terms } from './pages/Legal';
 import { TeamLivePage, TeamPracticePage, TeamRoundPage } from './pages/TeamPost';
@@ -314,6 +315,8 @@ export default function App() {
     <Track />
   ) : route === '/stats' || route === '/stats/practice' ? (
     <Stats key={route} practice={route === '/stats/practice'} />
+  ) : route.startsWith('/stats/p/') && route.slice(9) in PRACTICE_TOPICS ? (
+    <Stats key={route} practice practiceTopic={route.slice(9) as PracticeTopic} />
   ) : route.startsWith('/stats/t/') && route.slice(9) in TOPICS ? (
     <Stats key={route} topic={route.slice(9) as Topic} />
   ) : route === '/practice' ? (
@@ -350,17 +353,19 @@ export default function App() {
         ? 'All rounds'
         : route === '/stats/practice'
           ? 'Practice'
-          : route.startsWith('/stats/t/')
-            ? 'Stats'
-            : route.startsWith('/practice')
-              ? 'Practice'
-              : route.startsWith('/team') || joinMatch
-                ? 'Team'
-                : route === '/settings' || route === '/privacy' || route === '/terms'
-                  ? 'Settings'
-                  : route === '/history' || route === '/moments'
-                    ? 'History'
-                    : 'Putting';
+          : route.startsWith('/stats/p/')
+            ? 'Practice'
+            : route.startsWith('/stats/t/')
+              ? 'Stats'
+              : route.startsWith('/practice')
+                ? 'Practice'
+                : route.startsWith('/team') || joinMatch
+                  ? 'Team'
+                  : route === '/settings' || route === '/privacy' || route === '/terms'
+                    ? 'Settings'
+                    : route === '/history' || route === '/moments'
+                      ? 'History'
+                      : 'Putting';
 
   return (
     <div className="app">

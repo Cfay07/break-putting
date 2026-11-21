@@ -19,12 +19,24 @@ function SpotRow({ k, t }: { k: string; t: SpotTally }) {
   );
 }
 
+/** Whether any of the three cards below has something to show, so a row never opens an empty page. */
+export function reviewReady(state: ReturnType<typeof usePractice>['state']): boolean {
+  const spot = SURFACES.some((s) => {
+    const b = spotVsMixed(state.practice, state.practiceRounds ?? [], s, state.baseline);
+    return b.same.attempts >= SPOT_NEED && b.mixed.attempts >= SPOT_NEED;
+  });
+  const bands = SURFACES.some((s) => missBands(state.practice, s).length > 0);
+  const p = pressureOf(state.practice, (id) => resolveDrill(state, id));
+  return spot || bands || (p.streaks >= 3 && !!p.best);
+}
+
 /** The same putt over and over flatters you. The mixed number is the one the course sees. */
 export function SpotVsMixed() {
   const { state } = usePractice();
-  const blocks = SURFACES.map((s) => ({ s, ...spotVsMixed(state.practice, state.practiceRounds ?? [], s, state.baseline) })).filter(
-    (b) => b.same.attempts >= SPOT_NEED && b.mixed.attempts >= SPOT_NEED,
-  );
+  const blocks = SURFACES.map((s) => ({
+    s,
+    ...spotVsMixed(state.practice, state.practiceRounds ?? [], s, state.baseline),
+  })).filter((b) => b.same.attempts >= SPOT_NEED && b.mixed.attempts >= SPOT_NEED);
   if (!blocks.length) return null;
   return (
     <>
@@ -37,8 +49,8 @@ export function SpotVsMixed() {
         </div>
       ))}
       <p className="small muted" style={{ margin: '8px 0 0' }}>
-        Putts from 3 to 10 ft. Tour is what a PGA Tour player holes from the same putts, so a mix of distances is a
-        fair fight. Mixed means the weekly test and practice rounds, and it is the one the course sees.
+        Putts from 3 to 10 ft. Tour is what a PGA Tour player holes from the same putts, so a mix of distances is a fair
+        fight. Mixed means the weekly test and practice rounds, and it is the one the course sees.
       </p>
     </>
   );

@@ -1,7 +1,9 @@
 import { Chevron } from '../components/Chevron';
 import { PracticeDays } from '../components/PracticeDays';
 import { PracticeLog } from '../components/PracticeLog';
-import { MissBandsCard, PressureCard, SpotVsMixed } from '../components/PracticeReview';
+import { MissBandsCard, PressureCard, reviewReady, SpotVsMixed } from '../components/PracticeReview';
+import { TopicRows, type TopicRow } from '../components/TopicRows';
+import { go } from '../lib/router';
 import { ProgressHeader } from '../components/ProgressHeader';
 import { SetColumns } from '../components/SetColumns';
 import { VsPlay } from '../components/VsPlay';
@@ -40,7 +42,9 @@ function sideOf(rounds: Round[], baseline: [number, number][], model: MakeModel)
   const firsts = rounds.flatMap((r) => r.holes.filter((h) => h.putts.length).map((h) => h.putts[0].d));
   // A putt the model cannot read gets the distance-only baseline, which is what xP is with no shape.
   const xpRound = (r: Round) =>
-    r.holes.filter((h) => h.putts.length).reduce((s, h) => s + (xpOf(model, baseline, h.putts[0]) ?? expectedPutts(baseline, h.putts[0].d)), 0) *
+    r.holes
+      .filter((h) => h.putts.length)
+      .reduce((s, h) => s + (xpOf(model, baseline, h.putts[0]) ?? expectedPutts(baseline, h.putts[0].d)), 0) *
     roundScale(r);
   return {
     rounds: rounds.length,
@@ -54,11 +58,21 @@ function sideOf(rounds: Round[], baseline: [number, number][], model: MakeModel)
 }
 const pct = (t: { made: number; attempts: number }) => Math.round((t.made / t.attempts) * 100);
 
+/** Each row on the Practice stats home opens one of these. */
+export const PRACTICE_TOPICS = {
+  rounds: 'Practice rounds',
+  vsplay: 'Practice against play',
+  review: 'How you practice',
+  drills: 'Your drills',
+  days: 'Days you practiced',
+} as const;
+export type PracticeTopic = keyof typeof PRACTICE_TOPICS;
+
 /**
- * Everything practice has measured, in one place, next to your rounds but never mixed into
- * them. Each section only appears once there is something in it.
+ * Everything practice has measured, next to your rounds but never mixed into them. The home is the
+ * status card and one row per section; each row opens that section on its own page.
  */
-export function PracticeStats() {
+export function PracticeStats({ topic }: { topic?: PracticeTopic }) {
   const { state, scoped, family, fitted } = usePractice();
   const sets = state.practice;
   const list = histories(sets, family);
@@ -104,157 +118,227 @@ export function PracticeStats() {
     );
   }
 
+  const hands = sets.some((x) => x.stations?.some((st) => st.hand));
+  const rows: TopicRow[] = [
+    prac && {
+      key: 'rounds',
+      title: 'Practice rounds',
+      sub: bySurface.map((x) => `${SURFACE_LABELS[x.sf]} ${x.n}`).join(' · '),
+      note: String(played.length),
+    },
+    vs.length > 0 && { key: 'vsplay', title: 'Practice against play', sub: 'Make rates here and in rounds' },
+    reviewReady(state) && { key: 'review', title: 'How you practice', sub: 'Same spot, misses, runs' },
+    (list.length > 0 || hands || record.size > 0) && {
+      key: 'drills',
+      title: 'Your drills',
+      sub: `${list.length} ${list.length === 1 ? 'drill' : 'drills'} logged`,
+      note: String(list.length),
+    },
+    sets.length > 0 && {
+      key: 'days',
+      title: 'Days you practiced',
+      sub: `${totals.sets} ${totals.sets === 1 ? 'set' : 'sets'}, ${totals.putts} putts`,
+      note: `${totals.days} ${totals.days === 1 ? 'day' : 'days'}`,
+    },
+  ].filter((r): r is TopicRow => !!r);
+
   return (
     <div>
-      <ProgressHeader />
-
-      {prac && (
+      {topic ? (
         <>
-          <h2>Practice rounds</h2>
-          <div className="table-wrap">
-            <table className="hands-table">
-              <thead>
-                <tr>
-                  <th />
-                  {bySurface.map((x) => (
-                    <th key={x.sf}>
-                      {SURFACE_LABELS[x.sf]} ({x.n})
-                    </th>
-                  ))}
-                  {real && <th>Last {recent.length} real</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {(
-                  [
-                    ['Putts per 18', (o: Side) => o.putts?.toFixed(1) ?? ''],
-                    ['Average first putt', (o: Side) => (o.first !== null ? `${o.first.toFixed(1)} ft` : '')],
-                    ['Expected putts (xP)', (o: Side) => o.xp?.toFixed(1) ?? ''],
-                    ['Strokes gained per 18', (o: Side) => (o.sg !== null ? signedFor(o.sg, sample(o.rounds, 5, 'rounds')) : '')],
-                    ['Holed from 3 to 10 ft', (o: Side) => (o.scoring !== null ? `${Math.round(o.scoring)}% of ${o.scoringOf}` : '')],
-                  ] as const
-                ).map(([k, f]) => (
-                  <tr key={k}>
-                    <td>{k}</td>
-                    {bySurface.map((x) => (
-                      <td key={x.sf} className="num">
-                        {f(x.o!)}
-                      </td>
+          <button className="linkish tiny" onClick={() => go('/stats/practice')}>
+            ‹ Practice stats
+          </button>
+          <h1 className="page-title" style={{ marginTop: 4 }}>
+            {PRACTICE_TOPICS[topic]}
+          </h1>
+        </>
+      ) : (
+        <>
+          <ProgressHeader />
+          {rows.length > 0 && <p className="topic-group">Practice in detail</p>}
+          {rows.length > 0 && <TopicRows rows={rows} base="/stats/p/" />}
+        </>
+      )}
+
+      {topic === 'rounds' && (
+        <>
+          {prac && (
+            <>
+              <div className="table-wrap">
+                <table className="hands-table">
+                  <thead>
+                    <tr>
+                      <th />
+                      {bySurface.map((x) => (
+                        <th key={x.sf}>
+                          {SURFACE_LABELS[x.sf]} ({x.n})
+                        </th>
+                      ))}
+                      {real && <th>Last {recent.length} real</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(
+                      [
+                        ['Putts per 18', (o: Side) => o.putts?.toFixed(1) ?? ''],
+                        ['Average first putt', (o: Side) => (o.first !== null ? `${o.first.toFixed(1)} ft` : '')],
+                        ['Expected putts (xP)', (o: Side) => o.xp?.toFixed(1) ?? ''],
+                        [
+                          'Strokes gained per 18',
+                          (o: Side) => (o.sg !== null ? signedFor(o.sg, sample(o.rounds, 5, 'rounds')) : ''),
+                        ],
+                        [
+                          'Holed from 3 to 10 ft',
+                          (o: Side) => (o.scoring !== null ? `${Math.round(o.scoring)}% of ${o.scoringOf}` : ''),
+                        ],
+                      ] as const
+                    ).map(([k, f]) => (
+                      <tr key={k}>
+                        <td>{k}</td>
+                        {bySurface.map((x) => (
+                          <td key={x.sf} className="num">
+                            {f(x.o!)}
+                          </td>
+                        ))}
+                        {real && <td className="num">{f(real)}</td>}
+                      </tr>
                     ))}
-                    {real && <td className="num">{f(real)}</td>}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {bySurface.some((x) => x.sf === 'indoor') && (
-            <p className="small muted" style={{ margin: '8px 0 0' }}>
-              A mat rolls truer and breaks less than a course, so it flatters every make. Read an indoor round against your other indoor rounds, not against
-              a course. Expected putts says how hard each set of putts was, so compare putts against it.
-            </p>
-          )}
-          <div className="row-list" style={{ marginTop: 10 }}>
-            {played.map((r) => {
-              const st = roundStats(r, state.baseline);
-              return (
-                <a key={r.id} className="nav-row" href={`#/round/${r.id}`}>
-                  <span className="nav-main">
-                    <strong>
-                      {fmtDate(r.date)} · {SURFACE_LABELS[r.practice!.surface]}
-                    </strong>
-                    <span className="small muted">
-                      {st.holesPlayed} holes · {st.totalPutts} putts · {signed(st.sg)} against tour average
-                    </span>
-                  </span>
-                  <Chevron />
-                </a>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {vs.map(({ s, reads }) => (
-        <div key={s}>
-          <h2>Practice against play, {SURFACE_LABELS[s].toLowerCase()}</h2>
-          <VsPlay reads={reads} />
-        </div>
-      ))}
-
-      <SpotVsMixed />
-      <MissBandsCard />
-      <PressureCard />
-
-      {list.length > 0 && (
-        <>
-          <h2>Your drills</h2>
-          <div className="row-list">
-            {list.map((h) => {
-              const d = fitted(h.drill) ?? resolveDrill(state, h.drill);
-              if (!d) return null;
-              const gap = biggestGap(practiceVsPlay(h.sets, scoped.rounds));
-              return (
-                <a key={h.drill} className="drill-row" href={`#/practice/drill/${h.drill}`}>
-                  <span className="drill-main">
-                    <strong>{d.name}</strong>
-                    <span className="small muted">
-                      {gap ? (
-                        <>
-                          {gap.d} ft: {pct(gap.practice)}% here, <span className="play-ink">{pct(gap.play)}% in rounds</span>
-                        </>
-                      ) : (
-                        `${h.sets.length} ${h.sets.length === 1 ? 'set' : 'sets'} · best ${setScoreShort(d, h.best)}`
-                      )}
-                    </span>
-                  </span>
-                  <SetColumns h={h} />
-                  <span className="drill-last num">{setScoreShort(d, h.last)}</span>
-                </a>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {sets.some((x) => x.stations?.some((st) => st.hand)) && (
-        <div className="row-list" style={{ marginTop: 18 }}>
-          <a className="nav-row" href="#/practice/hands">
-            <span className="nav-main">
-              <strong>One hand at a time</strong>
-              <span className="small muted">Left against right, and against your rounds</span>
-            </span>
-            <Chevron />
-          </a>
-        </div>
-      )}
-
-      {record.size > 0 && (
-        <>
-          <h2>Head to head</h2>
-          {[...record.entries()]
-            .sort((a, b) => b[1].w - a[1].w || a[1].l - b[1].l)
-            .map(([who, r]) => (
-              <div key={who} className="stat-row">
-                <span className="k">{who}</span>
-                <span className="v num">
-                  {r.w}-{r.l}
-                  {r.t ? `-${r.t}` : ''}
-                </span>
+                  </tbody>
+                </table>
               </div>
-            ))}
+              {bySurface.some((x) => x.sf === 'indoor') && (
+                <p className="small muted" style={{ margin: '8px 0 0' }}>
+                  A mat rolls truer and breaks less than a course, so it flatters every make. Read an indoor round
+                  against your other indoor rounds, not against a course. Expected putts says how hard each set of putts
+                  was, so compare putts against it.
+                </p>
+              )}
+              <div className="row-list" style={{ marginTop: 10 }}>
+                {played.map((r) => {
+                  const st = roundStats(r, state.baseline);
+                  return (
+                    <a key={r.id} className="nav-row" href={`#/round/${r.id}`}>
+                      <span className="nav-main">
+                        <strong>
+                          {fmtDate(r.date)} · {SURFACE_LABELS[r.practice!.surface]}
+                        </strong>
+                        <span className="small muted">
+                          {st.holesPlayed} holes · {st.totalPutts} putts · {signed(st.sg)} against tour average
+                        </span>
+                      </span>
+                      <Chevron />
+                    </a>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </>
       )}
 
-      {sets.length > 0 && (
+      {topic === 'vsplay' && (
         <>
-          <h2>Days you practiced</h2>
-          <p className="small muted" style={{ margin: '0 0 8px' }}>
-            {totals.sets} {totals.sets === 1 ? 'set' : 'sets'}, {totals.putts} putts, {totals.days}{' '}
-            {totals.days === 1 ? 'day' : 'days'}. None of it counts toward your round stats.
-          </p>
-          <PracticeDays sets={[...sets].sort(byTime)} />
-          <h2>Recent practice</h2>
-          <PracticeLog limit={4} />
+          {vs.map(({ s, reads }) => (
+            <div key={s}>
+              <h2>Practice against play, {SURFACE_LABELS[s].toLowerCase()}</h2>
+              <VsPlay reads={reads} />
+            </div>
+          ))}
+        </>
+      )}
+
+      {topic === 'review' && !reviewReady(state) && (
+        <p className="small muted">
+          This fills in once you log enough of the same putt and mixed putts, tag practice misses, or run in-a-row
+          drills.
+        </p>
+      )}
+      {topic === 'review' && (
+        <>
+          <SpotVsMixed />
+          <MissBandsCard />
+          <PressureCard />
+        </>
+      )}
+
+      {topic === 'drills' && (
+        <>
+          {list.length > 0 && (
+            <>
+              <div className="row-list">
+                {list.map((h) => {
+                  const d = fitted(h.drill) ?? resolveDrill(state, h.drill);
+                  if (!d) return null;
+                  const gap = biggestGap(practiceVsPlay(h.sets, scoped.rounds));
+                  return (
+                    <a key={h.drill} className="drill-row" href={`#/practice/drill/${h.drill}`}>
+                      <span className="drill-main">
+                        <strong>{d.name}</strong>
+                        <span className="small muted">
+                          {gap ? (
+                            <>
+                              {gap.d} ft: {pct(gap.practice)}% here,{' '}
+                              <span className="play-ink">{pct(gap.play)}% in rounds</span>
+                            </>
+                          ) : (
+                            `${h.sets.length} ${h.sets.length === 1 ? 'set' : 'sets'} · best ${setScoreShort(d, h.best)}`
+                          )}
+                        </span>
+                      </span>
+                      <SetColumns h={h} />
+                      <span className="drill-last num">{setScoreShort(d, h.last)}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {sets.some((x) => x.stations?.some((st) => st.hand)) && (
+            <div className="row-list" style={{ marginTop: 18 }}>
+              <a className="nav-row" href="#/practice/hands">
+                <span className="nav-main">
+                  <strong>One hand at a time</strong>
+                  <span className="small muted">Left against right, and against your rounds</span>
+                </span>
+                <Chevron />
+              </a>
+            </div>
+          )}
+
+          {record.size > 0 && (
+            <>
+              <h2>Head to head</h2>
+              {[...record.entries()]
+                .sort((a, b) => b[1].w - a[1].w || a[1].l - b[1].l)
+                .map(([who, r]) => (
+                  <div key={who} className="stat-row">
+                    <span className="k">{who}</span>
+                    <span className="v num">
+                      {r.w}-{r.l}
+                      {r.t ? `-${r.t}` : ''}
+                    </span>
+                  </div>
+                ))}
+            </>
+          )}
+        </>
+      )}
+
+      {topic === 'days' && (
+        <>
+          {sets.length > 0 && (
+            <>
+              <p className="small muted" style={{ margin: '0 0 8px' }}>
+                {totals.sets} {totals.sets === 1 ? 'set' : 'sets'}, {totals.putts} putts, {totals.days}{' '}
+                {totals.days === 1 ? 'day' : 'days'}. None of it counts toward your round stats.
+              </p>
+              <PracticeDays sets={[...sets].sort(byTime)} />
+              <h2>Recent practice</h2>
+              <PracticeLog limit={4} />
+            </>
+          )}
         </>
       )}
     </div>
