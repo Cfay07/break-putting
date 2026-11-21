@@ -9,6 +9,8 @@ interface Dot {
   speed: Speed;
   leave: number;
   slope: Slope;
+  /** The comeback missed too, so the hole took three or more. */
+  three: boolean;
 }
 
 const SCALE = 7;
@@ -50,6 +52,7 @@ export function LagMap({ rounds }: { rounds: Round[] }) {
         speed: p.speed,
         leave: h.putts[1]?.d ?? 0,
         slope: dirs.includes('uphill') ? 'up' : dirs.includes('downhill') ? 'down' : 'flat',
+        three: h.putts.length >= 3,
       });
     });
   }
@@ -73,8 +76,11 @@ export function LagMap({ rounds }: { rounds: Round[] }) {
         return { ...d, cx: Math.cos(a) * r, cy: Math.sin(a) * r };
       });
   });
+  // Three-putts last, so no plain dot is ever drawn over their 3.
+  placed.sort((a, b) => Number(a.three) - Number(b.three));
   const slopes = (['down', 'up', 'flat'] as Slope[]).filter((s) => dots.some((d) => d.slope === s));
   const untagged = lags - holed - dots.length;
+  const threes = dots.filter((d) => d.three).length;
 
   return (
     <div className="card lag-map">
@@ -96,9 +102,18 @@ export function LagMap({ rounds }: { rounds: Round[] }) {
         <text x={4} y={104} className="lm-edge">
           Low
         </text>
-        {placed.map((d) => (
-          <circle key={d.key} cx={d.cx} cy={d.cy} r={4} fill={COLOR[d.slope]} className="lm-dot" />
-        ))}
+        {placed.map((d) =>
+          d.three ? (
+            <g key={d.key}>
+              <circle cx={d.cx} cy={d.cy} r={5.6} fill={COLOR[d.slope]} className="lm-dot three" />
+              <text x={d.cx} y={d.cy + 2.4} className="lm-three">
+                3
+              </text>
+            </g>
+          ) : (
+            <circle key={d.key} cx={d.cx} cy={d.cy} r={4} fill={COLOR[d.slope]} className="lm-dot" />
+          ),
+        )}
         <circle r={4.2} className="lm-cup" />
         {RINGS.map((r) => (
           <text key={r} x={3} y={r * SCALE + 9} className="lm-ring-label">
@@ -113,6 +128,12 @@ export function LagMap({ rounds }: { rounds: Round[] }) {
             {LABEL[s]}
           </span>
         ))}
+        {threes > 0 && (
+          <span>
+            <b className="lm-three-key">3</b>
+            Three-putt
+          </span>
+        )}
       </div>
       <p className="small muted" style={{ margin: '8px 0 0' }}>
         Every first putt from {LAG_FROM}+ ft you missed, at the length it left you. Short is left, long is right, the

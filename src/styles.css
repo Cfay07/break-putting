@@ -2562,3 +2562,6 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .lm-cup { fill: var(--ink); }
 .lm-key { display: flex; gap: 14px; justify-content: center; margin-top: 6px; font-size: 12px; color: var(--ink-2); }
 .lm-key i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+.lm-dot.three { fill-opacity: 1; }
+.lm-three { font-size: 7px; font-weight: 800; fill: #fff; text-anchor: middle; pointer-events: none; }
+.lm-three-key { display: inline-grid; place-items: center; width: 14px; height: 14px; margin-right: 5px; border-radius: 50%; background: var(--ink-2); color: #fff; font-size: 9px; font-weight: 800; vertical-align: -2px; }
