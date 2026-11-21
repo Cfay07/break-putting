@@ -74,14 +74,8 @@ export function Track() {
   const runningScore = scored.reduce((sum, h) => sum + (holeVsPar(h) ?? 0), 0);
   const totalStrokes = round.holes.reduce((sum, h) => sum + (h.strokes ?? 0), 0);
   const bleed = liveBleed(round);
-  // "Stopped the bleed" used to fire on any par with no bleed running, including hole one. It
-  // only means something if the hole before it was actually a trigger or part of a bleed.
-  const marks = bleedMarks(round);
-  const prevPlayed = round.holes.filter((h) => h.hole < hole.hole && (h.putts.length > 0 || holedOut(h))).pop();
-  const bouncedBack =
-    !!prevPlayed &&
-    (marks.triggers.has(prevPlayed.hole) || marks.bled.has(prevPlayed.hole)) &&
-    (holeVsPar(hole) ?? 1) <= 0;
+  // Only the first par or better after a mistake, the same hole the scorecard marks as stitched.
+  const stitched = bleedMarks(round).stitched.has(hole.hole) && (holeVsPar(hole) ?? 1) <= 0;
   // Competitive rounds hide the score and the bleed drop without anyone remembering a setting.
   const quiet = (state.quietTrack ?? false) || !!round.competitive;
   const d = Number(track.distanceInput);
@@ -134,9 +128,9 @@ export function Track() {
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {!quiet && scored.length > 0 && <span className="tag num">{fmtVsPar(runningScore)}</span>}
-            {!quiet && bleed.bleeding && (
-              <span className="drop" aria-label={`bleeding ${bleed.holes} holes`}>
-                🩸{bleed.holes > 0 ? bleed.holes : ''}
+            {!quiet && bleed.strokes > 0 && (
+              <span className="drop" aria-label={`putting mistakes put ${bleed.strokes} on the card`}>
+                🩸{bleed.strokes}
               </span>
             )}
             <button className="btn btn-ghost" onClick={() => dispatch({ t: 'undoLast' })}>
@@ -206,9 +200,9 @@ export function Track() {
               />
             </div>
           )}
-          {!quiet && bouncedBack && (
+          {!quiet && stitched && (
             <p className="small muted" style={{ margin: '10px 0 0' }}>
-              Bounced back. Bleeding stopped.
+              Stitched.
             </p>
           )}
           <div style={{ height: 14 }} />

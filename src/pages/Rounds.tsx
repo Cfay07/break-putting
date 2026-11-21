@@ -221,11 +221,7 @@ export function Rounds() {
               {mistakes > 0 && (
                 <span
                   className={bled > 0 ? 'bleed-tag' : 'bleed-tag clean'}
-                  aria-label={
-                    bled > 0
-                      ? `${bled} shot${bled === 1 ? '' : 's'} lost after a putting mistake`
-                      : 'a putting mistake that cost nothing'
-                  }
+                  aria-label={bled > 0 ? `putting mistakes put ${bled} on the card` : 'a putting mistake'}
                 >
                   🩸{bled > 0 ? bled : ''}
                 </span>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { bleedMarks, bleedsIn } from '../lib/bleed';
+import { bleedMarks, bleedsIn, bleedStory } from '../lib/bleed';
 import { holeSG, puttSG } from '../lib/sg';
 import { fitMakeModel } from '../lib/makeability';
 import { fitExecModel, difficultyOf, xpotStatus, makeChanceOf, puttSGAdjusted, beatSpread, xpOf } from '../lib/xp';
@@ -470,8 +470,12 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
                 <span className="drop-cell">
                   {marks.triggers.has(h.hole) ? (
                     '🩸'
+                  ) : marks.stitched.has(h.hole) ? (
+                    <span className="stitch-mark" aria-label="stitched">
+                      ✓
+                    </span>
                   ) : marks.bled.has(h.hole) ? (
-                    <span className="bled-dot" aria-label="bled into" />
+                    <span className="bled-dot" aria-label="over par after a mistake" />
                   ) : (
                     ''
                   )}
@@ -528,11 +532,8 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
 
           {bleeds.length > 0 && (
             <p className="small muted" style={{ marginTop: 8 }}>
-              🩸 is the mistake itself. A dot is a hole it bled into, not a hole that did anything wrong on the green.{' '}
-              {bleeds
-                .map((b) => `Hole ${b.triggerHole}, ${b.why}, ${b.shots} shot${b.shots === 1 ? '' : 's'}`)
-                .join('. ')}
-              .
+              🩸 is a putting mistake, a dot an over-par hole that came after it, and ✓ the par that stitched it.{' '}
+              {bleeds.map(bleedStory).join(' ')}
             </p>
           )}
         </>

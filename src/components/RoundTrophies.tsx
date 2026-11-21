@@ -5,6 +5,7 @@ import { headlineRanks, rankedRounds, rankText, roundRanks, swingHoles, type Ran
 import { courseLabel, type Stats } from '../lib/stats';
 import { roundStreaks } from '../lib/streaks';
 import { formOf, formStory } from '../lib/form';
+import { bleedLine } from '../lib/bleed';
 import { holeVsPar, type Round } from '../lib/types';
 import { Sheet } from './Sheet';
 import { fmtIndex, indexAt, indexMove } from '../lib/handicap';
@@ -38,6 +39,7 @@ export function RoundStory({
   const runs = useMemo(() => roundStreaks(round, rounds, baseline), [round, rounds, baseline]);
   const form = useMemo(() => formOf(round, baseline), [round, baseline]);
   const story = form && formStory(form);
+  const bled = bleedLine(round);
   const [open, setOpen] = useState<string | null>(null);
   const list = open ? rankedRounds(round, rounds, baseline, open) : null;
   const courses = useCourseRatings();
@@ -94,6 +96,8 @@ export function RoundStory({
           {story ? <span className={story.better ? 'up' : 'down'}> · {story.line}</span> : null}
         </p>
       )}
+
+      {bled && <p className="story-bleed">{bled}</p>}
 
       {heads.map((l, i) => (
         <button key={l.key} className="story-rank" onClick={() => setOpen(l.key)}>

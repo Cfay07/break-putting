@@ -2570,3 +2570,5 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .form-story { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
 .story-form { margin: 12px 0 0; font-size: 13px; color: #a9c2b5; }
 .story-form b { color: var(--paper); font-size: 15px; font-weight: 800; }
+.story-bleed { margin: 6px 0 0; font-size: 13px; color: #f09595; }
+.stitch-mark { color: #2c8c54; font-weight: 800; font-size: 12px; }

@@ -1,4 +1,4 @@
-import { bleedsIn } from './bleed';
+import { bleedsIn, bleedStory } from './bleed';
 import { fmtDateLong, puttSequence } from './format';
 import { insights } from './insights';
 import { holeSG } from './sg';
@@ -180,7 +180,7 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
   if (s.scoredHoles) {
     numbers.push(['Greens in regulation', `${s.gir} of ${s.scoredHoles} scored`, INK]);
   }
-  if (bled > 0) numbers.push(['Shots lost after a mistake', `-${bled}`, RED]);
+  if (bled > 0) numbers.push(['Bled, putting mistakes', `${bled}`, RED]);
 
   const distance = BUCKETS.map((b) => ({ b, t: s.buckets[b.key] })).filter(({ t }) => t.attempts > 0);
 
@@ -238,9 +238,7 @@ export function drawRoundSheet({ round, stats, baseline, putter }: CardInput): H
   const bleedLines = bleeds.length
     ? wrapLines(
         m,
-        `• is the mistake, · a hole it bled into. ${bleeds
-          .map((b) => `Hole ${b.triggerHole}, ${b.why}, ${b.shots} shot${b.shots === 1 ? '' : 's'}`)
-          .join('. ')}.`,
+        `• is a putting mistake, · an over-par hole after it. ${bleeds.map(bleedStory).join(' ')}`,
         INNER,
         24,
         500,

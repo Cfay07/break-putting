@@ -4,7 +4,7 @@ import { courseLabel } from '../lib/stats';
 import { backTeeFor } from '../lib/courses';
 import type { Round } from '../lib/types';
 import { useCourseRatings } from '../lib/useCourseRatings';
-import { bleedSummary } from '../lib/bleed';
+import { bleedSummary, MAKEABLE, stitchSummary, type BleedSummary } from '../lib/bleed';
 import { fitMakeModel } from '../lib/makeability';
 import { formTrial } from '../lib/formTrial';
 import { formOf, formBand } from '../lib/form';
@@ -35,7 +35,6 @@ import { applyFilter, filterLabel, isFiltered, NO_FILTER, type RoundFilter } fro
 import { Trend } from '../components/Trend';
 import { ShootCard } from '../components/ShootCard';
 import { fmtDate, pctText, signed } from '../lib/format';
-import { Bar } from '../components/Bar';
 import {
   byGreenSpeed,
   lagSaves,
@@ -63,7 +62,14 @@ function StatsSwitch({ practice }: { practice: boolean }) {
   );
 }
 
-const fmtToPar = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`;
+/** One plain line on whether mistakes spiral: only a gap of five points or more counts as one. */
+function spiralLine(b: BleedSummary): string {
+  const over = (b.afterOver ?? 0) - (b.normalOver ?? 0);
+  const run = (b.afterRun ?? 0) - (b.normalRun ?? 0);
+  if (run >= 0.05) return 'Mistakes are starting runs of over-par holes.';
+  if (over >= 0.05) return 'The next hole goes over par a bit more often, but it does not turn into a run.';
+  return 'Your mistakes do not spiral: the holes after one go like the rest.';
+}
 export function Stats({ practice = false }: { practice?: boolean }) {
   if (practice) {
     return (
@@ -161,6 +167,7 @@ function RoundStats() {
   const shapes = useMemo(() => missShapes(rounds), [rounds]);
   const vol = useMemo(() => volatility(rounds, state.baseline), [rounds, state.baseline]);
   const bleed = useMemo(() => bleedSummary(rounds), [rounds]);
+  const stitch = useMemo(() => stitchSummary(rounds), [rounds]);
   const withScore = useMemo(
     () =>
       rounds
@@ -652,76 +659,96 @@ function RoundStats() {
             </>
           )}
 
-          {bleed.count > 0 && (
+          {bleed.shotsPerRound !== null && bleed.shotsPerRound > 0 && (
             <>
               <h2>Bleed</h2>
               <div className="card">
-                {bleed.shotsPerRound !== null && bleed.afterToPar !== null && bleed.normalToPar !== null && (
-                  <>
-                    <div className={bleed.shotsPerRound >= 0.05 ? 'shoot-for num neg' : 'shoot-for num'}>
-                      {bleed.shotsPerRound >= 0.05 ? `+${bleed.shotsPerRound.toFixed(1)}` : '0.0'}
-                    </div>
-                    <p className="small" style={{ margin: '4px 0 0' }}>
-                      {bleed.shotsPerRound >= 0.05
-                        ? 'Extra shots a round on the holes after a putting mistake, beyond what you score on your other holes.'
-                        : 'Extra shots a round after a putting mistake. None: the hole after one scores the same as your others.'}{' '}
-                      The hole after a mistake averages {fmtToPar(bleed.afterToPar)}, every other hole{' '}
-                      {fmtToPar(bleed.normalToPar)}.
-                    </p>
-                  </>
-                )}
-                <p className="small muted" style={{ margin: '6px 0 0' }}>
-                  A mistake is a three-putt, or a putt missed from three to six feet, whatever the hole ended up
-                  scoring. The bleeding runs until you bounce back, meaning the first hole after it you play at par or
-                  better.
+                <div className="shoot-for num neg">{bleed.shotsPerRound.toFixed(1)}</div>
+                <p className="small" style={{ margin: '4px 0 0' }}>
+                  Strokes a round your putting mistakes put on the card. A mistake is a three-putt, or a putt missed
+                  from {MAKEABLE.max} feet or closer.
                 </p>
-
-                {bleed.afterRate !== null && bleed.normalRate !== null && (
-                  <>
-                    <div className="field-label">Bounce back</div>
-                    <Bar
-                      label="Hole after a mistake"
-                      value={`${(bleed.afterRate * 100).toFixed(0)}%`}
-                      ratio={bleed.afterRate}
-                      warn={bleed.afterRate < bleed.normalRate}
-                      wide
-                    />
-                    <Bar
-                      label="Every other hole"
-                      value={`${(bleed.normalRate * 100).toFixed(0)}%`}
-                      ratio={bleed.normalRate}
-                      wide
-                    />
-                    <p className="small muted" style={{ margin: '6px 0 0' }}>
-                      {bleed.afterRate < bleed.normalRate
-                        ? `Par or better ${Math.round(bleed.afterRate * 100)} times in 100 after a mistake, against ${Math.round(bleed.normalRate * 100)} the rest of the time.`
-                        : 'You bounce back as often after a mistake as on any other hole, so a mistake does not follow you.'}
-                    </p>
-                  </>
-                )}
-
-                <div className="field-label">The mistakes themselves</div>
-                <div className="stat-row">
-                  <span className="k">How many a round</span>
-                  <span className="v num">{bleed.perRound?.toFixed(1)}</span>
+                <div className="stat-row" style={{ marginTop: 8 }}>
+                  <span className="k">Three-putts</span>
+                  <span className="v num">{bleed.threePuttsPerRound!.toFixed(1)}</span>
                 </div>
-                {bleed.worst && (
+                <div className="stat-row">
+                  <span className="k">Missed inside {MAKEABLE.max} ft</span>
+                  <span className="v num">{bleed.shortMissesPerRound!.toFixed(1)}</span>
+                </div>
+                {bleed.avgScore !== null && bleed.withoutScore !== null && (
                   <div className="stat-row">
-                    <span className="k">
-                      Worst one{' '}
-                      <span className="muted">
-                        {fmtDate(bleed.worst.date)}, hole {bleed.worst.triggerHole}
-                      </span>
+                    <span className="k">Your average, without them</span>
+                    <span className="v num">
+                      {bleed.avgScore.toFixed(1)} <span className="muted">→</span>{' '}
+                      <span className="pos">{bleed.withoutScore.toFixed(1)}</span>
                     </span>
-                    <span className="v num neg">+{bleed.worst.shots} after</span>
                   </div>
                 )}
 
-                <p className="small muted" style={{ margin: '12px 0 0' }}>
-                  Based on {bleed.sample} holes played after a mistake.
-                  {bleed.sample < 200
-                    ? ' A gap this size needs a few hundred before it proves anything, so read it as a hint.'
-                    : ''}
+                {bleed.afterOver !== null && bleed.normalOver !== null && (
+                  <>
+                    <div className="field-label">Does it spiral</div>
+                    <div className="stat-row">
+                      <span className="k">Next hole over par</span>
+                      <span className="v num">
+                        {Math.round(bleed.afterOver * 100)}%
+                        <span className="small muted"> · {Math.round(bleed.normalOver * 100)}% otherwise</span>
+                      </span>
+                    </div>
+                    {bleed.afterRun !== null && bleed.normalRun !== null && (
+                      <div className="stat-row">
+                        <span className="k">Two over par in a row</span>
+                        <span className="v num">
+                          {Math.round(bleed.afterRun * 100)}%
+                          <span className="small muted"> · {Math.round(bleed.normalRun * 100)}% otherwise</span>
+                        </span>
+                      </div>
+                    )}
+                    <p className="small muted" style={{ margin: '6px 0 0' }}>
+                      {spiralLine(bleed)} From {bleed.sample} holes played right after a mistake.
+                    </p>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+
+          {stitch.sample > 0 && stitch.afterRate !== null && stitch.normalRate !== null && (
+            <>
+              <h2>Stitch</h2>
+              <div className="card">
+                <p className="small muted" style={{ margin: '0 0 6px' }}>
+                  How you answer on the hole after a putting mistake, against every other hole.
+                </p>
+                <div className="stat-row">
+                  <span className="k">Par or better</span>
+                  <span className="v num">
+                    {Math.round(stitch.afterRate * 100)}%
+                    <span className="small muted"> · {Math.round(stitch.normalRate * 100)}% otherwise</span>
+                  </span>
+                </div>
+                {stitch.nextShort.tried > 0 && (
+                  <div className="stat-row">
+                    <span className="k">Next 3 to 10 ft holed</span>
+                    <span className="v num">
+                      {stitch.nextShort.made} of {stitch.nextShort.tried}
+                      <span className="small muted"> · usual {Math.round(stitch.nextShort.usual)}</span>
+                    </span>
+                  </div>
+                )}
+                {stitch.chainAfter !== null && stitch.chainNormal !== null && (
+                  <div className="stat-row">
+                    <span className="k">Another mistake next</span>
+                    <span className="v num">
+                      {Math.round(stitch.chainAfter * 100)}%
+                      <span className="small muted"> · {Math.round(stitch.chainNormal * 100)}% otherwise</span>
+                    </span>
+                  </div>
+                )}
+                <p className="small muted" style={{ margin: '6px 0 0' }}>
+                  Usual is what you hole from those lengths with that putter. From {stitch.sample} holes after a mistake
+                  {stitch.sample < 200 ? ', so read a small gap as a lead, not a verdict' : ''}.
                 </p>
               </div>
             </>

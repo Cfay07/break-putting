@@ -5,7 +5,7 @@ import { PatternPanel } from '../components/PatternPanel';
 import { ScoreMark } from '../components/ScoreMark';
 import { SpeedBars } from '../components/SpeedBars';
 import { fmtVsPar } from '../components/HoleScore';
-import { bleedMarks, bleedsIn } from '../lib/bleed';
+import { bleedMarks, bleedsIn, bleedStory } from '../lib/bleed';
 import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
 import { holeSG } from '../lib/sg';
 import { loadSharedRound, type SharedRound as Shared } from '../lib/shareLink';
@@ -163,8 +163,12 @@ export function SharedRound({ token }: { token: string }) {
             <span className="drop-cell">
               {marks.triggers.has(h.hole) ? (
                 '🩸'
+              ) : marks.stitched.has(h.hole) ? (
+                <span className="stitch-mark" aria-label="stitched">
+                  ✓
+                </span>
               ) : marks.bled.has(h.hole) ? (
-                <span className="bled-dot" aria-label="bled into" />
+                <span className="bled-dot" aria-label="over par after a mistake" />
               ) : (
                 ''
               )}
@@ -206,8 +210,8 @@ export function SharedRound({ token }: { token: string }) {
 
       {bleeds.length > 0 && (
         <p className="small muted" style={{ marginTop: 8 }}>
-          🩸 is the mistake itself. A dot is a hole it bled into.{' '}
-          {bleeds.map((b) => `Hole ${b.triggerHole}, ${b.why}, ${b.shots} shot${b.shots === 1 ? '' : 's'}`).join('. ')}.
+          🩸 is a putting mistake, a dot an over-par hole that came after it, and ✓ the par that stitched it.{' '}
+          {bleeds.map(bleedStory).join(' ')}
         </p>
       )}
 
