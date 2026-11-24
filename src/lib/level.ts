@@ -89,20 +89,19 @@ export function levelOf(rounds: Round[]): Level | null {
   return { d50, d2, firstPutts: ps.length };
 }
 
-/** Where a range sits among the groups, in plain words with the numbers it sits between. */
+/** Where a 50% distance sits among the groups, in plain words with the numbers it sits between. */
 export function placeText(value: number): string {
   const sorted = [...LEVELS].sort((x, y) => y.d50 - x.d50);
   const name = (i: number) => (i === 0 ? 'tour players' : sorted[i].label);
-  if (value >= sorted[0].d50) return `That's tour level (${sorted[0].d50} ft).`;
+  if (value >= sorted[0].d50) return `Tour players do it from ${sorted[0].d50} ft, so you're at tour level.`;
   for (let i = 1; i < sorted.length; i++)
     if (value >= sorted[i].d50)
-      return `That's better than ${name(i)} (${sorted[i].d50} ft) and short of ${name(i - 1)} (${sorted[i - 1].d50} ft).`;
+      return `That's farther out than ${name(i)} (${sorted[i].d50} ft) and closer in than ${name(i - 1)} (${sorted[i - 1].d50} ft).`;
   const last = sorted.length - 1;
-  return `That's short of ${name(last)} (${sorted[last].d50} ft).`;
+  return `That's closer in than ${name(last)} (${sorted[last].d50} ft).`;
 }
 
-/** "With the Cobra Stingray you hole half your first putts from 6.3 ft. That's better than..." */
-export function levelStory(l: Level, putter?: string): string {
-  const lead = `${putter ? `With the ${putter} you` : 'You'} hole half your first putts from ${l.d50.toFixed(1)} ft.`;
-  return `${lead} ${placeText(l.d50)}`;
+/** "You make 50% of your first putts from 4.2 ft. That's farther out than..." */
+export function levelStory(l: Level): string {
+  return `You make 50% of your first putts from ${l.d50.toFixed(1)} ft. ${placeText(l.d50)}`;
 }

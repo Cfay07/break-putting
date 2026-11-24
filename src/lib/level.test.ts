@@ -37,14 +37,14 @@ describe('where you stand', () => {
     expect(l.d50).toBeGreaterThan(5);
     expect(l.d50).toBeLessThan(7);
     expect(l.d2).not.toBeNull();
-    expect(levelStory(l)).toMatch(/^You hole half your first putts from \d+\.\d ft\. That's /);
+    expect(levelStory(l)).toMatch(/^You make 50% of your first putts from \d+\.\d ft\. That's /);
   });
 
   it('places a range among the groups in plain words', () => {
     expect(placeText(6.3)).toBe(
-      "That's better than golfers who shoot 70 to 83 (5.8 ft) and short of tour players (8.2 ft).",
+      "That's farther out than golfers who shoot 70 to 83 (5.8 ft) and closer in than tour players (8.2 ft).",
     );
-    expect(placeText(9)).toBe("That's tour level (8.2 ft).");
-    expect(placeText(2.8)).toBe("That's short of golfers who shoot 97 to 120 (3.8 ft).");
+    expect(placeText(9)).toBe("Tour players do it from 8.2 ft, so you're at tour level.");
+    expect(placeText(2.8)).toBe("That's closer in than golfers who shoot 97 to 120 (3.8 ft).");
   });
 });

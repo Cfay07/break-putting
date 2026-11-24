@@ -233,7 +233,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
     const newest = [...rounds].sort((a, b) => b.date.localeCompare(a.date))[0];
     const own = levelOf(rounds.filter((r) => r.putterId === newest.putterId));
     const putter = state.putters.find((p) => p.id === newest.putterId);
-    return own && putter ? { name: putter.name, level: own } : null;
+    return own && putter ? { id: putter.id, name: putter.name, level: own } : null;
   }, [rounds, state.putters]);
   const firstPuttCount = useMemo(
     () =>
@@ -347,7 +347,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
         ? row({
             key: 'distance',
             title: 'By distance',
-            sub: 'Range · half go in from here',
+            sub: 'You make 50% of first putts from',
             num: range,
             fmt: (v: number) => `${v.toFixed(1)} ft`,
             better: 'up',
@@ -849,7 +849,12 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {!lock && topic === 'distance' && (
             <>
-              <LevelCard level={level} firstPutts={firstPuttCount} latest={latestLevel} />
+              <LevelCard
+                level={level}
+                firstPutts={firstPuttCount}
+                latest={latestLevel}
+                onLatest={(id) => setFilter({ ...filter, putterId: id })}
+              />
               {spread.n > 0 && (
                 <>
                   <h2>How often you beat the number</h2>
