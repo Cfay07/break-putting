@@ -87,3 +87,31 @@ describe('replay', () => {
     expect(rec.every((m) => m.practice)).toBe(true);
   });
 });
+
+describe('recommended mix and what it was for', () => {
+  const hole = (n: number, d: number, dirs: Putt['breakDirs'], par = 4): Hole => ({
+    hole: n,
+    par,
+    strokes: 4,
+    putts: [putt({ d, made: false, breakDirs: dirs }), putt({ d: 1, made: true })],
+  });
+  const r = round('r9', '2026-11-20', [
+    hole(1, 4, ['L→R']),
+    hole(2, 5, ['L→R']),
+    hole(3, 4, ['L→R']),
+    hole(4, 4, ['L→R']),
+    hole(5, 8, ['R→L']),
+    hole(6, 7, ['R→L']),
+    hole(7, 11, ['straight']),
+  ]);
+
+  it('says what the putt was for', () => {
+    expect(missesOf(r)[0].forWhat).toBe('for birdie');
+  });
+
+  it('mixes three from the target with other putts you keep missing, alternating', () => {
+    const rec = recommended([r], [], 'slice:short:lr', new Map());
+    expect(rec.map((m) => m.why)).toEqual(['target', 'mix', 'target', 'mix', 'target']);
+    expect(new Set(rec.filter((m) => m.why === 'mix').map((m) => m.kind.key)).size).toBe(2);
+  });
+});

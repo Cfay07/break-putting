@@ -63,9 +63,13 @@ function MissCard({
     <div className={on ? 'card replay-card' : 'card replay-card off'}>
       <div className="rp-top">
         <span className="rp-t">
-          <b>{miss.label}</b>
+          <b>
+            {miss.label}
+            {miss.why === 'target' && <span className="rp-tag">Target</span>}
+          </b>
           <small>
             {showWhere ? `${fmtDate(miss.date)} · ${miss.course}, hole ${miss.of.hole}` : `Hole ${miss.of.hole}`}
+            {miss.forWhat ? ` · ${miss.forWhat}` : ''}
             {miss.practice ? ' · practice round' : ''}
           </small>
         </span>
@@ -262,7 +266,8 @@ export function Replay({ roundId }: { roundId?: string }) {
 
       {!open && view === 'rec' && target.key && target.title && (
         <p className="small muted" style={{ margin: '10px 0' }}>
-          Picked from your target first: <b style={{ color: 'var(--ink)' }}>{target.title}</b>.
+          Mostly your target, <b style={{ color: 'var(--ink)' }}>{target.title}</b>, mixed with other putts you keep
+          missing.
         </p>
       )}
 

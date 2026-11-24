@@ -2681,3 +2681,4 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .rd-line { margin: 6px 0 0; font-size: 13px; }
 .rp-wide { width: 100%; }
 .rp-wide > button { flex: 1; }
+.rp-tag { margin-left: 8px; vertical-align: 2px; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #c4521f; }

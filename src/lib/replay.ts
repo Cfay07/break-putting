@@ -18,6 +18,8 @@ export const REDEEM_AFTER = 10;
 export const REPLAY_FROM = 3;
 export const REPLAY_TO = 12;
 export const RECOMMENDED = 5;
+/** Of the recommended putts, how many come from your target before the mix fills the rest. */
+const TARGET_SHARE = 3;
 
 export function replayDef(): DrillDef {
   return {
@@ -58,6 +60,10 @@ export interface Miss {
   onCourse: { side?: 'low' | 'high' | 'online'; speed?: 'short' | 'good' | 'long'; lip?: boolean };
   /** The kind of putt it is, for Redemption: its length band and which way it breaks. */
   kind: { key: string; label: string };
+  /** "for par", from the hole's par and score. Missing when the hole has no score. */
+  forWhat?: string;
+  /** In Recommended: from your target, or mixed in from another kind you keep missing. */
+  why?: 'target' | 'mix';
 }
 
 export const keyOf = (o: ReplayOf) => `${o.roundId}:${o.hole}:${o.putt}`;
@@ -139,7 +145,15 @@ export function missesOf(round: Round, practice = false): Miss[] {
     h.putts.forEach((p, i) => {
       if (p.made || p.d < REPLAY_FROM || p.d > REPLAY_TO) return;
       const of = { roundId: round.id, hole: h.hole, putt: i };
+      const stroke = h.par !== undefined && h.strokes ? h.strokes - h.putts.length + i + 1 : null;
+      const forWhat =
+        stroke === null || h.par === undefined
+          ? undefined
+          : ({ [-2]: 'for eagle', [-1]: 'for birdie', 0: 'for par', 1: 'for bogey' } as Record<number, string>)[
+              stroke - h.par
+            ];
       out.push({
+        forWhat,
         key: keyOf(of),
         of,
         practice,
@@ -240,8 +254,26 @@ export function recommended(
     !!range && m.d >= range[0] && m.d <= range[1] && (type !== 'slice' || m.conds.includes(cond as Cond));
   // Holed in its newest replay: it can wait behind the putts still giving you trouble.
   const cleared = (m: Miss) => !!history.get(m.key)?.lastHoled;
-  const rank = (m: Miss) => (fits(m) ? 0 : 2) + (cleared(m) ? 1 : 0);
-  return [...all].sort((a, b) => rank(a) - rank(b)).slice(0, n);
+  const fresh = (xs: Miss[]) => [...xs].sort((a, b) => Number(cleared(a)) - Number(cleared(b)));
+  const target = fresh(all.filter(fits)).map((m) => ({ ...m, why: 'target' as const }));
+  // The rest, grouped by kind, the kinds you miss most first: one from each in turn, so the mix
+  // covers several struggles instead of five of the same.
+  const kinds = new Map<string, Miss[]>();
+  for (const m of all.filter((x) => !fits(x))) kinds.set(m.kind.key, [...(kinds.get(m.kind.key) ?? []), m]);
+  const queues = [...kinds.values()].sort((a, b) => b.length - a.length).map(fresh);
+  const mix: Miss[] = [];
+  while (queues.some((q) => q.length)) for (const q of queues) if (q.length) mix.push({ ...q.shift()!, why: 'mix' });
+  const fromTarget = target.slice(0, Math.min(TARGET_SHARE, n));
+  const mixed = mix.slice(0, n - fromTarget.length);
+  const more = target.slice(fromTarget.length, fromTarget.length + (n - fromTarget.length - mixed.length));
+  const t = [...fromTarget, ...more];
+  // Alternate target and mix, so the session switches putts the way a round does.
+  const out: Miss[] = [];
+  for (let i = 0; out.length < t.length + mixed.length; i++) {
+    if (i < t.length) out.push(t[i]);
+    if (i < mixed.length) out.push(mixed[i]);
+  }
+  return out;
 }
 
 /* ---------- Redemption: the same kind of putt, on the course, before and after replaying it ---------- */
