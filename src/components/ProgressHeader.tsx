@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { fmtDate, signed, today as todayIso } from '../lib/format';
-import { resolveDrill } from '../lib/drills';
+import { METRONOME_ID, resolveDrill } from '../lib/drills';
 import { trendOf } from '../lib/practice';
 import { putterName } from '../lib/store';
 import {
@@ -35,7 +35,11 @@ function pillText(c: Compare, unit: string): string {
 }
 
 const pillClass = (v: Verdict) =>
-  v === 'better' || v === 'probably-better' ? 'pay-pill up' : v === 'worse' || v === 'probably-worse' ? 'pay-pill down' : 'pay-pill';
+  v === 'better' || v === 'probably-better'
+    ? 'pay-pill up'
+    : v === 'worse' || v === 'probably-worse'
+      ? 'pay-pill down'
+      : 'pay-pill';
 
 function Bars({ values, max, band }: { values: number[]; max: number; band?: [number, number] | null }) {
   if (values.length < 2) return null;
@@ -44,15 +48,37 @@ function Bars({ values, max, band }: { values: number[]; max: number; band?: [nu
   const w = 300 / values.length;
   return (
     <svg viewBox={`0 0 300 ${h}`} className="pay-bars" aria-hidden="true">
-      {band && <rect x="0" y={y(band[1])} width="300" height={Math.max(2, y(band[0]) - y(band[1]))} className="pay-band" />}
+      {band && (
+        <rect x="0" y={y(band[1])} width="300" height={Math.max(2, y(band[0]) - y(band[1]))} className="pay-band" />
+      )}
       {values.map((v, i) => (
-        <rect key={i} x={i * w + 3} y={y(v)} width={w - 6} height={h - y(v)} rx="3" className={i === values.length - 1 ? 'pay-bar last' : 'pay-bar'} />
+        <rect
+          key={i}
+          x={i * w + 3}
+          y={y(v)}
+          width={w - 6}
+          height={h - y(v)}
+          rx="3"
+          className={i === values.length - 1 ? 'pay-bar last' : 'pay-bar'}
+        />
       ))}
     </svg>
   );
 }
 
-function Row({ title, c, unit, text, bars }: { title: string; c: Compare; unit: string; text: string; bars?: ReactNode }) {
+function Row({
+  title,
+  c,
+  unit,
+  text,
+  bars,
+}: {
+  title: string;
+  c: Compare;
+  unit: string;
+  text: string;
+  bars?: ReactNode;
+}) {
   return (
     <div className="pay-row">
       <div className="pay-row-head">
@@ -80,28 +106,43 @@ export function ProgressHeader() {
 
   // The weekly test: the first of each week, on the surface you test on most.
   const tests = sets.filter((s) => s.drill === TEST_ID);
-  const surface = (['indoor', 'green'] as const).reduce((a, b) => (tests.filter((t) => t.surface === b).length > tests.filter((t) => t.surface === a).length ? b : a), 'indoor' as const);
+  const surface = (['indoor', 'green'] as const).reduce(
+    (a, b) => (tests.filter((t) => t.surface === b).length > tests.filter((t) => t.surface === a).length ? b : a),
+    'indoor' as const,
+  );
   const firstOfWeek = new Map<string, PracticeSet>();
   for (const t of tests.filter((x) => x.surface === surface).sort((a, b) => a.date.localeCompare(b.date))) {
     if (!firstOfWeek.has(weekOf(t.date))) firstOfWeek.set(weekOf(t.date), t);
   }
   const weekly = [...firstOfWeek.values()];
   const tw = windows(weekly, today);
-  const test = compare(tw.recent.map((t) => t.made), tw.before.map((t) => t.made));
-  const testBand: [number, number] | null = test.before !== null && test.swing ? [test.before - test.swing, test.before + test.swing] : null;
+  const test = compare(
+    tw.recent.map((t) => t.made),
+    tw.before.map((t) => t.made),
+  );
+  const testBand: [number, number] | null =
+    test.before !== null && test.swing ? [test.before - test.swing, test.before + test.swing] : null;
 
   // The target's check: the mixed set from its distances.
   const [kind, zone] = (state.target && !state.target.fixedOn ? state.target.key : '').split(':');
-  const checkId = (kind === 'slice' || kind === 'zone') && ['short', 'mid', 'long'].includes(zone) ? `mix-${zone}` : null;
-  const checks = checkId ? sets.filter((s) => family(s.drill) === checkId).sort((a, b) => a.date.localeCompare(b.date)) : [];
+  const checkId =
+    (kind === 'slice' || kind === 'zone') && ['short', 'mid', 'long'].includes(zone) ? `mix-${zone}` : null;
+  const checks = checkId
+    ? sets.filter((s) => family(s.drill) === checkId).sort((a, b) => a.date.localeCompare(b.date))
+    : [];
   const cw = windows(checks, today);
   const check = compare(cw.recent.map(rate), cw.before.map(rate));
 
   // Rounds after a practice week against the rest, and the course overall, with the putter you use now.
-  const rounds = [...scoped.rounds].filter((r) => r.holes.some((h) => h.putts.length)).sort((a, b) => a.date.localeCompare(b.date));
+  const rounds = [...scoped.rounds]
+    .filter((r) => r.holes.some((h) => h.putts.length))
+    .sort((a, b) => a.date.localeCompare(b.date));
   const practiceDays = [
     ...sets.map((x) => ({ date: x.date, balls: x.attempts })),
-    ...(state.practiceRounds ?? []).map((r) => ({ date: r.date, balls: r.holes.reduce((n, h) => n + h.putts.length, 0) })),
+    ...(state.practiceRounds ?? []).map((r) => ({
+      date: r.date,
+      balls: r.holes.reduce((n, h) => n + h.putts.length, 0),
+    })),
   ];
   const split = practiceSplit(rounds, practiceDays, state.baseline);
   const earlier = rounds.slice(-20, -10);
@@ -118,13 +159,24 @@ export function ProgressHeader() {
   const recentSets = sets.filter((x) => {
     const age = (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${x.date}T12:00:00Z`)) / 864e5;
     // A replay is a different putt every set, so it has no trend of its own to read.
-    return age >= 0 && age < BEFORE_DAYS && x.drill !== TEST_ID && x.drill !== REPLAY_ID && family(x.drill) !== checkId;
+    return (
+      age >= 0 &&
+      age < BEFORE_DAYS &&
+      x.drill !== TEST_ID &&
+      x.drill !== REPLAY_ID &&
+      x.drill !== METRONOME_ID &&
+      family(x.drill) !== checkId
+    );
   });
   const byDrill = new Map<string, PracticeSet[]>();
   for (const x of recentSets) byDrill.set(family(x.drill), [...(byDrill.get(family(x.drill)) ?? []), x]);
   const drillReads = [...byDrill.entries()].map(([id, xs]) => {
     const surface = xs.at(-1)!.surface;
-    return { id, name: resolveDrill(state, id)?.name ?? 'A drill', trend: trendOf(xs.filter((x) => x.surface === surface)) };
+    return {
+      id,
+      name: resolveDrill(state, id)?.name ?? 'A drill',
+      trend: trendOf(xs.filter((x) => x.surface === surface)),
+    };
   });
   const counts = { up: 0, flat: 0, down: 0, waiting: 0 };
   for (const d of drillReads) counts[d.trend.verdict]++;
@@ -132,14 +184,24 @@ export function ProgressHeader() {
     counts.up + counts.flat + counts.down === 0
       ? 'early'
       : counts.up > counts.down
-        ? counts.down === 0 && counts.up >= 2 ? 'better' : 'probably-better'
+        ? counts.down === 0 && counts.up >= 2
+          ? 'better'
+          : 'probably-better'
         : counts.down > counts.up
-          ? counts.up === 0 && counts.down >= 2 ? 'worse' : 'probably-worse'
+          ? counts.up === 0 && counts.down >= 2
+            ? 'worse'
+            : 'probably-worse'
           : 'holding';
 
   // The status reads practice against your own earlier practice. Rounds are a check below it.
   const outcome =
-    test.verdict !== 'early' ? test.verdict : check.verdict !== 'early' ? check.verdict : drillsVerdict !== 'early' ? drillsVerdict : null;
+    test.verdict !== 'early'
+      ? test.verdict
+      : check.verdict !== 'early'
+        ? check.verdict
+        : drillsVerdict !== 'early'
+          ? drillsVerdict
+          : null;
   const status = statusOf(recentWeeks >= 2, outcome);
   const firstNeed = test.verdict === 'early' ? test : check;
   const sentence =
@@ -157,7 +219,10 @@ export function ProgressHeader() {
             ? 'You are practicing, but your scores are below your normal. Worth a look at what you are rolling.'
             : 'Not much practice lately, and your scores have dipped.';
 
-  const maxSplit = Math.max(1, ...[split.compare.recent, split.compare.before].filter((x): x is number => x !== null).map(Math.abs));
+  const maxSplit = Math.max(
+    1,
+    ...[split.compare.recent, split.compare.before].filter((x): x is number => x !== null).map(Math.abs),
+  );
   const bar = (v: number | null) => (v === null ? 0 : (Math.abs(v) / maxSplit) * 32);
 
   if (!sets.length && !rounds.length) return null;
@@ -183,7 +248,6 @@ export function ProgressHeader() {
           Practiced {weeks.filter(Boolean).length} of the last {weeks.length} weeks
           {practiceDates.length ? `, last on ${fmtDate([...practiceDates].sort().at(-1)!)}` : ''}.
         </p>
-
       </div>
 
       <div className="pay-rows">
@@ -242,60 +306,73 @@ export function ProgressHeader() {
               ? `${course.need} more ${course.need === 1 ? 'round' : 'rounds'} before it can compare.`
               : `${PILL[course.verdict]}, your last 10 rounds against the ${earlier.length} before.`}
           </p>
-        {roundsQuiet ? (
-          <p className="pay-quiet light">
-            {lastRound ? `Last round ${fmtDate(lastRound)}.` : 'No rounds yet.'} This picks back up with your next round, and every round
-            within a week of practice counts toward it.
-          </p>
-        ) : (
-          (split.after.length > 0 || split.without.length > 0) && (
-            <div className="pay-split">
-              <div className="pay-split-head">
-                <strong>{split.mode === 'amount' ? 'More practice or less' : 'Rounds after a practice week'}</strong>
-                <span className={`${pillClass(split.compare.verdict)}`}>{pillText(split.compare, 'round')}</span>
-              </div>
-              {[
-                {
-                  label: split.mode === 'amount' ? `${split.line}+ practice putts that week` : 'Within a week after practice',
-                  v: split.compare.recent,
-                  n: split.after.length,
-                  me: true,
-                },
-                {
-                  label: split.mode === 'amount' ? `Fewer than ${split.line}` : 'Weeks you did not',
-                  v: split.compare.before,
-                  n: split.without.length,
-                  me: false,
-                },
-              ].map((x) => (
-                <div key={x.label} className="pay-split-row">
-                  <div className="pay-split-label">
-                    <span>{x.label}</span>
-                    <span>
-                      {x.n} {x.n === 1 ? 'round' : 'rounds'}
-                    </span>
-                  </div>
-                  <div className="pay-split-track">
-                    <i className="pay-zero" />
-                    {x.v !== null && (
-                      <i
-                        className={x.me ? 'pay-fill me' : 'pay-fill'}
-                        style={x.v >= 0 ? { left: '50%', width: `${bar(x.v)}%` } : { right: '50%', width: `${bar(x.v)}%` }}
-                      />
-                    )}
-                    {x.v !== null && (
-                      <b style={x.v >= 0 ? { left: `calc(50% + ${bar(x.v)}% + 6px)` } : { right: `calc(50% + ${bar(x.v)}% + 6px)` }}>{signed(x.v, 1)}</b>
-                    )}
-                  </div>
+          {roundsQuiet ? (
+            <p className="pay-quiet light">
+              {lastRound ? `Last round ${fmtDate(lastRound)}.` : 'No rounds yet.'} This picks back up with your next
+              round, and every round within a week of practice counts toward it.
+            </p>
+          ) : (
+            (split.after.length > 0 || split.without.length > 0) && (
+              <div className="pay-split">
+                <div className="pay-split-head">
+                  <strong>{split.mode === 'amount' ? 'More practice or less' : 'Rounds after a practice week'}</strong>
+                  <span className={`${pillClass(split.compare.verdict)}`}>{pillText(split.compare, 'round')}</span>
                 </div>
-              ))}
-              <p className="pay-note">
-                Strokes gained putting a round{putterId ? `, ${putterName(state, putterId)}` : ''}. This shows what happened, not why: easier
-                courses and good days move it too.
-              </p>
-            </div>
-          )
-        )}
+                {[
+                  {
+                    label:
+                      split.mode === 'amount'
+                        ? `${split.line}+ practice putts that week`
+                        : 'Within a week after practice',
+                    v: split.compare.recent,
+                    n: split.after.length,
+                    me: true,
+                  },
+                  {
+                    label: split.mode === 'amount' ? `Fewer than ${split.line}` : 'Weeks you did not',
+                    v: split.compare.before,
+                    n: split.without.length,
+                    me: false,
+                  },
+                ].map((x) => (
+                  <div key={x.label} className="pay-split-row">
+                    <div className="pay-split-label">
+                      <span>{x.label}</span>
+                      <span>
+                        {x.n} {x.n === 1 ? 'round' : 'rounds'}
+                      </span>
+                    </div>
+                    <div className="pay-split-track">
+                      <i className="pay-zero" />
+                      {x.v !== null && (
+                        <i
+                          className={x.me ? 'pay-fill me' : 'pay-fill'}
+                          style={
+                            x.v >= 0 ? { left: '50%', width: `${bar(x.v)}%` } : { right: '50%', width: `${bar(x.v)}%` }
+                          }
+                        />
+                      )}
+                      {x.v !== null && (
+                        <b
+                          style={
+                            x.v >= 0
+                              ? { left: `calc(50% + ${bar(x.v)}% + 6px)` }
+                              : { right: `calc(50% + ${bar(x.v)}% + 6px)` }
+                          }
+                        >
+                          {signed(x.v, 1)}
+                        </b>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <p className="pay-note">
+                  Strokes gained putting a round{putterId ? `, ${putterName(state, putterId)}` : ''}. This shows what
+                  happened, not why: easier courses and good days move it too.
+                </p>
+              </div>
+            )
+          )}
         </div>
       )}
     </>

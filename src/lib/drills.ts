@@ -227,6 +227,21 @@ export function allDrills(state: Pick<AppState, 'drills'>): DrillDef[] {
   return [...state.drills, ...APP_DRILLS].filter((d) => !copied.has(d.id) && d.putting);
 }
 
+/** A metronome set: strokes to the beat at whatever lengths you rolled, saved with its tempo. */
+export const METRONOME_ID = 'metronome';
+function metronomeDef(): DrillDef {
+  return {
+    id: METRONOME_ID,
+    name: 'Metronome',
+    scoring: 'count',
+    stations: [],
+    how: 'Strokes to the beat at your tempo.',
+    surfaces: ['indoor', 'green'],
+    putting: true,
+    source: 'app',
+  };
+}
+
 /**
  * The drill to actually roll for an id. Your edited copy stands in for the original everywhere,
  * so editing a drill once changes it in every session that uses it.
@@ -239,7 +254,7 @@ export function resolveDrill(state: Pick<AppState, 'drills'>, id: string): Drill
     copy ??
     state.drills.find((d) => d.id === id) ??
     APP_DRILLS.find((d) => d.id === id) ??
-    (id === TEST_ID ? testDef() : id === REPLAY_ID ? replayDef() : fixDrill(id))
+    (id === TEST_ID ? testDef() : id === REPLAY_ID ? replayDef() : id === METRONOME_ID ? metronomeDef() : fixDrill(id))
   );
 }
 
@@ -267,7 +282,9 @@ export function fitToRoom(drill: DrillDef, room: number): Fitted {
   if (!drill.putting) return drill;
   return {
     ...drill,
-    stations: drill.stations.map((s) => (s.far ? { ...s, d: room } : s.d > room ? { ...s, d: room, movedFrom: s.d } : s)),
+    stations: drill.stations.map((s) =>
+      s.far ? { ...s, d: room } : s.d > room ? { ...s, d: room, movedFrom: s.d } : s,
+    ),
   };
 }
 
@@ -310,13 +327,7 @@ export const MAX_DRILLS = 3;
  * Drills for a zone on this surface, from everything the player has. A drill aimed at the habit
  * the misses show goes first, then the ones that spend most of their balls in the zone.
  */
-export function drillsFor(
-  drills: DrillDef[],
-  zone: Zone,
-  lean: Lean | null,
-  surface: Surface,
-  room: number,
-): Fitted[] {
+export function drillsFor(drills: DrillDef[], zone: Zone, lean: Lean | null, surface: Surface, room: number): Fitted[] {
   // A drill is matched on the distances it was written for, never on what squeezing it into a
   // short room made of it: a 30-foot two-putt drill moved in to 12 feet is not a 12-foot drill.
   const asWritten = (d: DrillDef) => d as unknown as Fitted;
@@ -348,7 +359,8 @@ export function drillsFor(
   // Counting makes lines up with the round stats, so it leads; streaks and ladders follow.
   const kind = (f: Fitted) => (f.scoring === 'count' ? 0 : f.scoring === 'ladder' ? 1 : 2);
   const ranked = scored.sort(
-    (a, b) => aimed(a.f) - aimed(b.f) || kind(a.f) - kind(b.f) || b.share - a.share || b.lagShare - a.lagShare || a.i - b.i,
+    (a, b) =>
+      aimed(a.f) - aimed(b.f) || kind(a.f) - kind(b.f) || b.share - a.share || b.lagShare - a.lagShare || a.i - b.i,
   );
   // Three versions of "in a row from 3" is one suggestion, not three.
   const seen = new Set<string>();

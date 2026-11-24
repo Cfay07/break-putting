@@ -7,7 +7,7 @@ import { go } from '../lib/router';
 import { ProgressHeader } from '../components/ProgressHeader';
 import { SetColumns } from '../components/SetColumns';
 import { VsPlay } from '../components/VsPlay';
-import { resolveDrill } from '../lib/drills';
+import { METRONOME_ID, resolveDrill } from '../lib/drills';
 import { REPLAY_ID } from '../lib/replay';
 import { fmtDate, signed } from '../lib/format';
 import { sample, signedFor } from '../lib/sample';
@@ -270,6 +270,21 @@ export function PracticeStats({ topic }: { topic?: PracticeTopic }) {
             <>
               <div className="row-list">
                 {list.map((h) => {
+                  if (h.drill === METRONOME_ID) {
+                    const made = h.sets.reduce((n, x) => n + x.made, 0);
+                    const tried = h.sets.reduce((n, x) => n + x.attempts, 0);
+                    return (
+                      <a key={h.drill} className="drill-row" href="#/practice/tempo">
+                        <span className="drill-main">
+                          <strong>Metronome</strong>
+                          <span className="small muted">
+                            {h.sets.length} {h.sets.length === 1 ? 'set' : 'sets'} · {made} of {tried} in · last at{' '}
+                            {h.sets.at(-1)?.tempo?.toFixed(2) ?? '?'} s
+                          </span>
+                        </span>
+                      </a>
+                    );
+                  }
                   if (h.drill === REPLAY_ID) {
                     const made = h.sets.reduce((n, x) => n + x.made, 0);
                     return (

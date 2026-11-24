@@ -2692,3 +2692,16 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .style-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; padding: 0 2px; font-size: 14px; color: var(--ink-2); border-top: 1px solid var(--line); }
 .style-seg { margin: 0; }
 .style-seg > button { min-height: 34px; padding: 0 12px; font-size: 13px; white-space: nowrap; flex: none; }
+
+/* Metronome: your tempo big, Start, and everything else folded away. */
+.tempo-main { margin-top: 12px; display: flex; flex-direction: column; align-items: stretch; text-align: center; padding: 16px; }
+.tempo-k { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.tempo-big { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 6px; }
+.tempo-big strong { font-size: 44px; font-weight: 900; letter-spacing: -0.03em; min-width: 150px; }
+.tempo-big button { width: 44px; height: 44px; border-radius: 22px; border: 1px solid rgba(20, 57, 43, 0.25); background: transparent; font: inherit; font-size: 22px; font-weight: 800; color: var(--ink); cursor: pointer; }
+.tempo-sub { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+.tempo-more { margin-top: 12px; }
+.tempo-log { margin-top: 12px; padding: 14px; }
+.tempo-log-q { margin: 6px 0 10px; font-size: 14px; }
+.tempo-log-btns { display: flex; gap: 8px; margin-top: 12px; }
+.tempo-log-btns .btn { flex: 1; }
