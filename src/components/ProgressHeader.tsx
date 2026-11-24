@@ -41,11 +41,26 @@ const pillClass = (v: Verdict) =>
       ? 'pay-pill down'
       : 'pay-pill';
 
-function Bars({ values, max, band }: { values: number[]; max: number; band?: [number, number] | null }) {
-  if (values.length < 2) return null;
+/**
+ * One bar per test or set. While it is still building a baseline, the ones still to come show as
+ * empty outlines, so the first result already has a chart and you can watch it fill in.
+ */
+function Bars({
+  values,
+  max,
+  band,
+  slots = 0,
+}: {
+  values: number[];
+  max: number;
+  band?: [number, number] | null;
+  slots?: number;
+}) {
+  const n = Math.max(values.length, slots);
+  if (!values.length || n < 2) return null;
   const h = 48;
   const y = (v: number) => h - (v / max) * h;
-  const w = 300 / values.length;
+  const w = 300 / n;
   return (
     <svg viewBox={`0 0 300 ${h}`} className="pay-bars" aria-hidden="true">
       {band && (
@@ -60,6 +75,17 @@ function Bars({ values, max, band }: { values: number[]; max: number; band?: [nu
           height={h - y(v)}
           rx="3"
           className={i === values.length - 1 ? 'pay-bar last' : 'pay-bar'}
+        />
+      ))}
+      {Array.from({ length: n - values.length }, (_, k) => (
+        <rect
+          key={`slot${k}`}
+          x={(values.length + k) * w + 3}
+          y={4}
+          width={w - 6}
+          height={h - 5}
+          rx="3"
+          className="pay-slot"
         />
       ))}
     </svg>
@@ -255,7 +281,14 @@ export function ProgressHeader() {
           title="Weekly test"
           c={test}
           unit="test"
-          bars={<Bars values={weekly.slice(-12).map((t) => t.made)} max={weekly[0]?.attempts ?? 18} band={testBand} />}
+          bars={
+            <Bars
+              values={weekly.slice(-12).map((t) => t.made)}
+              max={weekly[0]?.attempts ?? 18}
+              band={testBand}
+              slots={test.verdict === 'early' && test.need ? weekly.length + test.need : 0}
+            />
+          }
           text={
             !weekly.length
               ? 'Eighteen putts, about six minutes. The first one sets your line.'
@@ -269,7 +302,13 @@ export function ProgressHeader() {
             title="Target check"
             c={check}
             unit="set"
-            bars={<Bars values={checks.slice(-12).map((s) => s.made)} max={checks[0]?.attempts ?? 12} />}
+            bars={
+              <Bars
+                values={checks.slice(-12).map((s) => s.made)}
+                max={checks[0]?.attempts ?? 12}
+                slots={check.verdict === 'early' && check.need ? checks.length + check.need : 0}
+              />
+            }
             text={
               !checks.length
                 ? `${checkId === 'mix-short' ? 'Mixed 3 to 5' : checkId === 'mix-mid' ? 'Mixed 6 to 8' : 'Mixed 9 to 15'}, the same 12 putts each time. Roll it once to set your line.`

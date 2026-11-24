@@ -2705,3 +2705,4 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .tempo-log-q { margin: 6px 0 10px; font-size: 14px; }
 .tempo-log-btns { display: flex; gap: 8px; margin-top: 12px; }
 .tempo-log-btns .btn { flex: 1; }
+.pay-slot { fill: none; stroke: rgba(20, 57, 43, 0.22); stroke-width: 1.5; stroke-dasharray: 3 3; }

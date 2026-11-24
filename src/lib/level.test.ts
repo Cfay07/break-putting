@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { levelOf, levelStory, placeAmong } from './level';
+import { levelOf, levelStory, placeText } from './level';
 import type { Hole, Putt, Round } from './types';
 
 const putt = (d: number, made: boolean) => ({ d, made }) as Putt;
@@ -37,13 +37,14 @@ describe('where you stand', () => {
     expect(l.d50).toBeGreaterThan(5);
     expect(l.d50).toBeLessThan(7);
     expect(l.d2).not.toBeNull();
-    expect(levelStory(l)).toMatch(/^Your range is \d+\.\d ft/);
+    expect(levelStory(l)).toMatch(/^You hole half your first putts from \d+\.\d ft\. That's /);
   });
 
-  it('places a distance among the groups', () => {
-    expect(placeAmong(6.3, 'd50')).toBe('between tour players and golfers who shoot 70 to 83');
-    expect(placeAmong(4.2, 'd50')).toBe('between golfers who shoot 84 to 97 and 97 to 120');
-    expect(placeAmong(9, 'd50')).toBe('at or past tour players');
-    expect(placeAmong(2.8, 'd50')).toBe('short of golfers who shoot 97 to 120');
+  it('places a range among the groups in plain words', () => {
+    expect(placeText(6.3)).toBe(
+      "That's better than golfers who shoot 70 to 83 (5.8 ft) and short of tour players (8.2 ft).",
+    );
+    expect(placeText(9)).toBe("That's tour level (8.2 ft).");
+    expect(placeText(2.8)).toBe("That's short of golfers who shoot 97 to 120 (3.8 ft).");
   });
 });

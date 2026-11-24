@@ -89,22 +89,20 @@ export function levelOf(rounds: Round[]): Level | null {
   return { d50, d2, firstPutts: ps.length };
 }
 
-/** Where a distance sits among the groups: better than all, between two, or below all. */
-export function placeAmong(value: number, key: 'd50' | 'd2'): string {
-  const sorted = [...LEVELS].sort((x, y) => y[key] - x[key]);
+/** Where a range sits among the groups, in plain words with the numbers it sits between. */
+export function placeText(value: number): string {
+  const sorted = [...LEVELS].sort((x, y) => y.d50 - x.d50);
   const name = (i: number) => (i === 0 ? 'tour players' : sorted[i].label);
-  if (value >= sorted[0][key]) return `at or past ${name(0)}`;
+  if (value >= sorted[0].d50) return `That's tour level (${sorted[0].d50} ft).`;
   for (let i = 1; i < sorted.length; i++)
-    if (value >= sorted[i][key])
-      return `between ${name(i - 1)} and ${name(i).replace(/^golfers who shoot /, i > 1 ? '' : 'golfers who shoot ')}`;
-  return `short of ${name(sorted.length - 1)}`;
+    if (value >= sorted[i].d50)
+      return `That's better than ${name(i)} (${sorted[i].d50} ft) and short of ${name(i - 1)} (${sorted[i - 1].d50} ft).`;
+  const last = sorted.length - 1;
+  return `That's short of ${name(last)} (${sorted[last].d50} ft).`;
 }
 
-export function levelStory(l: Level): string {
-  const range = `Your range is ${l.d50.toFixed(1)} ft, the length you still hole half the time`;
-  const a = placeAmong(l.d50, 'd50');
-  if (l.d2 === null) return `${range}, ${a}.`;
-  const b = placeAmong(l.d2, 'd2');
-  const two = `You average two putts from ${Math.round(l.d2)} ft`;
-  return a === b ? `${range}. ${two}. Both sit ${a}.` : `${range}, ${a}. ${two}, ${b}.`;
+/** "With the Cobra Stingray you hole half your first putts from 6.3 ft. That's better than..." */
+export function levelStory(l: Level, putter?: string): string {
+  const lead = `${putter ? `With the ${putter} you` : 'You'} hole half your first putts from ${l.d50.toFixed(1)} ft.`;
+  return `${lead} ${placeText(l.d50)}`;
 }

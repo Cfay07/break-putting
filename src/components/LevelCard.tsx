@@ -17,17 +17,19 @@ export function LevelCard({
         Where you stand against golfers at every level shows at {MIN_FIRST_PUTTS} first putts. You have {firstPutts}.
       </p>
     );
+  // Mixed putters average a before and an after, so the putter you use now leads and the blend is a footnote.
+  const you = latest?.level ?? level;
   const rows = [
     ...LEVELS.map((l) => ({ label: l.short, d50: l.d50, d2: l.d2 as number | null, you: false })),
-    { label: 'You', d50: level.d50, d2: level.d2, you: true },
+    { label: 'You', d50: you.d50, d2: you.d2, you: true },
   ].sort((a, b) => b.d50 - a.d50);
   return (
     <>
-      <p className="topic-answer">{levelStory(level)}</p>
-      {latest && (
+      <p className="topic-answer">{levelStory(you, latest?.name)}</p>
+      {you.d2 !== null && (
         <p className="small" style={{ margin: '-4px 0 12px' }}>
-          These rounds mix putters. With the {latest.name} alone: range {latest.level.d50.toFixed(1)} ft
-          {latest.level.d2 !== null ? `, two putts from ${Math.round(latest.level.d2)} ft` : ''}.
+          You average two putts from {Math.round(you.d2)} ft.
+          {latest ? ` All your putters together: half from ${level.d50.toFixed(1)} ft.` : ''}
         </p>
       )}
       <div className="field-label">Where you stand</div>
@@ -36,8 +38,8 @@ export function LevelCard({
           <thead>
             <tr>
               <th />
-              <th>Range</th>
-              <th>2 putts</th>
+              <th>Half go in</th>
+              <th>Two putts</th>
             </tr>
           </thead>
           <tbody>
@@ -52,8 +54,8 @@ export function LevelCard({
         </table>
       </div>
       <p className="small muted" style={{ margin: '8px 0 14px' }}>
-        Range is how far out you still hole the first putt half the time. 2 putts is how far out you average exactly
-        two. Golfers grouped by their scoring average. From your {level.firstPutts} first putts.
+        Half go in is your range: the length you hole half your first putts from. Two putts is where you average exactly
+        two. From your {you.firstPutts} first putts{latest ? ` with the ${latest.name}` : ''}.
       </p>
     </>
   );
