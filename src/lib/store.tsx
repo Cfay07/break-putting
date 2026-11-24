@@ -18,6 +18,7 @@ import type {
   TrackUI,
 } from './types';
 import { DEFAULT_ROOM } from './types';
+import { planRestore } from './restore';
 
 const now = () => new Date().toISOString();
 
@@ -494,10 +495,7 @@ export function reducer(state: AppState, a: Action): AppState {
     case 'mergeState': {
       const newPutters = a.state.putters.filter((p) => !state.putters.some((x) => x.id === p.id));
       const newCourses = (a.state.courses ?? []).filter((c) => !state.courses.some((x) => x.id === c.id));
-      // Same day and same number of holes is the same round, whatever id it arrived with.
-      const newRounds = a.state.rounds.filter(
-        (r) => !state.rounds.some((x) => x.id === r.id || (x.date === r.date && x.holeCount === r.holeCount)),
-      );
+      const newRounds = planRestore(state.rounds, a.state.rounds).fresh;
       return {
         ...state,
         putters: [...state.putters, ...newPutters],
@@ -511,12 +509,8 @@ export function reducer(state: AppState, a: Action): AppState {
     }
 
     case 'updateFromFile': {
-      // Matches on id, or failing that on the same date and hole count, so a corrected copy of a
-      // round replaces the old one while anything the file has never heard of is left alone.
-      const key = (r: Round) => `${r.date}|${r.holeCount}`;
-      const incomingKeys = new Set(a.state.rounds.map(key));
-      const incomingIds = new Set(a.state.rounds.map((r) => r.id));
-      const kept = state.rounds.filter((r) => !incomingIds.has(r.id) && !incomingKeys.has(key(r)));
+      // A corrected copy of a round replaces the old one; anything the file never mentions stays.
+      const { kept } = planRestore(state.rounds, a.state.rounds);
       const putterIds = new Set(state.putters.map((p) => p.id));
       return {
         ...state,

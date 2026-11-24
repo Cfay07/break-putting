@@ -13,6 +13,7 @@ import { fmtDate, today } from '../lib/format';
 import { newId } from '../lib/storage';
 import { lastSyncedAt } from '../lib/sync';
 import { useApp } from '../lib/store';
+import { planRestore } from '../lib/restore';
 import { DEFAULT_BASELINE, type AppState } from '../lib/types';
 
 type Open =
@@ -280,11 +281,8 @@ export function Settings() {
         return;
       }
       const incoming = { ...parsed, baseline: parsed.baseline ?? DEFAULT_BASELINE };
-      const same = (a: { date: string; holeCount: number }, b: { date: string; holeCount: number }) =>
-        a.date === b.date && a.holeCount === b.holeCount;
-      const fresh = incoming.rounds.filter((r) => !state.rounds.some((x) => x.id === r.id || same(x, r))).length;
-      const kept = state.rounds.filter((x) => !incoming.rounds.some((r) => r.id === x.id || same(x, r))).length;
-      setPending({ state: incoming, rounds: incoming.rounds.length, fresh, kept });
+      const plan = planRestore(state.rounds, incoming.rounds);
+      setPending({ state: incoming, rounds: incoming.rounds.length, fresh: plan.fresh.length, kept: plan.kept.length });
       setRestoreNote('');
     } catch {
       setRestoreNote('Could not read that file.');
