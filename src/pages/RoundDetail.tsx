@@ -154,7 +154,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
       sub: usualOf('putts', (v) => String(Math.round(v))),
       cls: better(s.totalPutts, 'putts', true),
     },
-    ...(roundXp !== null ? [{ k: 'Expected', v: roundXp.toFixed(1), sub: 'putts, xP' }] : []),
+    ...(roundXp !== null ? [{ k: 'Expected', v: roundXp.toFixed(1), sub: 'with break' }] : []),
     ...(practice ? [{ k: 'Gained', v: signed(s.sg), cls: s.sg >= 0 ? 'pos' : 'neg' }] : []),
     {
       k: '1-putts',
@@ -402,7 +402,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
             ? 'Usual shows once you have eight rounds of this length to compare with.'
             : 'Usual is the middle of your other rounds of this length.'}
           {roundXp !== null &&
-            ' Expected reads the break on each putt, so it moves with the putts you faced and has no usual.'}
+            ' Expected is what a tour player would take from your first putts, with the break on each one priced from your own putting. It has no usual, because it depends on the putts you faced.'}
         </p>
       )}
       {mismatch && (
