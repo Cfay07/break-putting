@@ -9,8 +9,11 @@ import { breakDirsOf, slopeOf, type BreakDir, type DrillDef, type PracticeSet, t
  */
 
 export const REPLAY_ID = 'replay';
-/** Tries before a replay stops counting: past this it is a different drill. */
-export const MAX_TRIES = 10;
+/** Where a replay that missed went, in the tagging screen's words. */
+export type ReplayMiss = 'low' | 'high' | 'short' | 'long';
+export const REPLAY_MISSES: ReplayMiss[] = ['low', 'high', 'short', 'long'];
+/** Course putts of a kind since its first replay, before Redemption says anything. */
+export const REDEEM_AFTER = 10;
 /** The lengths worth replaying: past a tap-in, short of a lag. */
 export const REPLAY_FROM = 3;
 export const REPLAY_TO = 12;
@@ -51,6 +54,10 @@ export interface Miss {
   /** How to set it up and the one thing to do differently. */
   setup: string;
   conds: Cond[];
+  /** How it missed on the course, so a replay can say whether the same miss came back. */
+  onCourse: { side?: 'low' | 'high' | 'online'; speed?: 'short' | 'good' | 'long'; lip?: boolean };
+  /** The kind of putt it is, for Redemption: its length band and which way it breaks. */
+  kind: { key: string; label: string };
 }
 
 export const keyOf = (o: ReplayOf) => `${o.roundId}:${o.hole}:${o.putt}`;
@@ -105,6 +112,26 @@ function describe(p: Round['holes'][number]['putts'][number]): { label: string; 
   return { label, what, setup: `${place} ${fix}` };
 }
 
+const KIND_ZONES: Zone[] = ['short', 'mid', 'long'];
+const SIDE_LABEL: Partial<Record<Cond, string>> = {
+  lr: 'Left-to-right',
+  rl: 'Right-to-left',
+  straight: 'Straight',
+  double: 'Double-breaking',
+};
+
+/** "Left-to-right putts, 3 to 5 ft": the length band and the side it breaks, nothing finer. */
+export function kindOf(d: number, conds: Cond[]): { key: string; label: string } {
+  const zone = KIND_ZONES.find((z) => d >= ZONE_RANGE[z][0] && d <= ZONE_RANGE[z][1]) ?? 'long';
+  const [lo, hi] = ZONE_RANGE[zone];
+  const side = (['lr', 'rl', 'double', 'straight'] as Cond[]).find((c) => conds.includes(c)) ?? null;
+  const len = `${lo} to ${hi} ft`;
+  return {
+    key: `${zone}:${side ?? 'any'}`,
+    label: side ? `${SIDE_LABEL[side]} putts, ${len}` : `Putts from ${len}`,
+  };
+}
+
 /** Every missed putt from 3 to 12 ft in a round, in the order played. */
 export function missesOf(round: Round, practice = false): Miss[] {
   const out: Miss[] = [];
@@ -121,6 +148,8 @@ export function missesOf(round: Round, practice = false): Miss[] {
         putterId: round.putterId,
         d: p.d,
         conds: condsOf(p),
+        onCourse: { side: p.missSide, speed: p.speed, lip: p.lip },
+        kind: kindOf(p.d, condsOf(p)),
         ...describe(p),
       });
     });
@@ -128,13 +157,12 @@ export function missesOf(round: Round, practice = false): Miss[] {
 }
 
 export interface Replayed {
-  made: number;
-  attempts: number;
-  times: number;
+  /** First tries across every replay of this putt. */
+  holed: number;
+  tries: number;
   last: string;
-  /** The newest replay: how many tries, and whether it dropped. */
-  lastTries: number;
   lastHoled: boolean;
+  lastMiss?: ReplayMiss;
 }
 
 /** What each putt has done in its replays so far. */
@@ -143,18 +171,51 @@ export function replayHistory(sets: PracticeSet[]): Map<string, Replayed> {
   for (const s of sets) {
     if (s.drill !== REPLAY_ID || !s.replay) continue;
     const k = keyOf(s.replay);
-    const h = out.get(k) ?? { made: 0, attempts: 0, times: 0, last: '', lastTries: 0, lastHoled: false };
-    h.made += s.made;
-    h.attempts += s.attempts;
-    h.times++;
+    const h = out.get(k) ?? { holed: 0, tries: 0, last: '', lastHoled: false };
+    h.tries++;
+    if (s.made > 0) h.holed++;
     if (s.date >= h.last) {
       h.last = s.date;
-      h.lastTries = s.attempts;
       h.lastHoled = s.made > 0;
+      h.lastMiss = s.replayMiss;
     }
     out.set(k, h);
   }
   return out;
+}
+
+const MISS_WORD: Record<ReplayMiss, string> = { low: 'Low', high: 'High', short: 'Short', long: 'Long' };
+
+/** The course miss in a few words: "missed low", "lipped out", "came up short". */
+function courseMissText(c: Miss['onCourse']): string {
+  if (c.lip) return 'lipped out';
+  const side = c.side === 'low' ? 'missed low' : c.side === 'high' ? 'missed high' : null;
+  const pace = c.speed === 'short' ? 'came up short' : c.speed === 'long' ? 'ran long' : null;
+  return [side, pace].filter(Boolean).join(' and ') || 'missed';
+}
+
+/** Did the replay miss the same way the course putt did? Unknown when the course miss had no tag. */
+export function sameMiss(c: Miss['onCourse'], m: ReplayMiss): boolean | null {
+  const known = c.side === 'low' || c.side === 'high' || c.speed === 'short' || c.speed === 'long';
+  if (!known) return null;
+  return m === c.side || m === c.speed;
+}
+
+/** The line under a replay once it is logged. */
+export function replayResult(miss: Miss, holed: boolean, m?: ReplayMiss): string {
+  const course = courseMissText(miss.onCourse);
+  if (holed) return `Holed first try. On the course this one ${course}.`;
+  if (!m) return 'Missed. Where did it go?';
+  const same = sameMiss(miss.onCourse, m);
+  if (same === true) return `${MISS_WORD[m]} again. Same miss as the course.`;
+  if (same === false) return `${MISS_WORD[m]} this time. On the course it ${course}.`;
+  return `${MISS_WORD[m]}.`;
+}
+
+/** "Last replay: holed first try" or "Last replay: missed low". */
+export function lastReplayText(h: Replayed): string {
+  const base = h.lastHoled ? 'holed first try' : h.lastMiss ? `missed ${h.lastMiss}` : 'missed';
+  return `Last replay: ${base}${h.tries > 1 ? ` · ${h.holed} of ${h.tries} first tries holed` : ''}`;
 }
 
 /**
@@ -177,17 +238,78 @@ export function recommended(
   const range = (type === 'slice' || type === 'zone') && zone in ZONE_RANGE ? ZONE_RANGE[zone as Zone] : null;
   const fits = (m: Miss) =>
     !!range && m.d >= range[0] && m.d <= range[1] && (type !== 'slice' || m.conds.includes(cond as Cond));
-  // Holed first time in its newest replay: it can wait behind the putts still giving you trouble.
-  const cleared = (m: Miss) => {
-    const h = history.get(m.key);
-    return !!h && h.lastHoled && h.lastTries === 1;
-  };
+  // Holed in its newest replay: it can wait behind the putts still giving you trouble.
+  const cleared = (m: Miss) => !!history.get(m.key)?.lastHoled;
   const rank = (m: Miss) => (fits(m) ? 0 : 2) + (cleared(m) ? 1 : 0);
   return [...all].sort((a, b) => rank(a) - rank(b)).slice(0, n);
 }
 
-/** "Holed on try 3", "Holed first try", or "5 tries, didn't drop". */
-export function triesText(tries: number, holed: boolean): string {
-  if (!holed) return `${tries} ${tries === 1 ? 'try' : 'tries'}, didn't drop`;
-  return tries === 1 ? 'Holed first try' : `Holed on try ${tries}`;
+/* ---------- Redemption: the same kind of putt, on the course, before and after replaying it ---------- */
+
+export interface Redemption {
+  key: string;
+  label: string;
+  since: string;
+  before: { made: number; attempts: number };
+  after: { made: number; attempts: number };
+  /** Holing more since the first replay, past chance on a one-sided test. */
+  verdict: 'early' | 'better' | 'notyet';
+  /** Replays of this kind: first tries holed, and of the misses with a direction, how many repeated the course miss. */
+  replays: { holed: number; tries: number; same: number; sided: number };
+}
+
+function beats(b: { made: number; attempts: number }, a: { made: number; attempts: number }): boolean {
+  if (!b.attempts || !a.attempts) return false;
+  const pooled = (b.made + a.made) / (b.attempts + a.attempts);
+  const se = Math.sqrt(pooled * (1 - pooled) * (1 / b.attempts + 1 / a.attempts));
+  return se > 0 && (a.made / a.attempts - b.made / b.attempts) / se >= 1.645;
+}
+
+/**
+ * For every kind of putt you have replayed: your course putts of that kind before the first replay
+ * and since, and how the replays themselves went. Course putts only, so practice never grades
+ * itself, and it never says the replays did it.
+ */
+export function redemption(rounds: Round[], practiceRounds: Round[], sets: PracticeSet[]): Redemption[] {
+  const byId = new Map([...rounds, ...practiceRounds].map((r) => [r.id, r]));
+  const kinds = new Map<string, Redemption>();
+  for (const s of [...sets].sort((a, b) => a.date.localeCompare(b.date))) {
+    if (s.drill !== REPLAY_ID || !s.replay) continue;
+    const r = byId.get(s.replay.roundId);
+    const p = r?.holes.find((h) => h.hole === s.replay!.hole)?.putts[s.replay.putt];
+    if (!r || !p) continue;
+    const kind = kindOf(p.d, condsOf(p));
+    const k =
+      kinds.get(kind.key) ??
+      ({
+        ...kind,
+        since: s.date,
+        before: { made: 0, attempts: 0 },
+        after: { made: 0, attempts: 0 },
+        verdict: 'early',
+        replays: { holed: 0, tries: 0, same: 0, sided: 0 },
+      } as Redemption);
+    k.replays.tries++;
+    if (s.made > 0) k.replays.holed++;
+    else if (s.replayMiss) {
+      const same = sameMiss({ side: p.missSide, speed: p.speed, lip: p.lip }, s.replayMiss);
+      if (same !== null) {
+        k.replays.sided++;
+        if (same) k.replays.same++;
+      }
+    }
+    kinds.set(kind.key, k);
+  }
+  for (const k of kinds.values()) {
+    for (const r of rounds.filter((x) => x.finished && !x.practice))
+      for (const h of r.holes)
+        for (const p of h.putts) {
+          if (p.d < REPLAY_FROM || p.d > REPLAY_TO || kindOf(p.d, condsOf(p)).key !== k.key) continue;
+          const side = r.date >= k.since ? k.after : k.before;
+          side.attempts++;
+          if (p.made) side.made++;
+        }
+    k.verdict = k.after.attempts < REDEEM_AFTER ? 'early' : beats(k.before, k.after) ? 'better' : 'notyet';
+  }
+  return [...kinds.values()].sort((a, b) => b.replays.tries - a.replays.tries);
 }

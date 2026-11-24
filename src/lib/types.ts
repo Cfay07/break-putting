@@ -469,6 +469,8 @@ export interface PracticeSet {
   tempo?: number;
   /** A replay: the course or practice-round putt this set hit again. */
   replay?: { roundId: string; hole: number; putt: number };
+  /** Where a replay that missed went. */
+  replayMiss?: 'low' | 'high' | 'short' | 'long';
   updated?: string;
   kind?: 'set';
 }

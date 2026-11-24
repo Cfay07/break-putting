@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keyOf, missesOf, recommended, REPLAY_ID, replayHistory, triesText } from './replay';
+import { keyOf, missesOf, recommended, redemption, REPLAY_ID, replayHistory, replayResult } from './replay';
 import type { Hole, PracticeSet, Putt, Round } from './types';
 
 const putt = (p: Partial<Putt> & { d: number; made: boolean }) => p as Putt;
@@ -35,24 +35,55 @@ describe('replay', () => {
     expect(other.map((m) => m.d)).toEqual([5, 10]);
   });
 
-  it('keeps each putt its own replay record', () => {
+  it('keeps each putt its own replay record, first tries only', () => {
     const of = { roundId: 'r1', hole: 2, putt: 0 };
-    const set = (made: number, date: string) =>
-      ({ id: date, date, drill: REPLAY_ID, surface: 'green', made, attempts: 3, replay: of }) as PracticeSet;
-    const h = replayHistory([set(1, '2026-11-20'), set(3, '2026-11-22')]).get(keyOf(of))!;
-    expect(h).toEqual({ made: 4, attempts: 6, times: 2, last: '2026-11-22', lastTries: 3, lastHoled: true });
+    const set = (made: number, date: string, replayMiss?: 'low') =>
+      ({
+        id: date,
+        date,
+        drill: REPLAY_ID,
+        surface: 'green',
+        made,
+        attempts: 1,
+        replay: of,
+        replayMiss,
+      }) as PracticeSet;
+    const h = replayHistory([set(0, '2026-11-20', 'low'), set(1, '2026-11-22')]).get(keyOf(of))!;
+    expect(h).toEqual({ holed: 1, tries: 2, last: '2026-11-22', lastHoled: true, lastMiss: undefined });
+  });
+
+  it('says whether the replay repeated the course miss', () => {
+    const m = missesOf(lr)[0];
+    expect(replayResult(m, true)).toBe('Holed first try. On the course this one missed low.');
+    expect(replayResult(m, false, 'low')).toBe('Low again. Same miss as the course.');
+    expect(replayResult(m, false, 'high')).toBe('High this time. On the course it missed low.');
+  });
+
+  it('compares course putts of a replayed kind before and since the first replay', () => {
+    const later = round('r2', '2026-11-25', [
+      { hole: 1, putts: [putt({ d: 4, made: true, breakDirs: ['L→R'] })] },
+      { hole: 2, putts: [putt({ d: 4, made: false, breakDirs: ['L→R'] }), putt({ d: 1, made: true })] },
+    ]);
+    const set = {
+      id: 's',
+      date: '2026-11-22',
+      drill: REPLAY_ID,
+      surface: 'green',
+      made: 0,
+      attempts: 1,
+      replay: { roundId: 'r1', hole: 2, putt: 0 },
+      replayMiss: 'low',
+    } as PracticeSet;
+    const [r] = redemption([lr, later], [], [set]);
+    expect(r.label).toBe('Left-to-right putts, 3 to 5 ft');
+    expect(r.before).toEqual({ made: 0, attempts: 1 });
+    expect(r.after).toEqual({ made: 1, attempts: 2 });
+    expect(r.verdict).toBe('early');
+    expect(r.replays).toEqual({ holed: 0, tries: 1, same: 1, sided: 1 });
   });
 
   it('includes practice-round misses, marked as practice', () => {
     const rec = recommended([], [lr], null, new Map());
     expect(rec.every((m) => m.practice)).toBe(true);
-  });
-});
-
-describe('tries text', () => {
-  it('reads the way you would say it', () => {
-    expect(triesText(1, true)).toBe('Holed first try');
-    expect(triesText(3, true)).toBe('Holed on try 3');
-    expect(triesText(5, false)).toBe("5 tries, didn't drop");
   });
 });

@@ -269,13 +269,12 @@ export function PracticeStats({ topic }: { topic?: PracticeTopic }) {
                 {list.map((h) => {
                   if (h.drill === REPLAY_ID) {
                     const made = h.sets.reduce((n, x) => n + x.made, 0);
-                    const tried = h.sets.reduce((n, x) => n + x.attempts, 0);
                     return (
                       <a key={h.drill} className="drill-row" href="#/practice/replay">
                         <span className="drill-main">
                           <strong>Replay your misses</strong>
                           <span className="small muted">
-                            {h.sets.length} {h.sets.length === 1 ? 'putt' : 'putts'} replayed · {made} of {tried} holed
+                            {h.sets.length} {h.sets.length === 1 ? 'putt' : 'putts'} replayed · {made} holed first try
                           </span>
                         </span>
                       </a>

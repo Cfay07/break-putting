@@ -3,16 +3,21 @@ import { fmtDate, today } from '../lib/format';
 import { go } from '../lib/router';
 import {
   keyOf,
+  lastReplayText,
   missesOf,
   recommended,
-  MAX_TRIES,
+  REDEEM_AFTER,
+  redemption,
   REPLAY_FROM,
   REPLAY_ID,
+  REPLAY_MISSES,
   REPLAY_TO,
   replayHistory,
-  triesText,
+  replayResult,
   type Miss,
+  type Redemption,
   type Replayed,
+  type ReplayMiss,
 } from '../lib/replay';
 import { newId } from '../lib/storage';
 import { usePractice } from '../lib/usePractice';
@@ -30,28 +35,30 @@ function readView(): View {
   }
 }
 
+/** One try, like the course: holed, or missed and where it went. */
+type Result = { holed: boolean; miss?: ReplayMiss };
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 function MissCard({
   miss,
   on,
-  tries,
+  result,
   history,
   showWhere,
   onToggle,
-  onTry,
+  onResult,
   onUndo,
 }: {
   miss: Miss;
   on: boolean;
-  /** This replay so far: false for a miss, true for the one that dropped. */
-  tries: boolean[];
+  result: Result | undefined;
   history: Replayed | undefined;
   showWhere: boolean;
   onToggle: () => void;
-  onTry: (holed: boolean) => void;
+  onResult: (r: Result) => void;
   onUndo: () => void;
 }) {
-  const holed = tries.at(-1) === true;
-  const done = holed || tries.length >= MAX_TRIES;
   return (
     <div className={on ? 'card replay-card' : 'card replay-card off'}>
       <div className="rp-top">
@@ -71,38 +78,43 @@ function MissCard({
           onClick={onToggle}
         />
       </div>
-      <p className="rp-what">{miss.what}</p>
+      <p className="rp-what">On the course: {miss.what.charAt(0).toLowerCase() + miss.what.slice(1)}</p>
       <p className="rp-set">{miss.setup}</p>
-      {history && (
-        <p className="rp-hist">
-          Last time: {triesText(history.lastTries, history.lastHoled).toLowerCase()}
-          {history.times > 1 ? ` · replayed ${history.times} times` : ''}
-        </p>
-      )}
-      {on && (
+      {history && <p className="rp-hist">{lastReplayText(history)}</p>}
+      {on && !result && (
         <div className="rp-log">
-          <div className="rp-balls" aria-label={tries.length ? triesText(tries.length, holed) : 'No tries yet'}>
-            {tries.map((t, i) => (
-              <i key={i} className={t ? 'ball in' : 'ball out'} />
-            ))}
-            {!done && <i className="ball next" />}
-          </div>
-          {done ? (
-            <span className="rp-done">
-              <b className={holed ? 'pos' : ''}>{triesText(tries.length, holed)}</b>
-              <button type="button" className="linkish tiny" onClick={onUndo}>
-                Undo
-              </button>
-            </span>
-          ) : (
-            <span className="rp-btns">
-              <button type="button" className="rp-miss" onClick={() => onTry(false)}>
-                Missed
-              </button>
-              <button type="button" className="rp-make" onClick={() => onTry(true)}>
-                Holed
-              </button>
-            </span>
+          <span className="rp-btns rp-wide">
+            <button type="button" className="rp-miss" onClick={() => onResult({ holed: false })}>
+              Missed
+            </button>
+            <button type="button" className="rp-make" onClick={() => onResult({ holed: true })}>
+              Holed
+            </button>
+          </span>
+        </div>
+      )}
+      {on && result && (
+        <div className="rp-log rp-col">
+          <span className="rp-res">
+            <b className={result.holed ? 'pos' : ''}>{replayResult(miss, result.holed, result.miss)}</b>
+            <button type="button" className="linkish tiny" onClick={onUndo}>
+              Change
+            </button>
+          </span>
+          {!result.holed && (
+            <div className="chips chips-sm">
+              {REPLAY_MISSES.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className={result.miss === m ? 'chip chip-sel' : 'chip'}
+                  aria-pressed={result.miss === m}
+                  onClick={() => onResult({ holed: false, miss: m })}
+                >
+                  {cap(m)}
+                </button>
+              ))}
+            </div>
           )}
         </div>
       )}
@@ -110,16 +122,47 @@ function MissCard({
   );
 }
 
-/** Replay your misses: recommended from your target, or picked round by round. */
+function RedemptionCard({ r }: { r: Redemption }) {
+  const pct = (m: number, a: number) => (a ? `${Math.round((m / a) * 100)}%` : 'None');
+  return (
+    <div className="card redeem">
+      <p className="rd-k">{r.label}</p>
+      <p className="rd-big">
+        <b>
+          {r.after.made} of {r.after.attempts}
+        </b>{' '}
+        on the course since {fmtDate(r.since)}
+      </p>
+      <p className="rd-line">
+        {pct(r.before.made, r.before.attempts)} before ({r.before.made} of {r.before.attempts}).{' '}
+        {r.verdict === 'early'
+          ? `${r.after.attempts} of ${REDEEM_AFTER} course putts toward a check.`
+          : r.verdict === 'better'
+            ? 'Holing more since, past chance. It does not prove the replays did it.'
+            : 'Not past chance yet.'}
+      </p>
+      <p className="rd-line muted">
+        Replays: {r.replays.holed} of {r.replays.tries} holed first try
+        {r.replays.sided ? ` · same miss as the course ${r.replays.same} of ${r.replays.sided}` : ''}
+      </p>
+    </div>
+  );
+}
+
+/** Replay your misses: recommended from your target, or picked round by round. One try each. */
 export function Replay({ roundId }: { roundId?: string }) {
   const { state, dispatch, surface, putterId } = usePractice();
   const target = useTarget();
   const [view, setView] = useState<View>(roundId ? 'rounds' : readView());
   const [off, setOff] = useState<Set<string>>(new Set());
-  const [tries, setTries] = useState<Record<string, boolean[]>>({});
-  const [saved, setSaved] = useState<{ putts: number; holed: number; avg: number | null } | null>(null);
+  const [results, setResults] = useState<Record<string, Result>>({});
+  const [saved, setSaved] = useState<{ putts: number; holed: number } | null>(null);
 
   const history = useMemo(() => replayHistory(state.practice), [state.practice]);
+  const redeem = useMemo(
+    () => redemption(state.rounds, state.practiceRounds ?? [], state.practice),
+    [state.rounds, state.practiceRounds, state.practice],
+  );
   const rounds = useMemo(
     () =>
       [
@@ -147,32 +190,29 @@ export function Replay({ roundId }: { roundId?: string }) {
     if (roundId) go('/practice/replay');
   };
 
-  const toLog = shown.filter((m) => !off.has(m.key) && (tries[m.key]?.length ?? 0) > 0);
+  const toLog = shown.filter((m) => !off.has(m.key) && results[m.key]);
   const save = () => {
     const date = today();
     const at = new Date().toISOString();
     for (const m of toLog) {
+      const r = results[m.key];
       const set: PracticeSet = {
         id: newId(),
         date,
         drill: REPLAY_ID,
         surface,
         putterId,
-        made: tries[m.key].at(-1) ? 1 : 0,
-        attempts: tries[m.key].length,
-        stations: [{ d: m.d, mode: 'make', made: tries[m.key].at(-1) ? 1 : 0, attempts: tries[m.key].length }],
+        made: r.holed ? 1 : 0,
+        attempts: 1,
+        stations: [{ d: m.d, mode: 'make', made: r.holed ? 1 : 0, attempts: 1 }],
         replay: m.of,
+        replayMiss: r.miss,
         updated: at,
       };
       dispatch({ t: 'addPracticeSet', set });
     }
-    const holed = toLog.filter((m) => tries[m.key].at(-1));
-    setSaved({
-      putts: toLog.length,
-      holed: holed.length,
-      avg: holed.length ? holed.reduce((n, m) => n + tries[m.key].length, 0) / holed.length : null,
-    });
-    setTries({});
+    setSaved({ putts: toLog.length, holed: toLog.filter((m) => results[m.key].holed).length });
+    setResults({});
   };
 
   return (
@@ -186,8 +226,8 @@ export function Replay({ roundId }: { roundId?: string }) {
       {!open && (
         <>
           <p className="small muted" style={{ margin: '0 0 12px' }}>
-            Putts you missed from {REPLAY_FROM} to {REPLAY_TO} ft, rebuilt so you can hit them again. Hit each one until
-            it drops.
+            Putts you missed from {REPLAY_FROM} to {REPLAY_TO} ft, rebuilt so you can hit them again. One try each, like
+            the course.
           </p>
           <div className="seg" role="group" aria-label="Which putts">
             <button aria-pressed={view === 'rec'} onClick={() => pick('rec')}>
@@ -202,12 +242,22 @@ export function Replay({ roundId }: { roundId?: string }) {
 
       {saved && (
         <p className="replay-saved">
-          Saved {saved.putts} {saved.putts === 1 ? 'replay' : 'replays'}.{' '}
-          {saved.avg !== null
-            ? `${saved.holed} dropped, on try ${saved.avg.toFixed(1)} on average.`
-            : 'None dropped yet.'}{' '}
-          It's in your practice log, and each putt keeps its record.
+          Saved {saved.putts} {saved.putts === 1 ? 'replay' : 'replays'}, {saved.holed} holed first try. It's in your
+          practice log, and each putt keeps its record.
         </p>
+      )}
+
+      {!open && view === 'rec' && redeem.length > 0 && (
+        <>
+          <p className="field-label">Redemption</p>
+          {redeem.map((r) => (
+            <RedemptionCard key={r.key} r={r} />
+          ))}
+          <p className="small muted" style={{ margin: '6px 2px 0' }}>
+            Course putts of each kind you've replayed, before your first replay and since. Course putts only.
+          </p>
+          <p className="field-label">Replay</p>
+        </>
       )}
 
       {!open && view === 'rec' && target.key && target.title && (
@@ -236,7 +286,9 @@ export function Replay({ roundId }: { roundId?: string }) {
           })}
         </div>
       ) : shown.length === 0 ? (
-        <p className="small muted">No misses from 3 to 12 ft {open ? 'in this round' : 'to replay yet'}.</p>
+        <p className="small muted">
+          No misses from {REPLAY_FROM} to {REPLAY_TO} ft {open ? 'in this round' : 'to replay yet'}.
+        </p>
       ) : (
         <>
           {shown.map((m) => (
@@ -244,7 +296,7 @@ export function Replay({ roundId }: { roundId?: string }) {
               key={m.key}
               miss={m}
               on={!off.has(m.key)}
-              tries={tries[m.key] ?? []}
+              result={results[m.key]}
               history={history.get(keyOf(m.of))}
               showWhere={!open}
               onToggle={() =>
@@ -255,8 +307,14 @@ export function Replay({ roundId }: { roundId?: string }) {
                   return next;
                 })
               }
-              onTry={(holed) => setTries((x) => ({ ...x, [m.key]: [...(x[m.key] ?? []), holed] }))}
-              onUndo={() => setTries((x) => ({ ...x, [m.key]: (x[m.key] ?? []).slice(0, -1) }))}
+              onResult={(r) => setResults((x) => ({ ...x, [m.key]: r }))}
+              onUndo={() =>
+                setResults((x) => {
+                  const next = { ...x };
+                  delete next[m.key];
+                  return next;
+                })
+              }
             />
           ))}
           {toLog.length > 0 && (
