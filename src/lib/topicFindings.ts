@@ -224,6 +224,9 @@ export interface Pressure {
  * `lines` is tournamentVsCasual for that putter's rounds, passed in so strokes gained is read
  * exactly as the table under it reads it.
  */
+/** Rounds each side needs, with one putter, before tournament and casual are compared. */
+export const MIN_SIDE_ROUNDS = 3;
+
 export function pressureFor(
   rounds: Round[],
   putters: Putter[],
@@ -236,7 +239,7 @@ export function pressureFor(
       const mine = rs.filter((r) => r.putterId === putter.id);
       return { putter, t: mine.filter((r) => r.competitive), c: mine.filter((r) => !r.competitive) };
     })
-    .find((x) => x.t.length >= 3 && x.c.length >= 3);
+    .find((x) => x.t.length >= MIN_SIDE_ROUNDS && x.c.length >= MIN_SIDE_ROUNDS);
   if (!pick) return null;
   const lines = linesFor([...pick.t, ...pick.c]);
   return {

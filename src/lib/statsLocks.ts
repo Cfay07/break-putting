@@ -7,10 +7,13 @@ import {
   greensFor,
   greensSub,
   MIN_BIRDIE,
+  MIN_PUTTS,
+  MIN_SIDE_ROUNDS,
   pressureFor,
   pressureSub,
   putterPair,
   putterSub,
+  speedLines,
   timingSub,
   type Finding,
 } from './topicFindings';
@@ -76,15 +79,47 @@ export function locksFor(rounds: Round[], baseline: [number, number][]): Record<
       out[topic] = { how: m.how, need: `${left} more ${left === 1 ? m.unit.replace(/(es|s)$/, '') : m.unit}` };
   }
 
+  // Greens and pressure compare one putter with itself, so they open when one putter has enough
+  // on both sides, the same bar their findings use. Two speeds with a putt each says nothing.
+  const putterIds = [...new Set(rs.map((r) => r.putterId))];
   const speeds = new Set(rs.map((r) => r.greenSpeed).filter(Boolean)).size;
+  const atSecondSpeed = Math.max(
+    0,
+    ...putterIds.map(
+      (id) =>
+        speedLines(rs, id)
+          .map((l) => l.short.tried)
+          .sort((a, b) => b - a)[1] ?? 0,
+    ),
+  );
   if (speeds < 2)
     out.greens = { how: 'Pick the green speed on rounds at two speeds', need: speeds ? '1 more speed' : '2 speeds' };
+  else if (atSecondSpeed < MIN_PUTTS)
+    out.greens = {
+      how: 'Putts from 3 to 10 ft at two speeds with one putter',
+      need: `${MIN_PUTTS - atSecondSpeed} more at a second speed`,
+    };
 
   const tournaments = rs.filter((r) => r.competitive).length;
+  const short = (have: number) => Math.max(0, MIN_SIDE_ROUNDS - have);
+  const closest = putterIds
+    .map((id) => {
+      const mine = rs.filter((r) => r.putterId === id);
+      const t = mine.filter((r) => r.competitive).length;
+      return { t: short(t), c: short(mine.length - t) };
+    })
+    .sort((a, b) => a.t + a.c - (b.t + b.c))[0];
   if (!tournaments || tournaments === rs.length)
     out.pressure = {
       how: tournaments ? 'Play a casual round too' : 'Mark tournament rounds when you start one',
       need: tournaments ? '1 casual' : '1 tournament',
+    };
+  else if (closest && closest.t + closest.c > 0)
+    out.pressure = {
+      how: `${MIN_SIDE_ROUNDS} tournament and ${MIN_SIDE_ROUNDS} casual rounds with one putter`,
+      need: [closest.t && `${closest.t} more tournament`, closest.c && `${closest.c} more casual`]
+        .filter(Boolean)
+        .join(', '),
     };
 
   const birdie = birdieVsPar(rs);
