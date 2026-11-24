@@ -2659,3 +2659,14 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .replay-round:first-child { border-top: 0; }
 .replay-round b { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .replay-round small { display: block; font-size: 12px; color: var(--ink-3); }
+.rp-log { flex-wrap: wrap; }
+.rp-balls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ball { width: 16px; height: 16px; border-radius: 8px; display: inline-block; box-sizing: border-box; }
+.ball.out { border: 2.5px solid #b9b2a2; }
+.ball.in { background: #2e8a5c; }
+.ball.next { border: 2px dashed rgba(20, 57, 43, 0.3); }
+.rp-btns { display: flex; gap: 8px; }
+.rp-miss, .rp-make { min-height: 40px; padding: 0 16px; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+.rp-miss { background: transparent; border: 1px solid rgba(20, 57, 43, 0.25); color: var(--ink); }
+.rp-make { background: #2e8a5c; border: 1px solid #2e8a5c; color: #fff; }
+.rp-done { display: flex; align-items: center; gap: 10px; font-size: 14px; }

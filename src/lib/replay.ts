@@ -9,8 +9,8 @@ import { breakDirsOf, slopeOf, type BreakDir, type DrillDef, type PracticeSet, t
  */
 
 export const REPLAY_ID = 'replay';
-/** Balls at each putt. */
-export const REPLAY_BALLS = 3;
+/** Tries before a replay stops counting: past this it is a different drill. */
+export const MAX_TRIES = 10;
 /** The lengths worth replaying: past a tap-in, short of a lag. */
 export const REPLAY_FROM = 3;
 export const REPLAY_TO = 12;
@@ -132,6 +132,9 @@ export interface Replayed {
   attempts: number;
   times: number;
   last: string;
+  /** The newest replay: how many tries, and whether it dropped. */
+  lastTries: number;
+  lastHoled: boolean;
 }
 
 /** What each putt has done in its replays so far. */
@@ -140,11 +143,15 @@ export function replayHistory(sets: PracticeSet[]): Map<string, Replayed> {
   for (const s of sets) {
     if (s.drill !== REPLAY_ID || !s.replay) continue;
     const k = keyOf(s.replay);
-    const h = out.get(k) ?? { made: 0, attempts: 0, times: 0, last: '' };
+    const h = out.get(k) ?? { made: 0, attempts: 0, times: 0, last: '', lastTries: 0, lastHoled: false };
     h.made += s.made;
     h.attempts += s.attempts;
     h.times++;
-    if (s.date > h.last) h.last = s.date;
+    if (s.date >= h.last) {
+      h.last = s.date;
+      h.lastTries = s.attempts;
+      h.lastHoled = s.made > 0;
+    }
     out.set(k, h);
   }
   return out;
@@ -170,10 +177,17 @@ export function recommended(
   const range = (type === 'slice' || type === 'zone') && zone in ZONE_RANGE ? ZONE_RANGE[zone as Zone] : null;
   const fits = (m: Miss) =>
     !!range && m.d >= range[0] && m.d <= range[1] && (type !== 'slice' || m.conds.includes(cond as Cond));
+  // Holed first time in its newest replay: it can wait behind the putts still giving you trouble.
   const cleared = (m: Miss) => {
     const h = history.get(m.key);
-    return !!h && h.made === h.attempts;
+    return !!h && h.lastHoled && h.lastTries === 1;
   };
   const rank = (m: Miss) => (fits(m) ? 0 : 2) + (cleared(m) ? 1 : 0);
   return [...all].sort((a, b) => rank(a) - rank(b)).slice(0, n);
+}
+
+/** "Holed on try 3", "Holed first try", or "5 tries, didn't drop". */
+export function triesText(tries: number, holed: boolean): string {
+  if (!holed) return `${tries} ${tries === 1 ? 'try' : 'tries'}, didn't drop`;
+  return tries === 1 ? 'Holed first try' : `Holed on try ${tries}`;
 }

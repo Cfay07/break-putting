@@ -5,11 +5,12 @@ import {
   keyOf,
   missesOf,
   recommended,
-  REPLAY_BALLS,
+  MAX_TRIES,
   REPLAY_FROM,
   REPLAY_ID,
   REPLAY_TO,
   replayHistory,
+  triesText,
   type Miss,
   type Replayed,
 } from '../lib/replay';
@@ -32,20 +33,25 @@ function readView(): View {
 function MissCard({
   miss,
   on,
-  made,
+  tries,
   history,
   showWhere,
   onToggle,
-  onMade,
+  onTry,
+  onUndo,
 }: {
   miss: Miss;
   on: boolean;
-  made: number | undefined;
+  /** This replay so far: false for a miss, true for the one that dropped. */
+  tries: boolean[];
   history: Replayed | undefined;
   showWhere: boolean;
   onToggle: () => void;
-  onMade: (n: number) => void;
+  onTry: (holed: boolean) => void;
+  onUndo: () => void;
 }) {
+  const holed = tries.at(-1) === true;
+  const done = holed || tries.length >= MAX_TRIES;
   return (
     <div className={on ? 'card replay-card' : 'card replay-card off'}>
       <div className="rp-top">
@@ -69,25 +75,35 @@ function MissCard({
       <p className="rp-set">{miss.setup}</p>
       {history && (
         <p className="rp-hist">
-          Replayed {history.times === 1 ? 'once' : `${history.times} times`} · {history.made} of {history.attempts}
+          Last time: {triesText(history.lastTries, history.lastHoled).toLowerCase()}
+          {history.times > 1 ? ` · replayed ${history.times} times` : ''}
         </p>
       )}
       {on && (
         <div className="rp-log">
-          <span>Holed of {REPLAY_BALLS}</span>
-          <div className="chips chips-sm">
-            {Array.from({ length: REPLAY_BALLS + 1 }, (_, n) => (
-              <button
-                key={n}
-                type="button"
-                className={made === n ? 'chip chip-sel' : 'chip'}
-                aria-pressed={made === n}
-                onClick={() => onMade(n)}
-              >
-                {n}
-              </button>
+          <div className="rp-balls" aria-label={tries.length ? triesText(tries.length, holed) : 'No tries yet'}>
+            {tries.map((t, i) => (
+              <i key={i} className={t ? 'ball in' : 'ball out'} />
             ))}
+            {!done && <i className="ball next" />}
           </div>
+          {done ? (
+            <span className="rp-done">
+              <b className={holed ? 'pos' : ''}>{triesText(tries.length, holed)}</b>
+              <button type="button" className="linkish tiny" onClick={onUndo}>
+                Undo
+              </button>
+            </span>
+          ) : (
+            <span className="rp-btns">
+              <button type="button" className="rp-miss" onClick={() => onTry(false)}>
+                Missed
+              </button>
+              <button type="button" className="rp-make" onClick={() => onTry(true)}>
+                Holed
+              </button>
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -100,8 +116,8 @@ export function Replay({ roundId }: { roundId?: string }) {
   const target = useTarget();
   const [view, setView] = useState<View>(roundId ? 'rounds' : readView());
   const [off, setOff] = useState<Set<string>>(new Set());
-  const [made, setMade] = useState<Record<string, number>>({});
-  const [saved, setSaved] = useState<{ made: number; attempts: number } | null>(null);
+  const [tries, setTries] = useState<Record<string, boolean[]>>({});
+  const [saved, setSaved] = useState<{ putts: number; holed: number; avg: number | null } | null>(null);
 
   const history = useMemo(() => replayHistory(state.practice), [state.practice]);
   const rounds = useMemo(
@@ -131,7 +147,7 @@ export function Replay({ roundId }: { roundId?: string }) {
     if (roundId) go('/practice/replay');
   };
 
-  const toLog = shown.filter((m) => !off.has(m.key) && made[m.key] !== undefined);
+  const toLog = shown.filter((m) => !off.has(m.key) && (tries[m.key]?.length ?? 0) > 0);
   const save = () => {
     const date = today();
     const at = new Date().toISOString();
@@ -142,16 +158,21 @@ export function Replay({ roundId }: { roundId?: string }) {
         drill: REPLAY_ID,
         surface,
         putterId,
-        made: made[m.key],
-        attempts: REPLAY_BALLS,
-        stations: [{ d: m.d, mode: 'make', made: made[m.key], attempts: REPLAY_BALLS }],
+        made: tries[m.key].at(-1) ? 1 : 0,
+        attempts: tries[m.key].length,
+        stations: [{ d: m.d, mode: 'make', made: tries[m.key].at(-1) ? 1 : 0, attempts: tries[m.key].length }],
         replay: m.of,
         updated: at,
       };
       dispatch({ t: 'addPracticeSet', set });
     }
-    setSaved({ made: toLog.reduce((n, m) => n + made[m.key], 0), attempts: toLog.length * REPLAY_BALLS });
-    setMade({});
+    const holed = toLog.filter((m) => tries[m.key].at(-1));
+    setSaved({
+      putts: toLog.length,
+      holed: holed.length,
+      avg: holed.length ? holed.reduce((n, m) => n + tries[m.key].length, 0) / holed.length : null,
+    });
+    setTries({});
   };
 
   return (
@@ -165,8 +186,8 @@ export function Replay({ roundId }: { roundId?: string }) {
       {!open && (
         <>
           <p className="small muted" style={{ margin: '0 0 12px' }}>
-            Putts you missed from {REPLAY_FROM} to {REPLAY_TO} ft, rebuilt so you can hit them again. {REPLAY_BALLS}{' '}
-            balls each.
+            Putts you missed from {REPLAY_FROM} to {REPLAY_TO} ft, rebuilt so you can hit them again. Hit each one until
+            it drops.
           </p>
           <div className="seg" role="group" aria-label="Which putts">
             <button aria-pressed={view === 'rec'} onClick={() => pick('rec')}>
@@ -181,8 +202,11 @@ export function Replay({ roundId }: { roundId?: string }) {
 
       {saved && (
         <p className="replay-saved">
-          Saved. {saved.made} of {saved.attempts} holed. It's in your practice log, and each putt keeps its replay
-          record.
+          Saved {saved.putts} {saved.putts === 1 ? 'replay' : 'replays'}.{' '}
+          {saved.avg !== null
+            ? `${saved.holed} dropped, on try ${saved.avg.toFixed(1)} on average.`
+            : 'None dropped yet.'}{' '}
+          It's in your practice log, and each putt keeps its record.
         </p>
       )}
 
@@ -220,7 +244,7 @@ export function Replay({ roundId }: { roundId?: string }) {
               key={m.key}
               miss={m}
               on={!off.has(m.key)}
-              made={made[m.key]}
+              tries={tries[m.key] ?? []}
               history={history.get(keyOf(m.of))}
               showWhere={!open}
               onToggle={() =>
@@ -231,14 +255,15 @@ export function Replay({ roundId }: { roundId?: string }) {
                   return next;
                 })
               }
-              onMade={(n) => setMade((x) => ({ ...x, [m.key]: n }))}
+              onTry={(holed) => setTries((x) => ({ ...x, [m.key]: [...(x[m.key] ?? []), holed] }))}
+              onUndo={() => setTries((x) => ({ ...x, [m.key]: (x[m.key] ?? []).slice(0, -1) }))}
             />
           ))}
-          <button className="btn btn-primary btn-wide" disabled={!toLog.length} onClick={save} style={{ marginTop: 6 }}>
-            {toLog.length
-              ? `Save ${toLog.length} ${toLog.length === 1 ? 'replay' : 'replays'}`
-              : 'Pick how many you holed'}
-          </button>
+          {toLog.length > 0 && (
+            <button className="btn btn-primary btn-wide" onClick={save} style={{ marginTop: 6 }}>
+              Save {toLog.length} {toLog.length === 1 ? 'replay' : 'replays'}
+            </button>
+          )}
         </>
       )}
     </div>
