@@ -84,15 +84,15 @@ function MissCard({
       </div>
       <p className="rp-what">On the course: {miss.what.charAt(0).toLowerCase() + miss.what.slice(1)}</p>
       <p className="rp-set">{miss.setup}</p>
-      {history && <p className="rp-hist">{lastReplayText(history)}</p>}
+      {history && <p className="rp-hist">{lastReplayText(history, !!miss.lag)}</p>}
       {on && !result && (
         <div className="rp-log">
           <span className="rp-btns rp-wide">
             <button type="button" className="rp-miss" onClick={() => onResult({ holed: false })}>
-              Missed
+              {miss.lag ? 'Outside' : 'Missed'}
             </button>
             <button type="button" className="rp-make" onClick={() => onResult({ holed: true })}>
-              Holed
+              {miss.lag ? `Inside ${miss.lag.within} ft` : 'Holed'}
             </button>
           </span>
         </div>
@@ -107,7 +107,7 @@ function MissCard({
           </span>
           {!result.holed && (
             <div className="chips chips-sm">
-              {REPLAY_MISSES.map((m) => (
+              {(miss.lag ? REPLAY_MISSES.filter((m) => m === 'short' || m === 'long') : REPLAY_MISSES).map((m) => (
                 <button
                   key={m}
                   type="button"
@@ -135,7 +135,7 @@ function RedemptionCard({ r }: { r: Redemption }) {
         <b>
           {r.after.made} of {r.after.attempts}
         </b>{' '}
-        on the course since {fmtDate(r.since)}
+        {r.key.startsWith('lag:') ? 'inside 10% ' : ''}on the course since {fmtDate(r.since)}
       </p>
       <p className="rd-line">
         {pct(r.before.made, r.before.attempts)} before ({r.before.made} of {r.before.attempts}).{' '}
@@ -146,7 +146,7 @@ function RedemptionCard({ r }: { r: Redemption }) {
             : 'Not past chance yet.'}
       </p>
       <p className="rd-line muted">
-        Replays: {r.replays.holed} of {r.replays.tries} holed first try
+        Replays: {r.replays.holed} of {r.replays.tries} {r.key.startsWith('lag:') ? 'inside 10%' : 'holed first try'}
         {r.replays.sided ? ` · same miss as the course ${r.replays.same} of ${r.replays.sided}` : ''}
       </p>
     </div>
@@ -160,7 +160,7 @@ export function Replay({ roundId }: { roundId?: string }) {
   const [view, setView] = useState<View>(roundId ? 'rounds' : readView());
   const [off, setOff] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<Record<string, Result>>({});
-  const [saved, setSaved] = useState<{ putts: number; holed: number } | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
 
   const history = useMemo(() => replayHistory(state.practice), [state.practice]);
   const redeem = useMemo(
@@ -208,14 +208,29 @@ export function Replay({ roundId }: { roundId?: string }) {
         putterId,
         made: r.holed ? 1 : 0,
         attempts: 1,
-        stations: [{ d: m.d, mode: 'make', made: r.holed ? 1 : 0, attempts: 1 }],
+        stations: [
+          m.lag
+            ? { d: m.d, mode: 'zone', zoneFt: m.lag.within, made: r.holed ? 1 : 0, attempts: 1 }
+            : { d: m.d, mode: 'make', made: r.holed ? 1 : 0, attempts: 1 },
+        ],
         replay: m.of,
         replayMiss: r.miss,
         updated: at,
       };
       dispatch({ t: 'addPracticeSet', set });
     }
-    setSaved({ putts: toLog.length, holed: toLog.filter((m) => results[m.key].holed).length });
+    const putts = toLog.filter((m) => !m.lag);
+    const lags = toLog.filter((m) => m.lag);
+    const holed = putts.filter((m) => results[m.key].holed).length;
+    const close = lags.filter((m) => results[m.key].holed).length;
+    setSaved(
+      [
+        putts.length ? `${holed} of ${putts.length} holed` : '',
+        lags.length ? `${close} of ${lags.length} ${lags.length === 1 ? 'lag' : 'lags'} inside 10%` : '',
+      ]
+        .filter(Boolean)
+        .join(', '),
+    );
     setResults({});
   };
 
@@ -230,8 +245,8 @@ export function Replay({ roundId }: { roundId?: string }) {
       {!open && (
         <>
           <p className="small muted" style={{ margin: '0 0 12px' }}>
-            Putts you missed from {REPLAY_FROM} to {REPLAY_TO} ft, rebuilt so you can hit them again. One try each, like
-            the course.
+            Putts you missed from {REPLAY_FROM} to {REPLAY_TO} ft, and lags that finished outside 10%, rebuilt so you
+            can hit them again. One try each, like the course.
           </p>
           <div className="seg" role="group" aria-label="Which putts">
             <button aria-pressed={view === 'rec'} onClick={() => pick('rec')}>
@@ -245,10 +260,7 @@ export function Replay({ roundId }: { roundId?: string }) {
       )}
 
       {saved && (
-        <p className="replay-saved">
-          Saved {saved.putts} {saved.putts === 1 ? 'replay' : 'replays'}, {saved.holed} holed first try. It's in your
-          practice log, and each putt keeps its record.
-        </p>
+        <p className="replay-saved">Saved: {saved}. It's in your practice log, and each putt keeps its record.</p>
       )}
 
       {!open && view === 'rec' && redeem.length > 0 && (
@@ -291,9 +303,7 @@ export function Replay({ roundId }: { roundId?: string }) {
           })}
         </div>
       ) : shown.length === 0 ? (
-        <p className="small muted">
-          No misses from {REPLAY_FROM} to {REPLAY_TO} ft {open ? 'in this round' : 'to replay yet'}.
-        </p>
+        <p className="small muted">Nothing to replay {open ? 'from this round' : 'yet'}.</p>
       ) : (
         <>
           {shown.map((m) => (

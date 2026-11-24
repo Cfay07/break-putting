@@ -1,4 +1,5 @@
 import { condsOf, ZONE_RANGE, type Cond } from './pinpoint';
+import { LAG_FROM, LEAVE_STANDARD } from './stats';
 import { breakDirsOf, slopeOf, type BreakDir, type DrillDef, type PracticeSet, type Round, type Zone } from './types';
 
 /**
@@ -64,9 +65,14 @@ export interface Miss {
   forWhat?: string;
   /** In Recommended: from your target, or mixed in from another kind you keep missing. */
   why?: 'target' | 'mix';
+  /** A lag that finished outside 10% of its length: judged on getting inside that, not holing it. */
+  lag?: { leave: number; within: number };
 }
 
 export const keyOf = (o: ReplayOf) => `${o.roundId}:${o.hole}:${o.putt}`;
+
+/** The read picker's own words for its steps, so the card talks the way you tagged it. */
+const READ_WORD: Record<number, string> = { 0: 'none', 1: 'slight', 2: 'some', 3: 'lots', 4: 'severe' };
 
 const breakWords = (dirs: BreakDir[]): string | null => {
   const lr = dirs.includes('L→R');
@@ -95,7 +101,7 @@ function describe(p: Round['holes'][number]['putts'][number]): { label: string; 
   const read = p.wrongWay
     ? 'You read it the wrong way.'
     : p.readAs && p.brokeAs
-      ? `You read ${p.readAs}, it broke ${p.brokeAs}.`
+      ? `You read it ${READ_WORD[p.readAs] ?? p.readAs}, it broke ${READ_WORD[p.brokeAs] ?? p.brokeAs}.`
       : p.readAs
         ? 'You read it right.'
         : '';
@@ -117,6 +123,43 @@ function describe(p: Round['holes'][number]['putts'][number]): { label: string; 
               : 'Same putt, until it drops.';
   return { label, what, setup: `${place} ${fix}` };
 }
+
+/** Inside 10% of the putt, rounded up to a whole foot so the goal is something you can pace off. */
+export const withinOf = (d: number) => Math.max(1, Math.ceil(d * LEAVE_STANDARD));
+
+function describeLag(
+  p: Round['holes'][number]['putts'][number],
+  leave: number,
+): { label: string; what: string; setup: string } {
+  const dirs = breakDirsOf(p);
+  const brk = breakWords(dirs);
+  const slope = slopeOf(dirs);
+  const label = [`${p.d} ft lag`, slope, brk && brk !== 'straight' ? brk : null].filter(Boolean).join(', ');
+  const pace = p.speed === 'short' ? ', short' : p.speed === 'long' ? ', past' : '';
+  const what = `Left it ${leave} ft${pace}.`;
+  const fix =
+    p.speed === 'short' ? 'Get it to the hole.' : p.speed === 'long' ? 'Die it at the hole.' : 'Pace it to the hole.';
+  return {
+    label,
+    what,
+    setup: `Find ${p.d} ft${slope ? `, ${slope}` : ''}. ${fix} Inside ${withinOf(p.d)} ft counts.`,
+  };
+}
+
+/** "Downhill lags": lags group by slope only, since a lag goes wrong on pace whichever way it breaks. */
+export function lagKindOf(conds: Cond[]): { key: string; label: string } {
+  const slope = conds.includes('uphill') ? 'uphill' : conds.includes('downhill') ? 'downhill' : null;
+  return {
+    key: `lag:${slope ?? 'any'}`,
+    label: slope
+      ? `${slope === 'uphill' ? 'Uphill' : 'Downhill'} lags, ${LAG_FROM} ft and out`
+      : `Lags, ${LAG_FROM} ft and out`,
+  };
+}
+
+const isLagPutt = (i: number, d: number) => i === 0 && d >= LAG_FROM;
+const goodLag = (made: boolean, d: number, leave: number | undefined) =>
+  made || (leave !== undefined && leave <= d * LEAVE_STANDARD);
 
 const KIND_ZONES: Zone[] = ['short', 'mid', 'long'];
 const SIDE_LABEL: Partial<Record<Cond, string>> = {
@@ -143,7 +186,10 @@ export function missesOf(round: Round, practice = false): Miss[] {
   const out: Miss[] = [];
   for (const h of round.holes)
     h.putts.forEach((p, i) => {
-      if (p.made || p.d < REPLAY_FROM || p.d > REPLAY_TO) return;
+      const lag = isLagPutt(i, p.d);
+      const leave = h.putts[i + 1]?.d;
+      if (lag ? leave === undefined || goodLag(p.made, p.d, leave) : p.made || p.d < REPLAY_FROM || p.d > REPLAY_TO)
+        return;
       const of = { roundId: round.id, hole: h.hole, putt: i };
       const stroke = h.par !== undefined && h.strokes ? h.strokes - h.putts.length + i + 1 : null;
       const forWhat =
@@ -163,8 +209,9 @@ export function missesOf(round: Round, practice = false): Miss[] {
         d: p.d,
         conds: condsOf(p),
         onCourse: { side: p.missSide, speed: p.speed, lip: p.lip },
-        kind: kindOf(p.d, condsOf(p)),
-        ...describe(p),
+        kind: lag ? lagKindOf(condsOf(p)) : kindOf(p.d, condsOf(p)),
+        ...(lag ? { lag: { leave: leave!, within: withinOf(p.d) } } : {}),
+        ...(lag ? describeLag(p, leave!) : describe(p)),
       });
     });
   return out;
@@ -217,6 +264,13 @@ export function sameMiss(c: Miss['onCourse'], m: ReplayMiss): boolean | null {
 
 /** The line under a replay once it is logged. */
 export function replayResult(miss: Miss, holed: boolean, m?: ReplayMiss): string {
+  if (miss.lag) {
+    const was = `On the course you left it ${miss.lag.leave} ft.`;
+    if (holed) return `Inside ${miss.lag.within} ft. ${was}`;
+    if (!m) return 'Outside. Short or long?';
+    const same = sameMiss(miss.onCourse, m);
+    return same === true ? `${MISS_WORD[m]} again. Same miss as the course.` : `${MISS_WORD[m]} this time. ${was}`;
+  }
   const course = courseMissText(miss.onCourse);
   if (holed) return `Holed first try. On the course this one ${course}.`;
   if (!m) return 'Missed. Where did it go?';
@@ -227,9 +281,16 @@ export function replayResult(miss: Miss, holed: boolean, m?: ReplayMiss): string
 }
 
 /** "Last replay: holed first try" or "Last replay: missed low". */
-export function lastReplayText(h: Replayed): string {
-  const base = h.lastHoled ? 'holed first try' : h.lastMiss ? `missed ${h.lastMiss}` : 'missed';
-  return `Last replay: ${base}${h.tries > 1 ? ` · ${h.holed} of ${h.tries} first tries holed` : ''}`;
+export function lastReplayText(h: Replayed, lag = false): string {
+  const good = lag ? 'inside 10%' : 'holed first try';
+  const base = h.lastHoled
+    ? good
+    : h.lastMiss
+      ? `${lag ? 'finished' : 'missed'} ${h.lastMiss}`
+      : lag
+        ? 'outside'
+        : 'missed';
+  return `Last replay: ${base}${h.tries > 1 ? ` · ${h.holed} of ${h.tries} ${lag ? 'inside 10%' : 'holed first try'}` : ''}`;
 }
 
 /**
@@ -264,7 +325,10 @@ export function recommended(
   const mix: Miss[] = [];
   while (queues.some((q) => q.length)) for (const q of queues) if (q.length) mix.push({ ...q.shift()!, why: 'mix' });
   const fromTarget = target.slice(0, Math.min(TARGET_SHARE, n));
-  const mixed = mix.slice(0, n - fromTarget.length);
+  const mixed = mix.filter((m) => !m.lag).slice(0, n - fromTarget.length);
+  // Lags never outnumber short misses, so they would never make the mix: one spot is theirs.
+  const lag = mix.find((m) => m.lag) ?? target.find((m) => m.lag);
+  if (lag && !fromTarget.some((m) => m.lag) && mixed.length) mixed[mixed.length - 1] = { ...lag, why: lag.why };
   const more = target.slice(fromTarget.length, fromTarget.length + (n - fromTarget.length - mixed.length));
   const t = [...fromTarget, ...more];
   // Alternate target and mix, so the session switches putts the way a round does.
@@ -310,7 +374,8 @@ export function redemption(rounds: Round[], practiceRounds: Round[], sets: Pract
     const r = byId.get(s.replay.roundId);
     const p = r?.holes.find((h) => h.hole === s.replay!.hole)?.putts[s.replay.putt];
     if (!r || !p) continue;
-    const kind = kindOf(p.d, condsOf(p));
+    const lag = isLagPutt(s.replay.putt, p.d);
+    const kind = lag ? lagKindOf(condsOf(p)) : kindOf(p.d, condsOf(p));
     const k =
       kinds.get(kind.key) ??
       ({
@@ -333,14 +398,22 @@ export function redemption(rounds: Round[], practiceRounds: Round[], sets: Pract
     kinds.set(kind.key, k);
   }
   for (const k of kinds.values()) {
+    const lagKind = k.key.startsWith('lag:');
     for (const r of rounds.filter((x) => x.finished && !x.practice))
       for (const h of r.holes)
-        for (const p of h.putts) {
-          if (p.d < REPLAY_FROM || p.d > REPLAY_TO || kindOf(p.d, condsOf(p)).key !== k.key) continue;
+        h.putts.forEach((p, i) => {
           const side = r.date >= k.since ? k.after : k.before;
+          if (lagKind) {
+            const leave = h.putts[i + 1]?.d;
+            if (!isLagPutt(i, p.d) || (!p.made && leave === undefined) || lagKindOf(condsOf(p)).key !== k.key) return;
+            side.attempts++;
+            if (goodLag(p.made, p.d, leave)) side.made++;
+            return;
+          }
+          if (p.d < REPLAY_FROM || p.d > REPLAY_TO || kindOf(p.d, condsOf(p)).key !== k.key) return;
           side.attempts++;
           if (p.made) side.made++;
-        }
+        });
     k.verdict = k.after.attempts < REDEEM_AFTER ? 'early' : beats(k.before, k.after) ? 'better' : 'notyet';
   }
   return [...kinds.values()].sort((a, b) => b.replays.tries - a.replays.tries);

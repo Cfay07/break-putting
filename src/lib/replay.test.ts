@@ -23,7 +23,7 @@ describe('replay', () => {
     const ms = missesOf(lr);
     expect(ms.map((m) => m.d)).toEqual([5, 10]);
     expect(ms[0].label).toBe('5 ft, downhill, left to right');
-    expect(ms[0].what).toBe('Missed low, pushed. You read 2, it broke 3.');
+    expect(ms[0].what).toBe('Missed low, pushed. You read it some, it broke lots.');
     expect(ms[0].setup).toBe('Find 5 ft breaking left to right, downhill. Play more break than it looks.');
     expect(ms[1].setup).toBe('Find 10 ft breaking right to left. Same line, get it to the hole.');
   });
@@ -113,5 +113,30 @@ describe('recommended mix and what it was for', () => {
     const rec = recommended([r], [], 'slice:short:lr', new Map());
     expect(rec.map((m) => m.why)).toEqual(['target', 'mix', 'target', 'mix', 'target']);
     expect(new Set(rec.filter((m) => m.why === 'mix').map((m) => m.kind.key)).size).toBe(2);
+  });
+});
+
+describe('lag replays', () => {
+  const lagRound = round('rl', '2026-11-20', [
+    {
+      hole: 1,
+      putts: [
+        putt({ d: 40, made: false, speed: 'short', breakDirs: ['downhill'] }),
+        putt({ d: 9, made: false }),
+        putt({ d: 1, made: true }),
+      ],
+    },
+    { hole: 2, putts: [putt({ d: 40, made: false }), putt({ d: 3, made: true })] },
+  ]);
+
+  it('keeps lags that finished outside 10%, judged on getting inside it', () => {
+    const lags = missesOf(lagRound).filter((m) => m.lag);
+    expect(lags).toHaveLength(1);
+    expect(lags[0].label).toBe('40 ft lag, downhill');
+    expect(lags[0].what).toBe('Left it 9 ft, short.');
+    expect(lags[0].lag).toEqual({ leave: 9, within: 4 });
+    expect(lags[0].kind.label).toBe('Downhill lags, 30 ft and out');
+    expect(replayResult(lags[0], true)).toBe('Inside 4 ft. On the course you left it 9 ft.');
+    expect(replayResult(lags[0], false, 'short')).toBe('Short again. Same miss as the course.');
   });
 });
