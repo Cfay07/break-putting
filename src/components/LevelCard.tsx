@@ -26,7 +26,7 @@ export function LevelCard({
       <p className="topic-answer">{levelStory(level)}</p>
       {latest && (
         <p className="small" style={{ margin: '-4px 0 12px' }}>
-          These rounds mix putters. With the {latest.name} alone: half in from {latest.level.d50.toFixed(1)} ft
+          These rounds mix putters. With the {latest.name} alone: range {latest.level.d50.toFixed(1)} ft
           {latest.level.d2 !== null ? `, two putts from ${Math.round(latest.level.d2)} ft` : ''}.
         </p>
       )}
@@ -36,7 +36,7 @@ export function LevelCard({
           <thead>
             <tr>
               <th />
-              <th>Half in</th>
+              <th>Range</th>
               <th>2 putts</th>
             </tr>
           </thead>
@@ -52,7 +52,7 @@ export function LevelCard({
         </table>
       </div>
       <p className="small muted" style={{ margin: '8px 0 14px' }}>
-        Half in is how far out you still hole the first putt half the time. 2 putts is how far out you average exactly
+        Range is how far out you still hole the first putt half the time. 2 putts is how far out you average exactly
         two. Golfers grouped by their scoring average. From your {level.firstPutts} first putts.
       </p>
     </>

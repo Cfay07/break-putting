@@ -37,7 +37,7 @@ describe('where you stand', () => {
     expect(l.d50).toBeGreaterThan(5);
     expect(l.d50).toBeLessThan(7);
     expect(l.d2).not.toBeNull();
-    expect(levelStory(l)).toMatch(/^You one-putt half the time from \d+\.\d ft/);
+    expect(levelStory(l)).toMatch(/^Your range is \d+\.\d ft/);
   });
 
   it('places a distance among the groups', () => {

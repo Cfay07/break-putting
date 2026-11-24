@@ -2628,3 +2628,16 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .topic-row.nobar:has(.tr-val:empty) { grid-template-columns: minmax(0, 1fr) 10px; }
 .level-table tr.level-you td { font-weight: 800; color: var(--ink); background: rgba(46, 138, 92, 0.08); }
 .level-table th, .level-table td { white-space: nowrap; }
+
+/* A lag in the best and worst lists: the putt, where it was, and a way into that hole. */
+.lag-pick { display: grid; grid-template-columns: 104px minmax(0, 1fr) 10px; gap: 10px; align-items: center; width: 100%; padding: 10px 0; background: none; border: 0; border-top: 1px solid var(--line); text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.lag-pick:first-child { border-top: 0; }
+.lp-d { font-size: 17px; font-weight: 800; white-space: nowrap; }
+.lp-w b { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-w small { display: block; font-size: 12px; color: var(--ink-3); }
+
+/* The pinned practice target, named in one line wherever a page would otherwise offer its own plan. */
+.target-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin: 10px 0 0; padding: 10px 2px; background: none; border: 0; border-top: 1px solid var(--line); font: inherit; font-size: 13px; color: var(--ink-2); text-align: left; cursor: pointer; }
+.target-line b { color: var(--ink); font-weight: 800; }
+.tl-what { min-width: 0; line-height: 1.35; }
+.tl-go { flex: none; color: #c4521f; font-weight: 800; }

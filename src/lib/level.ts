@@ -101,10 +101,10 @@ export function placeAmong(value: number, key: 'd50' | 'd2'): string {
 }
 
 export function levelStory(l: Level): string {
-  const half = `You one-putt half the time from ${l.d50.toFixed(1)} ft`;
-  if (l.d2 === null) return `${half}, ${placeAmong(l.d50, 'd50')}.`;
+  const range = `Your range is ${l.d50.toFixed(1)} ft, the length you still hole half the time`;
   const a = placeAmong(l.d50, 'd50');
+  if (l.d2 === null) return `${range}, ${a}.`;
   const b = placeAmong(l.d2, 'd2');
-  const two = `average two putts from ${Math.round(l.d2)} ft`;
-  return a === b ? `${half} and ${two}. Both sit ${a}.` : `${half}, ${a}. You ${two}, ${b}.`;
+  const two = `You average two putts from ${Math.round(l.d2)} ft`;
+  return a === b ? `${range}. ${two}. Both sit ${a}.` : `${range}, ${a}. ${two}, ${b}.`;
 }

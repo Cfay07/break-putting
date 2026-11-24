@@ -25,6 +25,9 @@ import { ShootSplitCard } from '../components/ShootSplitCard';
 import { TopicRows, type TopicRow } from '../components/TopicRows';
 import { TallyTable, tonePair } from '../components/TallyTable';
 import { LevelCard } from '../components/LevelCard';
+import { LagStory } from '../components/LagStory';
+import { TargetLine } from '../components/TargetLine';
+import { lagTrend, lagTrendStory } from '../lib/lagStory';
 import { levelOf } from '../lib/level';
 import {
   birdieStory,
@@ -48,9 +51,7 @@ import { GREEN_SPEED_LABELS } from '../lib/types';
 import { findingsFor, locksFor, TOPIC_ABOUT, type Lock } from '../lib/statsLocks';
 import { insights } from '../lib/insights';
 import { go } from '../lib/router';
-import { FOCUS, startSession } from '../lib/starters';
-import { BAND_FOCUS, recentSplit, rowNumber, shootSplit, withinRange } from '../lib/statsHome';
-import { usePractice } from '../lib/usePractice';
+import { recentSplit, rowNumber, shootSplit, withinRange, type RowNumber } from '../lib/statsHome';
 import { Why } from '../components/Why';
 import { BeatBar } from '../components/BeatBar';
 import { sample, signedFor } from '../lib/sample';
@@ -150,7 +151,6 @@ export function Stats({
 
 function RoundStats({ topic }: { topic?: Topic }) {
   const { state, dispatch } = useApp();
-  const { surface } = usePractice();
   const courses = useCourseRatings();
   // Scored rounds that never said which tee, and the tee each would count off.
   const teeless = useMemo(
@@ -293,6 +293,16 @@ function RoundStats({ topic }: { topic?: Topic }) {
     [biggest, rounds, state.baseline],
   );
   const split = useMemo(() => recentSplit(rounds), [rounds]);
+  // Range: the length you still hole half your first putts from, last ten against the rounds before.
+  const range = useMemo((): RowNumber | null => {
+    if (!split) {
+      const all = levelOf(rounds);
+      return all ? { now: all.d50, before: null, fresh: false } : null;
+    }
+    const now = levelOf(split.recent);
+    if (!now) return null;
+    return { now: now.d50, before: levelOf(split.before)?.d50 ?? null, fresh: false };
+  }, [rounds, split]);
   const nums = useMemo(
     () =>
       Object.fromEntries(
@@ -315,7 +325,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
     );
   }
 
-  const focus = biggest ? FOCUS.find((f) => f.band === (BAND_FOCUS[biggest.key] ?? 'long')) : undefined;
   const pctF = (v: number) => `${Math.round(v * 100)}%`;
   const row = (r: TopicRow) => r;
   /** A row that has not got enough yet. Under a filter it says so, rather than how to unlock it. */
@@ -329,16 +338,25 @@ function RoundStats({ topic }: { topic?: Topic }) {
     });
   const where: TopicRow[] = [
     locked('distance', 'By distance') ||
-      (nums.short &&
-        row({
-          key: 'distance',
-          title: 'By distance',
-          sub: '3 to 10 ft holed',
-          num: nums.short,
-          fmt: pctF,
-          better: 'up',
-          bar: nums.short.now,
-        })),
+      (range
+        ? row({
+            key: 'distance',
+            title: 'By distance',
+            sub: 'Range · half go in from here',
+            num: range,
+            fmt: (v: number) => `${v.toFixed(1)} ft`,
+            better: 'up',
+          })
+        : nums.short &&
+          row({
+            key: 'distance',
+            title: 'By distance',
+            sub: '3 to 10 ft holed',
+            num: nums.short,
+            fmt: pctF,
+            better: 'up',
+            bar: nums.short.now,
+          })),
     locked('lag', 'Lag') ||
       (nums.lag &&
         row({
@@ -459,17 +477,8 @@ function RoundStats({ topic }: { topic?: Topic }) {
   ].filter((r): r is TopicRow => !!r);
   const home = (
     <>
-      {scoreSplit && (
-        <ShootSplitCard
-          split={scoreSplit}
-          within={within}
-          practice={
-            focus && biggest
-              ? { label: `Practice ${biggest.label}`, start: () => startSession(state, dispatch, focus, surface) }
-              : null
-          }
-        />
-      )}
+      {scoreSplit && <ShootSplitCard split={scoreSplit} within={within} practice={null} />}
+      <TargetLine />
       {where.length > 0 && <p className="topic-group">Where the strokes go</p>}
       {where.length > 0 && <TopicRows rows={where} />}
       {why.length > 0 && <p className="topic-group">Why you miss</p>}
@@ -946,6 +955,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {!lock && topic === 'lag' && (
             <>
+              {lagTrendStory(lagTrend(rounds)) && <p className="topic-answer">{lagTrendStory(lagTrend(rounds))}</p>}
               <LagPanel stats={o.pooled} lag={lag} />
               <p className="small muted" style={{ margin: '8px 0 0' }}>
                 Inside 10% means it went in or finished within a tenth of the putt's length. The comeback is the putt
@@ -983,6 +993,8 @@ function RoundStats({ topic }: { topic?: Topic }) {
                   </div>
                 </>
               )}
+              <LagStory rounds={rounds} putters={state.putters} practice={null} />
+              <TargetLine />
             </>
           )}
 
@@ -1254,6 +1266,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {!lock && topic === 'work' && (
             <>
+              <TargetLine />
               <InsightList
                 stats={o.pooled}
                 rounds={o.rounds}
