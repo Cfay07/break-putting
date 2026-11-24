@@ -120,14 +120,32 @@ export function speedLines(rounds: Round[], putterId: string): SpeedLine[] {
 }
 
 /** The putter with the most rounds that has at least two green speeds, and its lines. */
-export function greensFor(rounds: Round[], putters: Putter[]): { putter: Putter; lines: SpeedLine[] } | null {
+/** The putter of the newest round in this set: the one you use now. */
+export function currentPutterId(rounds: Round[]): string | null {
+  return real(rounds).at(-1)?.putterId ?? null;
+}
+
+/**
+ * Putters to read a split from: the one you use now first, so a switch shows up the moment the new
+ * putter has enough to say anything, then the rest by how many rounds they have.
+ */
+function byPreference(rounds: Round[], putters: Putter[]): Putter[] {
   const rs = real(rounds);
-  return (
-    [...putters]
-      .sort((a, b) => rs.filter((r) => r.putterId === b.id).length - rs.filter((r) => r.putterId === a.id).length)
-      .map((putter) => ({ putter, lines: speedLines(rounds, putter.id) }))
-      .find((x) => x.lines.length >= 2) ?? null
-  );
+  const now = currentPutterId(rounds);
+  const n = (p: Putter) => rs.filter((r) => r.putterId === p.id).length;
+  return [...putters].sort((a, b) => Number(b.id === now) - Number(a.id === now) || n(b) - n(a));
+}
+
+/** The putter you use now when it has two green speeds, else the one with the most rounds that does. */
+export function greensFor(
+  rounds: Round[],
+  putters: Putter[],
+): { putter: Putter; lines: SpeedLine[]; current: boolean } | null {
+  const now = currentPutterId(rounds);
+  const hit = byPreference(rounds, putters)
+    .map((putter) => ({ putter, lines: speedLines(rounds, putter.id), current: putter.id === now }))
+    .find((x) => x.lines.length >= 2);
+  return hit ?? null;
 }
 
 /** The worst and best speed for short putts, among speeds with enough putts, and how sure the gap is. */
@@ -195,6 +213,8 @@ function side(rounds: Round[], line: GroupLine | undefined): PressureSide {
 
 export interface Pressure {
   putter: Putter;
+  /** The putter you use now. When false, the page says this is an earlier putter. */
+  current: boolean;
   tournament: PressureSide;
   casual: PressureSide;
 }
@@ -210,17 +230,18 @@ export function pressureFor(
   linesFor: (rs: Round[]) => GroupLine[],
 ): Pressure | null {
   const rs = real(rounds);
-  const pick = putters
+  const now = currentPutterId(rounds);
+  const pick = byPreference(rounds, putters)
     .map((putter) => {
       const mine = rs.filter((r) => r.putterId === putter.id);
       return { putter, t: mine.filter((r) => r.competitive), c: mine.filter((r) => !r.competitive) };
     })
-    .filter((x) => x.t.length >= 3 && x.c.length >= 3)
-    .sort((a, b) => b.t.length + b.c.length - (a.t.length + a.c.length))[0];
+    .find((x) => x.t.length >= 3 && x.c.length >= 3);
   if (!pick) return null;
   const lines = linesFor([...pick.t, ...pick.c]);
   return {
     putter: pick.putter,
+    current: pick.putter.id === now,
     tournament: side(
       pick.t,
       lines.find((l) => l.label === 'Tournament'),
@@ -234,7 +255,7 @@ export function pressureFor(
 
 export function pressureStory(p: Pressure): string {
   const { tournament: t, casual: c } = p;
-  const name = p.putter.name;
+  const name = p.current ? p.putter.name : `${p.putter.name}, your previous putter`;
   const { verdict, better } = compareRates(t.short, c.short);
   if (t.short.tried < MIN_PUTTS || c.short.tried < MIN_PUTTS)
     return `Not enough 3 to 10 ft putts with the ${name} on both sides to compare yet.`;

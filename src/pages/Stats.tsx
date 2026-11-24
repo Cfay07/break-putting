@@ -220,6 +220,11 @@ function RoundStats({ topic }: { topic?: Topic }) {
     [rounds, state.putters, state.baseline],
   );
   const birdie = useMemo(() => birdieVsPar(rounds), [rounds]);
+  const greensPutter = greensSplit
+    ? greensSplit.current
+      ? greensSplit.putter.name
+      : `${greensSplit.putter.name}, your previous putter`
+    : '';
   const level = useMemo(() => levelOf(rounds), [rounds]);
   // Two putters in one set average a before and an after. The newest one on its own says where you are now.
   const latestLevel = useMemo(() => {
@@ -1080,10 +1085,12 @@ function RoundStats({ topic }: { topic?: Topic }) {
             <>
               {greensSplit && (
                 <>
-                  {greensStory(greensSplit.lines, greensSplit.putter.name) && (
-                    <p className="topic-answer">{greensStory(greensSplit.lines, greensSplit.putter.name)}</p>
+                  {greensStory(greensSplit.lines, greensPutter) && (
+                    <p className="topic-answer">{greensStory(greensSplit.lines, greensPutter)}</p>
                   )}
-                  <div className="field-label">By speed, {greensSplit.putter.name} only</div>
+                  <div className="field-label">
+                    By speed, {greensSplit.putter.name} only{greensSplit.current ? '' : ' · previous putter'}
+                  </div>
                   <TallyTable
                     heads={['Rounds', '3 to 10 ft', 'Lags']}
                     rows={greensSplit.lines.map((l) => {
@@ -1284,7 +1291,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
 /** Tournament against casual with one putter, so nerves are measured and not the switch. */
 function PressureSplit({ p }: { p: NonNullable<ReturnType<typeof pressureFor>> }) {
   const { tournament: t, casual: c } = p;
-  const name = p.putter.name;
+  const name = p.current ? p.putter.name : `${p.putter.name} (previous putter)`;
   const shortClear = compareRates(t.short, c.short).verdict === 'clear';
   const over = (x: number | null) => (x === null ? '--' : `${Math.round(x * 100)}%`);
   return (

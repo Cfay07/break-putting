@@ -61,6 +61,9 @@ export function RoundPayoff({ round }: { round: Round }) {
             <a className="inline-link" href="#/practice">
               Practice it ›
             </a>
+            <a className="inline-link" href={`#/practice/replay/${round.id}`}>
+              Replay this round's misses ›
+            </a>
           </div>
         )}
         {found.map((h) => (

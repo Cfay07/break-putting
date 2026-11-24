@@ -19,6 +19,7 @@ import {
 import { usePractice } from '../lib/usePractice';
 import type { PracticeSet } from '../lib/types';
 import { TEST_ID, weekOf } from '../lib/weeklyTest';
+import { REPLAY_ID } from '../lib/replay';
 
 const PILL: Record<Exclude<Verdict, 'early'>, string> = {
   better: 'Better',
@@ -116,7 +117,8 @@ export function ProgressHeader() {
   // Every other drill against its own earlier sets, from the last twelve weeks only.
   const recentSets = sets.filter((x) => {
     const age = (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${x.date}T12:00:00Z`)) / 864e5;
-    return age >= 0 && age < BEFORE_DAYS && x.drill !== TEST_ID && family(x.drill) !== checkId;
+    // A replay is a different putt every set, so it has no trend of its own to read.
+    return age >= 0 && age < BEFORE_DAYS && x.drill !== TEST_ID && x.drill !== REPLAY_ID && family(x.drill) !== checkId;
   });
   const byDrill = new Map<string, PracticeSet[]>();
   for (const x of recentSets) byDrill.set(family(x.drill), [...(byDrill.get(family(x.drill)) ?? []), x]);

@@ -15,6 +15,7 @@ import { Rounds } from './pages/Rounds';
 import { RoundDetail } from './pages/RoundDetail';
 import { Settings } from './pages/Settings';
 import { SharedRound } from './pages/SharedRound';
+import { Replay } from './pages/Replay';
 import { Stats, TOPICS, type Topic } from './pages/Stats';
 import { PRACTICE_TOPICS, type PracticeTopic } from './pages/PracticeStats';
 import { Team } from './pages/Team';
@@ -297,6 +298,8 @@ export default function App() {
     <SessionList />
   ) : route === '/practice/hands' ? (
     <Hands />
+  ) : route === '/practice/replay' || route.startsWith('/practice/replay/') ? (
+    <Replay key={route} roundId={route.startsWith('/practice/replay/') ? route.slice(17) : undefined} />
   ) : route === '/practice/log' ? (
     <PracticeLogPage />
   ) : route === '/practice/why' ? (

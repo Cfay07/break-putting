@@ -1,5 +1,6 @@
 import { fixDrill } from './pinpoint';
 import { TEST_ID, testDef } from './weeklyTest';
+import { REPLAY_ID, replayDef } from './replay';
 import { isLagZone, type AppState, type DrillDef, type Lean, type Station, type Surface, type Zone } from './types';
 
 const BOTH: Surface[] = ['indoor', 'green'];
@@ -238,7 +239,7 @@ export function resolveDrill(state: Pick<AppState, 'drills'>, id: string): Drill
     copy ??
     state.drills.find((d) => d.id === id) ??
     APP_DRILLS.find((d) => d.id === id) ??
-    (id === TEST_ID ? testDef() : fixDrill(id))
+    (id === TEST_ID ? testDef() : id === REPLAY_ID ? replayDef() : fixDrill(id))
   );
 }
 

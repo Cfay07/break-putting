@@ -161,7 +161,7 @@ export const ZONE_RANGE: Record<Zone, [number, number]> = {
   deep: [16, Infinity],
 };
 
-function condsOf(p: Putt): Cond[] {
+export function condsOf(p: Putt): Cond[] {
   const dirs = breakDirsOf(p);
   const out: Cond[] = [];
   const b = breakBucket(dirs);

@@ -467,6 +467,8 @@ export interface PracticeSet {
   session?: string;
   /** Stroke time of the metronome, when it was playing during the set. */
   tempo?: number;
+  /** A replay: the course or practice-round putt this set hit again. */
+  replay?: { roundId: string; hole: number; putt: number };
   updated?: string;
   kind?: 'set';
 }

@@ -2641,3 +2641,21 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .target-line b { color: var(--ink); font-weight: 800; }
 .tl-what { min-width: 0; line-height: 1.35; }
 .tl-go { flex: none; color: #c4521f; font-weight: 800; }
+
+/* Replay your misses: one card per putt, switched in or out, with how many of three went in. */
+.replay-card { margin-top: 8px; }
+.replay-card.off { opacity: 1; background: transparent; }
+.replay-card.off .rp-t b, .replay-card.off .rp-what, .replay-card.off .rp-set { color: var(--ink-3); }
+.rp-top { display: flex; align-items: flex-start; gap: 10px; justify-content: space-between; }
+.rp-t b { display: block; font-size: 16px; font-weight: 800; }
+.rp-t small { display: block; font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+.rp-what { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); }
+.rp-set { margin: 4px 0 0; font-size: 13px; color: var(--ink); }
+.rp-hist { margin: 6px 0 0; font-size: 12px; font-weight: 700; color: #c4521f; }
+.rp-log { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+.replay-saved { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(46, 138, 92, 0.1); font-size: 13px; color: var(--ink); }
+.replay-rounds { padding: 0 14px; margin-top: 12px; }
+.replay-round { display: grid; grid-template-columns: minmax(0, 1fr) auto 10px; gap: 10px; align-items: center; width: 100%; padding: 12px 0; background: none; border: 0; border-top: 1px solid var(--line); font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+.replay-round:first-child { border-top: 0; }
+.replay-round b { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.replay-round small { display: block; font-size: 12px; color: var(--ink-3); }

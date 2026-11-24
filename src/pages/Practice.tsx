@@ -416,6 +416,10 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
             <span>9 to 18 holes</span>
           </button>
         )}
+        <a className="tool" href="#/practice/replay">
+          <strong>Replay your misses</strong>
+          <span>Putts you missed, again</span>
+        </a>
         <a className="tool" href="#/practice/drills">
           <strong>Every drill</strong>
           <span>{drillCount} to pick from</span>

@@ -3,6 +3,7 @@ import {
   birdieStory,
   birdieVsPar,
   compareRates,
+  greensFor,
   greensStory,
   putterPair,
   putterStory,
@@ -130,5 +131,22 @@ describe('birdie vs par', () => {
     ]);
     expect(b.tried).toBe(0);
     expect(birdieStory(b)).toBe('Shows at 30 birdie putts with a fair par comparison. You have 0.');
+  });
+});
+
+describe('after a putter switch', () => {
+  it('reads the putter you use now as soon as it has enough, not the one with the most rounds', () => {
+    const old = [0, 1, 2, 3].flatMap((i) => [
+      round(`om${i}`, `2026-05-0${i + 1}`, 'old', 5, 5, 'medium'),
+      round(`of${i}`, `2026-05-1${i}`, 'old', 5, 5, 'fast'),
+    ]);
+    const now = [round('nm', '2026-06-01', 'new', 5, 5, 'medium'), round('nf', '2026-06-02', 'new', 5, 5, 'fast')];
+    const putters = [P('old', 'Cobra'), P('new', 'Spider')];
+    expect(greensFor(old, putters)).toMatchObject({ current: true, putter: { id: 'old' } });
+    expect(greensFor([...old, ...now], putters)).toMatchObject({ current: true, putter: { id: 'new' } });
+    expect(greensFor([...old, round('n1', '2026-06-01', 'new', 5, 5, 'medium')], putters)).toMatchObject({
+      current: false,
+      putter: { id: 'old' },
+    });
   });
 });
