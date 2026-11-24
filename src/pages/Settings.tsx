@@ -174,9 +174,8 @@ function BaselineSheet({ onClose }: { onClose: () => void }) {
     <Sheet title="Expected putts baseline" onClose={onClose}>
       <p className="small muted" style={{ marginTop: 0 }}>
         Strokes gained compares every hole to these numbers: the average putts a PGA Tour player takes to hole out from
-        each length. Inside 25 feet they match a published study of 2012 tour putting from ShotLink data (Yousefi and
-        Swartz, Advanced Putting Metrics in Golf, 2013) within 0.02 putts. Past 30 feet they are being checked against
-        Mark Broadie's table in Every Shot Counts (2014).
+        each length. At every length the published tour averages list, they match within 0.02 putts. Those averages come
+        from hundreds of thousands of tour putts. Lengths in between are filled in from the ones either side.
       </p>
       <p className="small muted">Edit them if you want a different bar.</p>
       <div className="table-wrap">
@@ -401,11 +400,7 @@ export function Settings() {
           onClick={() => setOpen({ k: 'practice' })}
         />
         <Row title="Load an old round" sub="Typed out hole by hole" onClick={() => setOpen({ k: 'oldRound' })} />
-        <Row
-          title="Expected putts baseline"
-          sub="PGA Tour averages, with sources"
-          onClick={() => setOpen({ k: 'baseline' })}
-        />
+        <Row title="Expected putts baseline" sub="PGA Tour averages" onClick={() => setOpen({ k: 'baseline' })} />
       </div>
       <p className="small muted">
         This phone can lose its storage without warning. Back up after rounds you care about.

@@ -1,4 +1,4 @@
-import { DEFAULT_BASELINE, DEFAULT_ROOM, type AppState } from './types';
+import { DEFAULT_BASELINE, DEFAULT_ROOM, tracedBaseline, type AppState } from './types';
 
 const KEY = 'break.state';
 const OWNER_KEY = 'break.owner';
@@ -33,9 +33,7 @@ export function emptyState(): AppState {
  * loses to any real edit instead of winning by being loaded most recently.
  */
 function stamped(rounds: AppState['rounds'] | undefined): AppState['rounds'] {
-  return (rounds ?? []).map((r) =>
-    r.updated ? r : { ...r, updated: `${r.date}T00:00:00.000Z` },
-  );
+  return (rounds ?? []).map((r) => (r.updated ? r : { ...r, updated: `${r.date}T00:00:00.000Z` }));
 }
 
 export function load(): AppState {
@@ -43,7 +41,13 @@ export function load(): AppState {
     const raw = localStorage.getItem(KEY);
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as Partial<AppState>;
-    return { ...emptyState(), ...parsed, version: STATE_VERSION, rounds: stamped(parsed.rounds) };
+    return {
+      ...emptyState(),
+      ...parsed,
+      version: STATE_VERSION,
+      rounds: stamped(parsed.rounds),
+      baseline: tracedBaseline(parsed.baseline ?? DEFAULT_BASELINE),
+    };
   } catch {
     return emptyState();
   }

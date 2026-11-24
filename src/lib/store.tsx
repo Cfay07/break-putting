@@ -17,7 +17,7 @@ import type {
   Surface,
   TrackUI,
 } from './types';
-import { DEFAULT_ROOM } from './types';
+import { DEFAULT_ROOM, tracedBaseline } from './types';
 import { planRestore } from './restore';
 
 const now = () => new Date().toISOString();
@@ -570,7 +570,7 @@ export function reducer(state: AppState, a: Action): AppState {
         drills: mergeIncoming(state.drills, drills, graves, practiceRemoved),
         sessions: mergeIncoming(state.sessions, sessions, graves, practiceRemoved),
         practiceRounds: mergeIncoming(state.practiceRounds ?? [], practiceRounds, graves, practiceRemoved),
-        baseline: takeSettings && settings.baseline.length ? settings.baseline : state.baseline,
+        baseline: takeSettings && settings.baseline.length ? tracedBaseline(settings.baseline) : state.baseline,
         courses: takeSettings ? settings.courses : state.courses,
         room: takeSettings && settings.room ? { ...DEFAULT_ROOM, ...settings.room } : state.room,
         target: takeSettings ? settings.target : state.target,

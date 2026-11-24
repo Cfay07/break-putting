@@ -489,8 +489,10 @@ export interface SessionRun {
 
 /**
  * PGA Tour average putts to hole out. Inside 25 feet this matches Yousefi and Swartz (2013), 2012
- * ShotLink, within 0.02 at 7.5, 12.5, 17.5 and 22.5 ft. Past 30 feet it is not yet traced to a
- * source: reproductions of Broadie's table disagree there (2.06 or 2.12 at 40 ft). See ROADMAP Phase 5.
+ * ShotLink, within 0.02 at 7.5, 12.5, 17.5 and 22.5 ft. From 30 feet out it is Broadie, "Putts
+ * Gained: Measuring Putting on the PGA TOUR" (Columbia, January 2011), Figure 1: 30 ft 1.98,
+ * 40 ft 2.06, 50 ft 2.14, 60 ft 2.21, from a season of ShotLink putts. 35 ft sits halfway between
+ * 30 and 40. Reproductions quoting 2.12 at 40 ft do not match his own figure.
  */
 export const DEFAULT_BASELINE: [number, number][] = [
   [1, 1.0],
@@ -507,12 +509,20 @@ export const DEFAULT_BASELINE: [number, number][] = [
   [15, 1.78],
   [20, 1.87],
   [25, 1.94],
-  [30, 2.0],
+  [30, 1.98],
   [35, 2.02],
   [40, 2.06],
   [50, 2.14],
   [60, 2.21],
 ];
+
+/** The table before 30 ft was traced, when it read 2.00 there. */
+const UNTRACED_BASELINE = DEFAULT_BASELINE.map(([d, v]) => [d, d === 30 ? 2.0 : v]);
+
+/** A saved table still on the old default moves to the traced one; a table you edited stays yours. */
+export function tracedBaseline(b: [number, number][]): [number, number][] {
+  return JSON.stringify(b) === JSON.stringify(UNTRACED_BASELINE) ? DEFAULT_BASELINE : b;
+}
 
 const WHITE = '#f7f5ee';
 const BLACK = '#141414';
