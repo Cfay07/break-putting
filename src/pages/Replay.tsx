@@ -19,6 +19,7 @@ import {
   type Replayed,
   type ReplayMiss,
 } from '../lib/replay';
+import { fitMakeModel, makeability } from '../lib/makeability';
 import { newId } from '../lib/storage';
 import { usePractice } from '../lib/usePractice';
 import { useTarget } from '../lib/useTarget';
@@ -42,6 +43,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function MissCard({
   miss,
+  chance,
   on,
   result,
   history,
@@ -51,6 +53,8 @@ function MissCard({
   onUndo,
 }: {
   miss: Miss;
+  /** Your own make chance on the comebacker a lag left, from your make model. */
+  chance: number | null;
   on: boolean;
   result: Result | undefined;
   history: Replayed | undefined;
@@ -82,8 +86,33 @@ function MissCard({
           onClick={onToggle}
         />
       </div>
-      <p className="rp-what">On the course: {miss.what.charAt(0).toLowerCase() + miss.what.slice(1)}</p>
-      <p className="rp-set">{miss.setup}</p>
+      <div className="rp-bits">
+        <span>
+          <small>On the course</small>
+          <b>{miss.bits.missed}</b>
+        </span>
+        {miss.bits.read && (
+          <span>
+            <small>Read</small>
+            <b>{miss.bits.read}</b>
+          </span>
+        )}
+        {miss.lag && (
+          <span>
+            <small>Then</small>
+            <b>
+              {miss.lag.next.made
+                ? `Holed the ${miss.lag.leave}-footer`
+                : `Missed the ${miss.lag.leave}-footer · ${miss.lag.next.putts} putts`}
+              {chance !== null && <em className="rp-xp"> · {Math.round(chance * 100)}% for you</em>}
+            </b>
+          </span>
+        )}
+        <span>
+          <small>Try</small>
+          <b className="rp-fix">{miss.lag ? `${miss.bits.fix} · inside ${miss.lag.within} ft` : miss.bits.fix}</b>
+        </span>
+      </div>
       {history && <p className="rp-hist">{lastReplayText(history, !!miss.lag)}</p>}
       {on && !result && (
         <div className="rp-log">
@@ -163,6 +192,7 @@ export function Replay({ roundId }: { roundId?: string }) {
   const [saved, setSaved] = useState<string | null>(null);
 
   const history = useMemo(() => replayHistory(state.practice), [state.practice]);
+  const model = useMemo(() => fitMakeModel(state.rounds.filter((r) => r.finished && !r.practice)), [state.rounds]);
   const redeem = useMemo(
     () => redemption(state.rounds, state.practiceRounds ?? [], state.practice),
     [state.rounds, state.practiceRounds, state.practice],
@@ -310,6 +340,7 @@ export function Replay({ roundId }: { roundId?: string }) {
             <MissCard
               key={m.key}
               miss={m}
+              chance={m.lag ? makeability(model, m.lag.leave, m.lag.next.dirs) : null}
               on={!off.has(m.key)}
               result={results[m.key]}
               history={history.get(keyOf(m.of))}

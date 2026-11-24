@@ -2682,3 +2682,10 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .rp-wide { width: 100%; }
 .rp-wide > button { flex: 1; }
 .rp-tag { margin-left: 8px; vertical-align: 2px; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #c4521f; }
+/* The card's story as label over value, the way the Rounds cards read. */
+.rp-bits { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 10px; }
+.rp-bits span { display: flex; flex-direction: column; min-width: 0; }
+.rp-bits small { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.rp-bits b { font-size: 14px; font-weight: 800; color: var(--ink); }
+.rp-bits b.rp-fix { color: #c4521f; }
+.rp-xp { font-style: normal; font-weight: 600; color: var(--ink-3); }

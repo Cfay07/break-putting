@@ -56,6 +56,8 @@ export interface Miss {
   what: string;
   /** How to set it up and the one thing to do differently. */
   setup: string;
+  /** The same story in a few words each, for the card: how it missed, the read, the one fix. */
+  bits: { missed: string; read?: string; fix: string };
   conds: Cond[];
   /** How it missed on the course, so a replay can say whether the same miss came back. */
   onCourse: { side?: 'low' | 'high' | 'online'; speed?: 'short' | 'good' | 'long'; lip?: boolean };
@@ -66,13 +68,20 @@ export interface Miss {
   /** In Recommended: from your target, or mixed in from another kind you keep missing. */
   why?: 'target' | 'mix';
   /** A lag that finished outside 10% of its length: judged on getting inside that, not holing it. */
-  lag?: { leave: number; within: number };
+  lag?: {
+    leave: number;
+    within: number;
+    /** The comebacker it left: holed or not, how many putts the hole took, and its break for the make model. */
+    next: { made: boolean; putts: number; dirs: BreakDir[] };
+  };
 }
 
 export const keyOf = (o: ReplayOf) => `${o.roundId}:${o.hole}:${o.putt}`;
 
 /** The read picker's own words for its steps, so the card talks the way you tagged it. */
 const READ_WORD: Record<number, string> = { 0: 'none', 1: 'slight', 2: 'some', 3: 'lots', 4: 'severe' };
+
+const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
 
 const breakWords = (dirs: BreakDir[]): string | null => {
   const lr = dirs.includes('L→R');
@@ -84,7 +93,12 @@ const breakWords = (dirs: BreakDir[]): string | null => {
   return null;
 };
 
-function describe(p: Round['holes'][number]['putts'][number]): { label: string; what: string; setup: string } {
+function describe(p: Round['holes'][number]['putts'][number]): {
+  label: string;
+  what: string;
+  setup: string;
+  bits: Miss['bits'];
+} {
   const dirs = breakDirsOf(p);
   const brk = breakWords(dirs);
   const slope = slopeOf(dirs);
@@ -121,7 +135,32 @@ function describe(p: Round['holes'][number]['putts'][number]): { label: string; 
             : p.speed === 'long'
               ? 'Same line, softer.'
               : 'Same putt, until it drops.';
-  return { label, what, setup: `${place} ${fix}` };
+  const readBit = p.wrongWay
+    ? 'Wrong way'
+    : p.readAs && p.brokeAs
+      ? `${cap(READ_WORD[p.readAs] ?? '')} → ${READ_WORD[p.brokeAs] ?? ''}`
+      : p.readAs
+        ? 'Right'
+        : undefined;
+  const fixBit = p.wrongWay
+    ? 'Read from behind'
+    : p.readAs && p.brokeAs && p.brokeAs > p.readAs
+      ? 'More break'
+      : p.readAs && p.brokeAs && p.brokeAs < p.readAs
+        ? 'Less break'
+        : p.push || p.pull
+          ? 'Start line'
+          : p.speed === 'short'
+            ? 'To the hole'
+            : p.speed === 'long'
+              ? 'Softer'
+              : 'Same putt';
+  return {
+    label,
+    what,
+    setup: `${place} ${fix}`,
+    bits: { missed: how.length ? cap(how.join(', ')) : 'Missed', read: readBit, fix: fixBit },
+  };
 }
 
 /** Inside 10% of the putt, rounded up to a whole foot so the goal is something you can pace off. */
@@ -130,7 +169,7 @@ export const withinOf = (d: number) => Math.max(1, Math.ceil(d * LEAVE_STANDARD)
 function describeLag(
   p: Round['holes'][number]['putts'][number],
   leave: number,
-): { label: string; what: string; setup: string } {
+): { label: string; what: string; setup: string; bits: Miss['bits'] } {
   const dirs = breakDirsOf(p);
   const brk = breakWords(dirs);
   const slope = slopeOf(dirs);
@@ -143,6 +182,10 @@ function describeLag(
     label,
     what,
     setup: `Find ${p.d} ft${slope ? `, ${slope}` : ''}. ${fix} Inside ${withinOf(p.d)} ft counts.`,
+    bits: {
+      missed: `Left ${leave} ft${p.speed === 'short' ? ', short' : p.speed === 'long' ? ', past' : ''}`,
+      fix: p.speed === 'short' ? 'To the hole' : p.speed === 'long' ? 'Die it' : 'Pace',
+    },
   };
 }
 
@@ -210,7 +253,15 @@ export function missesOf(round: Round, practice = false): Miss[] {
         conds: condsOf(p),
         onCourse: { side: p.missSide, speed: p.speed, lip: p.lip },
         kind: lag ? lagKindOf(condsOf(p)) : kindOf(p.d, condsOf(p)),
-        ...(lag ? { lag: { leave: leave!, within: withinOf(p.d) } } : {}),
+        ...(lag
+          ? {
+              lag: {
+                leave: leave!,
+                within: withinOf(p.d),
+                next: { made: !!h.putts[i + 1]?.made, putts: h.putts.length, dirs: breakDirsOf(h.putts[i + 1]) },
+              },
+            }
+          : {}),
         ...(lag ? describeLag(p, leave!) : describe(p)),
       });
     });

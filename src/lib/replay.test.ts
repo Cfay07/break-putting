@@ -134,7 +134,7 @@ describe('lag replays', () => {
     expect(lags).toHaveLength(1);
     expect(lags[0].label).toBe('40 ft lag, downhill');
     expect(lags[0].what).toBe('Left it 9 ft, short.');
-    expect(lags[0].lag).toEqual({ leave: 9, within: 4 });
+    expect(lags[0].lag).toMatchObject({ leave: 9, within: 4, next: { made: false, putts: 3 } });
     expect(lags[0].kind.label).toBe('Downhill lags, 30 ft and out');
     expect(replayResult(lags[0], true)).toBe('Inside 4 ft. On the course you left it 9 ft.');
     expect(replayResult(lags[0], false, 'short')).toBe('Short again. Same miss as the course.');
