@@ -2689,3 +2689,6 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .rp-bits b { font-size: 14px; font-weight: 800; color: var(--ink); }
 .rp-bits b.rp-fix { color: #c4521f; }
 .rp-xp { font-style: normal; font-weight: 600; color: var(--ink-3); }
+.style-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; padding: 0 2px; font-size: 14px; color: var(--ink-2); border-top: 1px solid var(--line); }
+.style-seg { margin: 0; }
+.style-seg > button { min-height: 34px; padding: 0 12px; font-size: 13px; white-space: nowrap; flex: none; }

@@ -253,6 +253,19 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
         </span>
         <span className="room-change">Change</span>
       </button>
+      {canChoose && (
+        <div className="style-line">
+          <span>How you practice</span>
+          <div className="seg seg-quiet style-seg" role="group" aria-label="How you practice">
+            <button aria-pressed={style === 'reps'} onClick={() => pickStyle('reps')}>
+              Same putt
+            </button>
+            <button aria-pressed={style === 'round'} onClick={() => pickStyle('round')}>
+              Mixed
+            </button>
+          </div>
+        </div>
+      )}
 
       {runSession && (
         <a className="card run-banner" href={`#/practice/session/${runSession.id}`}>
@@ -308,16 +321,6 @@ export function Practice({ openTest = false }: { openTest?: boolean } = {}) {
                     </li>
                   ))}
                 </ol>
-                {canChoose && (
-                  <div className="seg today-style" role="group" aria-label="How you want to practice today">
-                    <button aria-pressed={style === 'reps'} onClick={() => pickStyle('reps')}>
-                      Same putt
-                    </button>
-                    <button aria-pressed={style === 'round'} onClick={() => pickStyle('round')}>
-                      Mixed
-                    </button>
-                  </div>
-                )}
                 {surface === 'indoor' && target.kind === 'slice' && (
                   <p className="today-note">
                     A flat mat trains start line and speed. The read needs real slope, so on a sloped green switch to
