@@ -99,12 +99,7 @@ function solve(a: number[][], b: number[]): number[] | null {
  * prediction the fit is not allowed to re-estimate, which is how the break stage sits on top of
  * the distance stage. `penalty` is per coefficient so an intercept can stay unpenalised.
  */
-export function irls(
-  x: number[][],
-  y: number[],
-  penalty: number[],
-  offset: number[],
-): number[] | null {
+export function irls(x: number[][], y: number[], penalty: number[], offset: number[]): number[] | null {
   const k = penalty.length;
   let beta = new Array(k).fill(0);
 
@@ -149,8 +144,7 @@ function termsOf(dirs: BreakDir[]): Term[] {
 }
 
 export function fitMakeModel(rounds: Round[]): MakeModel {
-  const all: { d: number; made: boolean; dirs: BreakDir[]; sev?: number; slope?: number }[] =
-    [];
+  const all: { d: number; made: boolean; dirs: BreakDir[]; sev?: number; slope?: number }[] = [];
   for (const r of rounds) {
     for (const h of r.holes) {
       for (const p of h.putts) {
@@ -159,7 +153,7 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
         const turns = bucket === 'lr' || bucket === 'rl' || bucket === 'double';
         // brokeAs is what the putt did, readAs is only what the player thought it would do.
         // Reading severity off the latter would make a misread putt look easier.
-        const sev = turns ? p.brokeAs ?? p.readAs : undefined;
+        const sev = turns ? (p.brokeAs ?? p.readAs) : undefined;
         // Only counts where a slope was actually picked; otherwise there is nothing to grade.
         const slopeAmt = slopeOf(dirs) ? p.slopeAs : undefined;
         all.push({
@@ -221,12 +215,7 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
       const ts = termsOf(p.dirs);
       // Slight is the reference, so a severity of 1 adds nothing and an untagged one assumes
       // slight rather than inventing a middle.
-      return [
-        1,
-        ...TERMS.map((t) => (ts.includes(t) ? 1 : 0)),
-        p.sev ? p.sev - 1 : 0,
-        p.slope ? p.slope - 1 : 0,
-      ];
+      return [1, ...TERMS.map((t) => (ts.includes(t) ? 1 : 0)), p.sev ? p.sev - 1 : 0, p.slope ? p.slope - 1 : 0];
     }),
     tagged.map((p) => (p.made ? 1 : 0)),
     [0, ...TERMS.map(() => RIDGE), RIDGE, RIDGE],
@@ -235,9 +224,7 @@ export function fitMakeModel(rounds: Round[]): MakeModel {
   if (!shift) return model;
 
   model.taggedLift = shift[0];
-  model.breakShift = Object.fromEntries(
-    TERMS.map((t, i) => [t, shift[i + 1]]),
-  ) as Record<Term, number>;
+  model.breakShift = Object.fromEntries(TERMS.map((t, i) => [t, shift[i + 1]])) as Record<Term, number>;
   model.severityShift = shift[TERMS.length + 1];
   model.slopeShift = shift[TERMS.length + 2];
   model.ready = true;
@@ -291,4 +278,25 @@ export function breakCost(model: MakeModel, d: number, dirs: BreakDir[]): number
   const real = makeability(model, d, dirs);
   if (plain === null || real === null) return null;
   return (real - plain) * 100;
+}
+
+/** Putts a putter needs before its own model stands in for your putting with it. */
+export const MIN_PUTTER_PUTTS = 150;
+
+/**
+ * Your make model with one putter. A model fit across a putter switch prices every putt at the
+ * average of two different putters: with the Cobra an 11-footer read 18% from both putters and 26%
+ * from the Cobra alone, which matched the raw 9 of 34. Falls back to every round only while that
+ * putter has too few putts to fit on its own.
+ */
+export function putterRounds(rounds: Round[], putterId: string | undefined): Round[] {
+  const real = rounds.filter((r) => r.finished && !r.practice);
+  if (!putterId) return real;
+  const own = real.filter((r) => r.putterId === putterId);
+  const putts = own.reduce((n, r) => n + r.holes.reduce((m, h) => m + h.putts.length, 0), 0);
+  return putts >= MIN_PUTTER_PUTTS ? own : real;
+}
+
+export function modelForPutter(rounds: Round[], putterId: string | undefined): MakeModel {
+  return fitMakeModel(putterRounds(rounds, putterId));
 }

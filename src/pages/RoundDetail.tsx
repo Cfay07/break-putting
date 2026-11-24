@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { bleedMarks, bleedsIn, bleedStory } from '../lib/bleed';
 import { holeSG, puttSG } from '../lib/sg';
-import { fitMakeModel } from '../lib/makeability';
+import { modelForPutter, putterRounds } from '../lib/makeability';
 import { fitExecModel, difficultyOf, xpotStatus, makeChanceOf, puttSGAdjusted, beatSpread, xpOf } from '../lib/xp';
 import { drawRoundSheet, pngFile } from '../lib/shareCard';
 import { publishRound, shareUrl } from '../lib/shareLink';
@@ -69,9 +69,13 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   // trail, so it falls back to the list the round lives in.
   const from = previousRouteBut((r) => r.startsWith('/round/'));
   const back = from ?? (practice ? '/stats/practice' : '/');
-  // Fitted on every round, not just this one: one round is nowhere near enough break to learn from.
-  const makeModel = useMemo(() => fitMakeModel(state.rounds), [state.rounds]);
-  const exec = useMemo(() => fitExecModel(makeModel, state.rounds), [makeModel, state.rounds]);
+  // Fitted on every round with this round's putter, not just this one: one round is nowhere near
+  // enough break to learn from, and a model across a putter switch would price the wrong putter.
+  const makeModel = useMemo(() => modelForPutter(state.rounds, round?.putterId), [state.rounds, round?.putterId]);
+  const exec = useMemo(
+    () => fitExecModel(makeModel, putterRounds(state.rounds, round?.putterId)),
+    [makeModel, state.rounds, round?.putterId],
+  );
   // Each hole counted once, from its first putt: xP already holds the putts that follow it. It
   // reads the break, so it is not putts plus strokes gained and is not meant to be.
   const roundXp = useMemo(() => {

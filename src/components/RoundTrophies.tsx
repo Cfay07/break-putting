@@ -7,7 +7,7 @@ import { roundStreaks } from '../lib/streaks';
 import { holeVsPar, type Round } from '../lib/types';
 import { Sheet } from './Sheet';
 import { fmtIndex, indexAt, indexMove } from '../lib/handicap';
-import { fitMakeModel } from '../lib/makeability';
+import { modelForPutter } from '../lib/makeability';
 import { makeChanceOf } from '../lib/xp';
 import { useCourseRatings } from '../lib/useCourseRatings';
 
@@ -41,7 +41,7 @@ export function RoundStory({
   const index = useMemo(() => indexAt(round, rounds, courses), [round, rounds, courses]);
   const move = useMemo(() => indexMove(round, rounds, courses), [round, rounds, courses]);
   // Your own make chance on the first putt of the two holes that swung the round.
-  const model = useMemo(() => fitMakeModel(rounds), [rounds]);
+  const model = useMemo(() => modelForPutter(rounds, round.putterId), [rounds, round.putterId]);
   const chanceOn = (hole: number) => {
     const p = round.holes.find((h) => h.hole === hole)?.putts[0];
     const c = p ? makeChanceOf(model, p) : null;

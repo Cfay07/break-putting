@@ -13,7 +13,7 @@ import { fmtDate, signed } from '../lib/format';
 import { sample, signedFor } from '../lib/sample';
 import { biggestGap, byTime, histories, practiceVsPlay, RECENT_ROUNDS, totalsOf } from '../lib/practice';
 import { setScoreShort } from '../lib/practiceView';
-import { fitMakeModel, type MakeModel } from '../lib/makeability';
+import { modelForPutter, type MakeModel } from '../lib/makeability';
 import { expectedPutts } from '../lib/sg';
 import { overall, roundScale, roundStats } from '../lib/stats';
 import { xpOf } from '../lib/xp';
@@ -79,7 +79,10 @@ export function PracticeStats({ topic }: { topic?: PracticeTopic }) {
   const list = histories(sets, family);
   const totals = totalsOf(sets);
   // Fitted on real rounds only: the yardstick is how you putt on a course.
-  const model = useMemo(() => fitMakeModel(state.rounds.filter((r) => r.finished)), [state.rounds]);
+  const model = useMemo(
+    () => modelForPutter(state.rounds, state.putters.find((p) => p.active)?.id),
+    [state.rounds, state.putters],
+  );
   const played = (state.practiceRounds ?? []).filter((r) => r.finished).sort((a, b) => b.date.localeCompare(a.date));
   const prac = played.length ? overall(played, state.baseline) : null;
   // Indoor and green rounds never share a column: a mat breaks less and rolls truer, which flatters every number.

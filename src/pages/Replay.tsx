@@ -26,6 +26,8 @@ import { useTarget } from '../lib/useTarget';
 import type { PracticeSet, Round } from '../lib/types';
 
 type View = 'rec' | 'rounds';
+/** Putts a putter needs before its make model can price a comebacker. */
+const MIN_CHANCE_PUTTS = 150;
 const VIEW_KEY = 'break.replayView';
 
 function readView(): View {
@@ -192,7 +194,18 @@ export function Replay({ roundId }: { roundId?: string }) {
   const [saved, setSaved] = useState<string | null>(null);
 
   const history = useMemo(() => replayHistory(state.practice), [state.practice]);
-  const model = useMemo(() => fitMakeModel(state.rounds.filter((r) => r.finished && !r.practice)), [state.rounds]);
+  // One make model per putter: a model fit across a putter switch prices every putt at the average
+  // of two different putters, which made an 11-footer with the Cobra read 18% instead of 26%.
+  const models = useMemo(() => {
+    const real = state.rounds.filter((r) => r.finished && !r.practice);
+    return new Map(
+      [...new Set(real.map((r) => r.putterId))].map((id) => [id, fitMakeModel(real.filter((r) => r.putterId === id))]),
+    );
+  }, [state.rounds]);
+  const chanceOf = (m: Miss): number | null => {
+    const model = m.lag ? models.get(m.putterId) : undefined;
+    return model && m.lag && model.n >= MIN_CHANCE_PUTTS ? makeability(model, m.lag.leave, m.lag.next.dirs) : null;
+  };
   const redeem = useMemo(
     () => redemption(state.rounds, state.practiceRounds ?? [], state.practice),
     [state.rounds, state.practiceRounds, state.practice],
@@ -340,7 +353,7 @@ export function Replay({ roundId }: { roundId?: string }) {
             <MissCard
               key={m.key}
               miss={m}
-              chance={m.lag ? makeability(model, m.lag.leave, m.lag.next.dirs) : null}
+              chance={chanceOf(m)}
               on={!off.has(m.key)}
               result={results[m.key]}
               history={history.get(keyOf(m.of))}
