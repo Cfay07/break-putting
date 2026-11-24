@@ -8,6 +8,7 @@ import { ProgressHeader } from '../components/ProgressHeader';
 import { SetColumns } from '../components/SetColumns';
 import { VsPlay } from '../components/VsPlay';
 import { resolveDrill } from '../lib/drills';
+import { REPLAY_ID } from '../lib/replay';
 import { fmtDate, signed } from '../lib/format';
 import { sample, signedFor } from '../lib/sample';
 import { biggestGap, byTime, histories, practiceVsPlay, RECENT_ROUNDS, totalsOf } from '../lib/practice';
@@ -149,9 +150,7 @@ export function PracticeStats({ topic }: { topic?: PracticeTopic }) {
           <button className="linkish tiny" onClick={() => go('/stats/practice')}>
             ‹ Practice stats
           </button>
-          <h1 className="page-title topic-title">
-            {PRACTICE_TOPICS[topic]}
-          </h1>
+          <h1 className="page-title topic-title">{PRACTICE_TOPICS[topic]}</h1>
         </>
       ) : (
         <>
@@ -268,6 +267,20 @@ export function PracticeStats({ topic }: { topic?: PracticeTopic }) {
             <>
               <div className="row-list">
                 {list.map((h) => {
+                  if (h.drill === REPLAY_ID) {
+                    const made = h.sets.reduce((n, x) => n + x.made, 0);
+                    const tried = h.sets.reduce((n, x) => n + x.attempts, 0);
+                    return (
+                      <a key={h.drill} className="drill-row" href="#/practice/replay">
+                        <span className="drill-main">
+                          <strong>Replay your misses</strong>
+                          <span className="small muted">
+                            {h.sets.length} {h.sets.length === 1 ? 'putt' : 'putts'} replayed · {made} of {tried} holed
+                          </span>
+                        </span>
+                      </a>
+                    );
+                  }
                   const d = fitted(h.drill) ?? resolveDrill(state, h.drill);
                   if (!d) return null;
                   const gap = biggestGap(practiceVsPlay(h.sets, scoped.rounds));
