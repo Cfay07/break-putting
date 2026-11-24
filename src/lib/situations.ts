@@ -114,7 +114,6 @@ export function byStretch(rounds: Round[], baseline: [number, number][]): GroupL
   const rs = counted(rounds);
   const played = (r: Round) => r.holes.filter((h) => h.putts.length > 0 || scored(h));
   const pick = (f: (holes: Hole[]) => Hole[]) => rs.flatMap((r) => f(played(r)));
-  const eighteens = rs.filter((r) => played(r).length >= 18);
   const out = [
     line(
       'First 3 holes',
@@ -130,22 +129,21 @@ export function byStretch(rounds: Round[], baseline: [number, number][]): GroupL
     ),
     ...worstPosition(rs, played, baseline),
   ];
-  if (eighteens.length) {
-    out.push(
-      line(
-        'Front nine',
-        eighteens,
-        eighteens.flatMap((r) => played(r).slice(0, 9)),
-        baseline,
-      ),
-      line(
-        'Back nine',
-        eighteens,
-        eighteens.flatMap((r) => played(r).slice(9, 18)),
-        baseline,
-      ),
+  // Nines by hole number, from every round that played them, so a front-nine-only round counts
+  // toward the front nine instead of leaving both nines on the eighteen-hole rounds alone.
+  const nine = (label: string, inNine: (h: Hole) => boolean) => {
+    const withIt = rs.filter((r) => played(r).some(inNine));
+    return line(
+      label,
+      withIt,
+      withIt.flatMap((r) => played(r).filter(inNine)),
+      baseline,
     );
-  }
+  };
+  out.push(
+    nine('Front nine', (h) => h.hole <= 9),
+    nine('Back nine', (h) => h.hole >= 10),
+  );
   return out.filter((l) => l.holes > 0);
 }
 

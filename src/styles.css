@@ -2706,3 +2706,32 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .tempo-log-btns { display: flex; gap: 8px; margin-top: 12px; }
 .tempo-log-btns .btn { flex: 1; }
 .pay-slot { fill: none; stroke: rgba(20, 57, 43, 0.22); stroke-width: 1.5; stroke-dasharray: 3 3; }
+
+/* The Dial: a length, what you make from there, and your two extremes. */
+.dial { padding: 16px; margin-bottom: 14px; text-align: center; }
+.dial-big { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
+.dial-big b { font-size: 52px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
+.dial-big span { font-size: 15px; font-weight: 800; color: var(--ink-2); }
+.dial-at { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+.dial-range { width: 100%; margin: 16px 0 4px; accent-color: var(--ink); }
+.dial-ft { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); }
+.dial-ends { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.dial-end { display: flex; flex-direction: column; align-items: center; gap: 1px; background: none; border: 0; padding: 0; font: inherit; color: var(--ink); cursor: pointer; }
+span.dial-end { cursor: default; }
+.dial-end small { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.dial-end b { font-size: 17px; font-weight: 800; }
+.dial-end span { font-size: 11px; color: var(--ink-3); }
+
+/* Hole by hole: tight columns so all of it fits a phone. */
+.hole-card { font-size: 12px; }
+.hole-card th, .hole-card td { padding: 6px 3px; text-align: right; white-space: nowrap; }
+.hole-card th:first-child, .hole-card td:first-child { text-align: left; }
+.hole-card th { font-size: 10px; }
+.hc-par { display: block; font-size: 10px; color: var(--ink-3); }
+.hole-card td.zero { color: var(--ink-3); opacity: 0.6; }
+.hole-card td.pos { color: #2e8a5c; font-weight: 800; }
+.hole-card td.neg { color: #a52a1f; font-weight: 800; }
+.hole-card tr.hc-total td { border-top: 2px solid var(--ink); font-weight: 800; color: var(--ink); }
+.hole-card { font-size: 11.5px; }
+.hole-card th, .hole-card td { padding: 6px 2px; }
+.hole-card th { font-size: 9.5px; letter-spacing: 0.02em; }

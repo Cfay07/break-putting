@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { currentSession } from '../lib/cloud';
-import { buildFeed, reactionsFor, type Reaction, type TeamPracticeRow } from '../lib/feed';
+import { buildFeed, isLive, reactionsFor, type Reaction, type TeamPracticeRow } from '../lib/feed';
 import { fmtDateLong, signed } from '../lib/format';
 import { backLabel, go, previousRoute } from '../lib/router';
 import { expectedPutts } from '../lib/sg';
@@ -243,7 +243,6 @@ function HoleRows({ holes }: { holes: SharedHole[] }) {
 /** How often the live page asks again. A hole takes ten minutes; twenty seconds is plenty. */
 const LIVE_POLL_MS = 20_000;
 /** Same cut-off as the live strip: nothing logged in three hours and the round is not live. */
-const LIVE_HOURS = 3;
 
 const minsAgo = (iso: string) => Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
 
@@ -277,7 +276,7 @@ export function TeamLivePage({ user }: { user: string }) {
 
   const name = data.name ?? 'A teammate';
   const live = data.live;
-  const stale = !live || Date.now() - Date.parse(live.started_at) > LIVE_HOURS * 3600_000;
+  const stale = !live || !isLive(live, data.updatedAt);
   if (stale)
     return (
       <ErrorState text={`${name} is not on the course right now. Their round shows in the feed once it is finished.`} />

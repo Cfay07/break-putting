@@ -11,6 +11,7 @@ import { Account } from '../components/Account';
 import { useApp } from '../lib/store';
 import { newId } from '../lib/storage';
 import { fmtDate, fmtDateLong, today } from '../lib/format';
+import { isLive } from '../lib/feed';
 import {
   createTeam,
   joinTeam,
@@ -176,7 +177,7 @@ function PlayerPanel({
         </p>
       )}
 
-      {stats?.live && (
+      {stats?.live && isLive(stats.live, stats.updated_at) && (
         <p className="small" style={{ margin: '0 0 10px', color: accent, fontWeight: 600 }}>
           Out right now · hole {stats.live.hole}, {stats.live.thru} played
           {stats.live.course ? ` · ${stats.live.course}` : ''}
@@ -636,7 +637,7 @@ export function Team({ joinCode }: { joinCode?: string } = {}) {
           players={roster.map((r) => ({
             id: r.member.user_id,
             name: r.member.display_name ?? 'Unnamed player',
-            live: !!r.stats?.live,
+            live: isLive(r.stats?.live, r.stats?.updated_at),
           }))}
           me={session.userId}
           onOpen={setOpen}

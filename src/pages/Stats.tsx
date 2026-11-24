@@ -24,7 +24,9 @@ import { SampleTag } from '../components/SampleTag';
 import { ShootSplitCard } from '../components/ShootSplitCard';
 import { TopicRows, type TopicRow } from '../components/TopicRows';
 import { TallyTable, tonePair } from '../components/TallyTable';
-import { LevelCard } from '../components/LevelCard';
+import { Dial } from '../components/Dial';
+import { HoleCard } from '../components/HoleCard';
+import { holeCard } from '../lib/dial';
 import { LagStory } from '../components/LagStory';
 import { TargetLine } from '../components/TargetLine';
 import { lagTrend, lagTrendStory } from '../lib/lagStory';
@@ -220,28 +222,13 @@ function RoundStats({ topic }: { topic?: Topic }) {
     [rounds, state.putters, state.baseline],
   );
   const birdie = useMemo(() => birdieVsPar(rounds), [rounds]);
+  const holes = useMemo(() => holeCard(rounds, state.baseline), [rounds, state.baseline]);
   const greensPutter = greensSplit
     ? greensSplit.current
       ? greensSplit.putter.name
       : `${greensSplit.putter.name}, your previous putter`
     : '';
   const level = useMemo(() => levelOf(rounds), [rounds]);
-  // Two putters in one set average a before and an after. The newest one on its own says where you are now.
-  const latestLevel = useMemo(() => {
-    const ids = new Set(rounds.map((r) => r.putterId));
-    if (ids.size < 2) return null;
-    const newest = [...rounds].sort((a, b) => b.date.localeCompare(a.date))[0];
-    const own = levelOf(rounds.filter((r) => r.putterId === newest.putterId));
-    const putter = state.putters.find((p) => p.id === newest.putterId);
-    return own && putter ? { id: putter.id, name: putter.name, level: own } : null;
-  }, [rounds, state.putters]);
-  const firstPuttCount = useMemo(
-    () =>
-      rounds
-        .filter((r) => r.finished && !r.practice)
-        .reduce((n, r) => n + r.holes.filter((h) => h.putts.length && h.putts[h.putts.length - 1].made).length, 0),
-    [rounds],
-  );
   const locks = useMemo(() => locksFor(rounds, state.baseline), [rounds, state.baseline]);
   const findings = useMemo(
     () => findingsFor(rounds, state.putters, state.baseline),
@@ -849,12 +836,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
 
           {!lock && topic === 'distance' && (
             <>
-              <LevelCard
-                level={level}
-                firstPutts={firstPuttCount}
-                latest={latestLevel}
-                onLatest={(id) => setFilter({ ...filter, putterId: id })}
-              />
+              <Dial rounds={rounds} half={level?.d50 ?? null} />
               {spread.n > 0 && (
                 <>
                   <h2>How often you beat the number</h2>
@@ -1188,9 +1170,25 @@ function RoundStats({ topic }: { topic?: Topic }) {
                   {timingStory(stretches) && <p className="topic-answer">{timingStory(stretches)}</p>}
                   <CompareRows lines={stretches} />
                   <p className="small muted" style={{ margin: '8px 0 0' }}>
-                    Gained is strokes gained per hole on average; 3-putts is how often a hole there took three. In the
-                    order you played them, so a shotgun start still reads right. Nines split only on eighteen-hole
-                    rounds.
+                    Gained is strokes gained per hole on average; 3-putts is how often a hole there took three. First
+                    and last 3 go by the order you played, so a shotgun start still reads right. Nines go by hole
+                    number, from every round that played them.
+                  </p>
+                </>
+              )}
+              <div className="field-label">Hole by hole</div>
+              {holes && (
+                <>
+                  {holes.mixed && (
+                    <p className="small muted" style={{ margin: '0 0 8px' }}>
+                      Every course combined, so hole 7 is a different hole at each one. Pick a course in the filter for
+                      its own scorecard.
+                    </p>
+                  )}
+                  <HoleCard rows={holes.rows} mixed={holes.mixed} />
+                  <p className="small muted" style={{ margin: '8px 0 0' }}>
+                    To par is your average on the hole against its par. SG is putting strokes gained there, Long your
+                    longest made putt. Total adds the holes up into one round. From the rounds in the filter.
                   </p>
                 </>
               )}

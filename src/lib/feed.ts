@@ -51,13 +51,22 @@ export interface Live {
   proj?: { putts: number; toPar: number | null; score: number | null } | null;
 }
 
-/** Live means logged in the last three hours. A round abandoned on the 9th green is not live. */
-const LIVE_HOURS = 3;
+/**
+ * Live means the round was updated in the last three hours. Counting from the last update, not the
+ * start, keeps a five-hour round live to the 18th, and a round abandoned on the 9th green drops off
+ * three hours later instead of showing the player on the 9th for days.
+ */
+export const LIVE_HOURS = 3;
+
+export function isLive(live: { started_at: string } | null | undefined, updatedAt?: string, now = Date.now()): boolean {
+  if (!live) return false;
+  const last = Math.max(Date.parse(live.started_at), updatedAt ? Date.parse(updatedAt) : 0);
+  return now - last < LIVE_HOURS * 3600_000;
+}
 
 export function liveNow(stats: PlayerStats[], members: string[], now = Date.now()): Live[] {
   return stats
-    .filter((s) => members.includes(s.user_id) && s.live)
-    .filter((s) => now - Date.parse(s.live!.started_at) < LIVE_HOURS * 3600_000)
+    .filter((s) => members.includes(s.user_id) && isLive(s.live, s.updated_at, now))
     .map((s) => ({
       user: s.user_id,
       hole: s.live!.hole,

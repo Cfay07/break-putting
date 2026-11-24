@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFeed, liveNow, reactionsFor, type TeamPracticeRow } from './feed';
+import { buildFeed, isLive, liveNow, reactionsFor, type TeamPracticeRow } from './feed';
 import type { PlayerStats, TeamRound } from './teams';
 
 const A = '11111111-1111-1111-1111-111111111111';
@@ -150,5 +150,16 @@ describe('reactionsFor', () => {
     ];
     expect(reactionsFor('p1', r, A)).toEqual({ count: 2, mine: true });
     expect(reactionsFor('p2', r, A)).toEqual({ count: 1, mine: false });
+  });
+});
+
+describe('isLive', () => {
+  const now = Date.parse('2026-11-24T15:00:00Z');
+  it('keeps a long round live while it keeps updating, and drops an abandoned one', () => {
+    const live = { started_at: '2026-11-24T10:00:00Z' };
+    expect(isLive(live, '2026-11-24T14:30:00Z', now)).toBe(true);
+    expect(isLive(live, '2026-11-24T10:30:00Z', now)).toBe(false);
+    expect(isLive({ started_at: '2026-11-21T21:03:36Z' }, undefined, now)).toBe(false);
+    expect(isLive(null, undefined, now)).toBe(false);
   });
 });

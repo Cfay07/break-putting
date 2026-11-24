@@ -424,10 +424,12 @@ export async function loadBoard(): Promise<{ rounds: TeamRound[]; practice: Team
 /** One teammate's live round, read fresh each time the live page polls. */
 export async function loadLive(user: string) {
   const [stat, who] = await Promise.all([
-    rows<Pick<PlayerStats, 'user_id' | 'live'>>(`team_stats?select=user_id,live&user_id=eq.${user}`),
+    rows<Pick<PlayerStats, 'user_id' | 'live' | 'updated_at'>>(
+      `team_stats?select=user_id,live,updated_at&user_id=eq.${user}`,
+    ),
     rows<Pick<Member, 'user_id' | 'display_name'>>(
       `team_members?select=user_id,display_name&user_id=eq.${user}&limit=1`,
     ),
   ]);
-  return { live: stat[0]?.live ?? null, name: who[0]?.display_name ?? null };
+  return { live: stat[0]?.live ?? null, updatedAt: stat[0]?.updated_at, name: who[0]?.display_name ?? null };
 }
