@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BUILT_IN_COURSES, NAMED_NINES, NINES_SEP, ninesPart } from '../lib/builtInCourses';
-import { dedupeCourses } from '../lib/courses';
+import { dedupeCourses, dedupeHits } from '../lib/courses';
 import { loadCourse, searchCourses, type CourseHit } from '../lib/courseApi';
 import { newId } from '../lib/storage';
 import { shareCourse, useSharedCourses } from '../lib/sharedCourses';
@@ -68,7 +68,7 @@ export function CoursePicker({
   const { state, dispatch } = useApp();
   const shared = useSharedCourses();
   const [query, setQuery] = useState('');
-  const [hits, setHits] = useState<(CourseHit & { saved?: boolean })[] | null>(null);
+  const [hits, setHits] = useState<(CourseHit & { saved?: boolean; nine?: boolean })[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [open, setOpen] = useState<SavedCourse | null>(null);
@@ -117,13 +117,14 @@ export function CoursePicker({
         name: c.name,
         place: c.place ?? '',
         saved: state.courses.some((s) => s.id === c.id) || c.id.startsWith('builtin-'),
+        nine: isNine(c),
       }));
 
     try {
       const found = await searchCourses(q);
-      const fresh = found.filter((f) => !mine.some((m) => m.id === f.id));
-      setHits([...mine, ...fresh]);
-      if (!mine.length && !fresh.length) {
+      const all = dedupeHits([...mine, ...found]);
+      setHits(all);
+      if (!all.length) {
         setError('Nothing came back for that. Type the pars in by hand instead.');
       }
     } catch (e) {
@@ -279,7 +280,7 @@ export function CoursePicker({
             {h.name}
           </span>
           <span className="small muted" style={{ display: 'block' }}>
-            {[h.saved ? 'Already on your phone' : '', h.place].filter(Boolean).join(' · ')}
+            {[h.saved ? 'Already on your phone' : '', h.place, h.nine ? '9 holes' : ''].filter(Boolean).join(' · ')}
           </span>
         </button>
       ))}

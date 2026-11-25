@@ -19,6 +19,30 @@ const placeOf = (c: SavedCourse) => (c.place ?? '').toLowerCase().replace(/[^a-z
 // Two Shiloh Parks in Illinois: same name only counts as the same course in the same town.
 const samePlace = (a: SavedCourse, b: SavedCourse) => !placeOf(a) || !placeOf(b) || placeOf(a) === placeOf(b);
 
+const flatPlace = (p: string | undefined) => (p ?? '').toLowerCase().replace(/[^a-z,]/g, '');
+
+/**
+ * One row per course in a search. The course service can list a course the app already carries
+ * under its own id (Shiloh Park, Vernon Hills), or list it twice itself. Same name and same town
+ * is the same course; the first row, the one already on the phone or shared, stays.
+ */
+export function dedupeHits<T extends { id: string; name: string; place?: string }>(hits: T[]): T[] {
+  const out: T[] = [];
+  for (const h of hits) {
+    const i = out.findIndex((o) => {
+      if (o.id === h.id) return true;
+      const [a, b] = [flatPlace(o.place), flatPlace(h.place)];
+      // With no town on one side, only exactly the same name is the same course.
+      if (!a || !b) return words(o.name).join(' ') === words(h.name).join(' ');
+      return a === b && sameCourse(o.name, h.name);
+    });
+    if (i < 0) out.push(h);
+    // A course typed in with no town gives way to the same course with one, which has the tees.
+    else if (!flatPlace(out[i].place) && flatPlace(h.place)) out[i] = h;
+  }
+  return out;
+}
+
 /**
  * One entry per real course. Saved, built-in and looked-up copies of the same course collapse
  * to the one with the most rated tees, so no course shows twice.
