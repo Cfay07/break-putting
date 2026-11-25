@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { BUILT_IN_COURSES, NAMED_NINES, NINES_SEP, ninesPart } from '../lib/builtInCourses';
 import { dedupeCourses, dedupeHits } from '../lib/courses';
 import { loadCourse, searchCourses, type CourseHit } from '../lib/courseApi';
+import { openDirectoryCourse, searchDirectory } from '../lib/courseDirectory';
 import { newId } from '../lib/storage';
 import { shareCourse, useSharedCourses } from '../lib/sharedCourses';
 import { useApp } from '../lib/store';
@@ -120,19 +121,25 @@ export function CoursePicker({
         nine: isNine(c),
       }));
 
-    try {
-      const found = await searchCourses(q);
-      const all = dedupeHits([...mine, ...found]);
-      setHits(all);
-      if (!all.length) {
-        setError('Nothing came back for that. Type the pars in by hand instead.');
+    // Then every course in Wisconsin and Illinois from BREAK!'s own directory. The course service
+    // is only asked when neither has it, so its small daily allowance goes on courses elsewhere.
+    const dir = await searchDirectory(q).catch(() => []);
+    type Row = CourseHit & { saved?: boolean; nine?: boolean };
+    let all: Row[] = dedupeHits<Row>([
+      ...mine,
+      ...dir.map((d) => ({ id: d.id, name: d.name, place: d.place, nine: d.holes === 9 })),
+    ]);
+    let problem = '';
+    if (!all.length) {
+      try {
+        all = dedupeHits(await searchCourses(q));
+      } catch (e) {
+        problem = `${(e as Error).message} Try again tomorrow, or type the pars in below.`;
       }
-    } catch (e) {
-      setHits(mine);
-      if (!mine.length) setError(`${(e as Error).message} Try again tomorrow, or type the pars in below.`);
-    } finally {
-      setBusy(false);
     }
+    setHits(all);
+    setError(all.length ? '' : problem || 'Nothing came back for that. Type the pars in by hand instead.');
+    setBusy(false);
   };
 
   const openHit = async (hit: CourseHit & { saved?: boolean }) => {
@@ -149,6 +156,20 @@ export function CoursePicker({
     }
     setBusy(true);
     setError('');
+    if (hit.id.startsWith('oga-')) {
+      const course = await openDirectoryCourse({ id: hit.id, name: hit.name, place: hit.place, holes: null });
+      setBusy(false);
+      if (!course) {
+        setError('No scorecard for this course yet. Type the pars in below, and it is saved for everyone.');
+        setManual(true);
+        setMName(hit.name);
+        return;
+      }
+      dispatch({ t: 'saveCourse', course });
+      void shareCourse(course, 'service');
+      openCourse(course);
+      return;
+    }
     try {
       const course = await loadCourse(hit.id);
       dispatch({ t: 'saveCourse', course });

@@ -234,6 +234,11 @@ export async function table(path: string, init: RequestInit = {}, retry = true):
   return res;
 }
 
+/** A read anyone may make, signed in or not, such as the course directory. */
+export function publicRead(path: string): Promise<Response> {
+  return fetch(`${URL}/rest/v1/${path}`, { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } });
+}
+
 /**
  * A call that carries only the anon key, for the handful of things a signed-out visitor is
  * allowed to do. Row level security decides what that is, not this function.

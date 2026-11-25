@@ -511,6 +511,10 @@ export function Settings() {
         </Sheet>
       )}
       {open?.k === 'baseline' && <BaselineSheet onClose={close} />}
+      {/* The course directory's open licence (ODbL 1.0) requires this credit wherever it is used. */}
+      <p className="tiny muted" style={{ margin: '24px 0 0' }}>
+        Course list includes data © OpenStreetMap contributors, via OpenGolfAPI, under the ODbL.
+      </p>
     </>
   );
 }

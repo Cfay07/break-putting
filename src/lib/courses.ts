@@ -27,14 +27,25 @@ const flatPlace = (p: string | undefined) => (p ?? '').toLowerCase().replace(/[^
  * is the same course; the first row, the one already on the phone or shared, stays.
  */
 export function dedupeHits<T extends { id: string; name: string; place?: string }>(hits: T[]): T[] {
+  const nameKey = (h: T) => `${words(h.name).join(' ')}|${flatPlace(h.place).split(',').pop()}`;
+  // How many directory courses share a name in a state. Two Shiloh Parks in Illinois means the
+  // name alone says nothing, and only the town can match.
+  const inDirectory = new Map<string, number>();
+  for (const h of hits)
+    if (h.id.startsWith('oga-')) inDirectory.set(nameKey(h), (inDirectory.get(nameKey(h)) ?? 0) + 1);
   const out: T[] = [];
   for (const h of hits) {
     const i = out.findIndex((o) => {
       if (o.id === h.id) return true;
       const [a, b] = [flatPlace(o.place), flatPlace(h.place)];
       // With no town on one side, only exactly the same name is the same course.
-      if (!a || !b) return words(o.name).join(' ') === words(h.name).join(' ');
-      return a === b && sameCourse(o.name, h.name);
+      const sameName = words(o.name).join(' ') === words(h.name).join(' ');
+      if (!a || !b) return sameName;
+      // Directories disagree on towns (Ivanhoe or South Barrington), so an identical name in the
+      // same state is the same course too.
+      const stateOf = (p: string) => p.split(',').pop();
+      const unique = (inDirectory.get(nameKey(h)) ?? 0) <= 1 && (inDirectory.get(nameKey(o)) ?? 0) <= 1;
+      return (a === b && sameCourse(o.name, h.name)) || (sameName && unique && stateOf(a) === stateOf(b));
     });
     if (i < 0) out.push(h);
     // A course typed in with no town gives way to the same course with one, which has the tees.

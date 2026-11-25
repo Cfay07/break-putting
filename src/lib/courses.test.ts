@@ -55,3 +55,25 @@ describe('search rows', () => {
     expect(dedupeHits([row('t', 'Shiloh'), row('s', 'Shiloh Park Golf Course', 'Zion, IL')])).toHaveLength(2);
   });
 });
+
+describe('search rows against the course directory', () => {
+  const row = (id: string, name: string, place?: string) => ({ id, name, place });
+  it('drops the directory copy of a course the app carries, even when the towns disagree', () => {
+    const hits = dedupeHits([
+      row('builtin-ivanhoe', 'Ivanhoe Club', 'Ivanhoe, IL'),
+      row('builtin-shoop-park', 'Shoop Park Golf Course', 'Racine, WI'),
+      row('oga-1', 'Ivanhoe Club', 'South Barrington, IL'),
+      row('oga-2', 'Shoop Park', 'Wind Point, WI'),
+    ]);
+    expect(hits.map((h) => h.id)).toEqual(['builtin-ivanhoe', 'builtin-shoop-park']);
+  });
+
+  it('keeps two directory courses with one name in one state apart, matching only by town', () => {
+    const hits = dedupeHits([
+      row('builtin-shiloh-park', 'Shiloh Park Golf Course', 'Zion, IL'),
+      row('oga-a', 'Shiloh Park Golf Course', 'Zion, IL'),
+      row('oga-b', 'Shiloh Park Golf Course', 'Elsewhere, IL'),
+    ]);
+    expect(hits.map((h) => h.id)).toEqual(['builtin-shiloh-park', 'oga-b']);
+  });
+});
