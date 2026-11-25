@@ -13,6 +13,8 @@ export interface CourseChoice {
   courseId?: string;
   tee?: string;
   pars?: number[];
+  /** Every tee on the course is nine holes, so a new round there is a nine. */
+  nineOnly?: boolean;
 }
 
 /**
@@ -89,6 +91,7 @@ export function CoursePicker({
       courseId: course.id,
       tee: tee.name,
       pars: fitPars(tee.pars, holeCount),
+      nineOnly: isNine(course),
     });
     setOpen(null);
     setNines(null);
@@ -199,18 +202,21 @@ export function CoursePicker({
   if (value.pars?.length) {
     const par = value.pars.reduce((a, b) => a + b, 0);
     return (
-      <div className="card card-live">
-        <h3>{value.name}</h3>
-        <p className="small muted" style={{ margin: '2px 0 10px' }}>
-          {value.tee} · par {par}
-        </p>
-        <button
-          className="btn btn-ghost btn-wide"
-          onClick={() => onChange({ name: value.name, courseId: undefined, tee: undefined, pars: undefined })}
-        >
-          Change course
-        </button>
-      </div>
+      <>
+        <div className="field-label">Course</div>
+        <div className="card card-live">
+          <h3>{value.name}</h3>
+          <p className="small muted" style={{ margin: '2px 0 10px' }}>
+            {value.tee} · par {par}
+          </p>
+          <button
+            className="btn btn-ghost btn-wide"
+            onClick={() => onChange({ name: value.name, courseId: undefined, tee: undefined, pars: undefined })}
+          >
+            Change course
+          </button>
+        </div>
+      </>
     );
   }
 
@@ -225,32 +231,35 @@ export function CoursePicker({
         .filter(Boolean)
         .join(' · ');
     return (
-      <div className="card">
-        <h3>{open.name}</h3>
-        <p className="small muted" style={{ margin: '2px 0 10px' }}>
-          {[open.place, byNines && !nines ? 'Which nines?' : 'Which tees?'].filter(Boolean).join(' · ')}
-        </p>
-        <div className="chips">
-          {byNines && !nines
-            ? pairs.map((p) => (
-                <button key={p} className="chip" onClick={() => setNines(p)}>
-                  {p}
-                </button>
-              ))
-            : shown.map((t) => (
-                <button key={`${t.name}${t.yards}`} className="chip" onClick={() => pick(open, t)}>
-                  {chip(t)}
-                </button>
-              ))}
+      <>
+        <div className="field-label">Course</div>
+        <div className="card">
+          <h3>{open.name}</h3>
+          <p className="small muted" style={{ margin: '2px 0 10px' }}>
+            {[open.place, byNines && !nines ? 'Which nines?' : 'Which tees?'].filter(Boolean).join(' · ')}
+          </p>
+          <div className="chips">
+            {byNines && !nines
+              ? pairs.map((p) => (
+                  <button key={p} className="chip" onClick={() => setNines(p)}>
+                    {p}
+                  </button>
+                ))
+              : shown.map((t) => (
+                  <button key={`${t.name}${t.yards}`} className="chip" onClick={() => pick(open, t)}>
+                    {chip(t)}
+                  </button>
+                ))}
+          </div>
+          <button
+            className="btn btn-ghost btn-wide"
+            style={{ marginTop: 10 }}
+            onClick={() => (nines ? setNines(null) : setOpen(null))}
+          >
+            Back
+          </button>
         </div>
-        <button
-          className="btn btn-ghost btn-wide"
-          style={{ marginTop: 10 }}
-          onClick={() => (nines ? setNines(null) : setOpen(null))}
-        >
-          Back
-        </button>
-      </div>
+      </>
     );
   }
 

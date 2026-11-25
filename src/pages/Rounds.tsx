@@ -282,18 +282,40 @@ export function Rounds() {
       {open && (
         <Sheet title="New round" onClose={() => setOpen(false)}>
           <div className="field-label">Date</div>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <input
+            type="date"
+            value={date}
+            max={today()}
+            onChange={(e) => setDate(e.target.value > today() ? today() : e.target.value)}
+          />
 
-          <CoursePicker holeCount={holeCount} value={choice} onChange={setChoice} />
+          <CoursePicker
+            holeCount={holeCount}
+            value={choice}
+            onChange={(c) => {
+              // A nine-hole course is a nine-hole round: never stretched over eighteen.
+              if (c.nineOnly && holeCount !== 9) {
+                setHoleCount(9);
+                setChoice({ ...c, pars: c.pars?.slice(0, 9) });
+              } else setChoice(c);
+            }}
+          />
 
           <div className="field-label">Holes</div>
           <div className="seg">
             {[18, 9].map((n) => (
-              <button key={n} type="button" aria-pressed={holeCount === n} onClick={() => setHoleCount(n)}>
+              <button
+                key={n}
+                type="button"
+                aria-pressed={holeCount === n}
+                disabled={choice.nineOnly && n === 18}
+                onClick={() => setHoleCount(n)}
+              >
                 {n}
               </button>
             ))}
           </div>
+          {choice.nineOnly && <p className="small muted">{choice.name} is nine holes.</p>}
 
           <div className="field-label">Greens, by stimp</div>
           <GreenSpeedPick value={greenSpeed} onPick={setGreenSpeed} />

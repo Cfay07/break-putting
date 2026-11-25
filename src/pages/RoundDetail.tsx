@@ -31,7 +31,7 @@ import { CoursePicker } from '../components/CoursePicker';
 import { PuttEditor } from '../components/PuttEditor';
 import { SpeedBars } from '../components/SpeedBars';
 import { Sheet } from '../components/Sheet';
-import { fmtDateLong, pctText, puttSequence, signed } from '../lib/format';
+import { fmtDateLong, pctText, puttSequence, signed, today } from '../lib/format';
 import { backLabel, go, previousRouteBut, replaceRoute } from '../lib/router';
 import { lagSaves, ninesOf, pct, roundStats, suspectHoles } from '../lib/stats';
 import { findRound, useApp } from '../lib/store';
@@ -771,7 +771,14 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
           <input
             type="date"
             value={round.date}
-            onChange={(e) => dispatch({ t: 'updateRound', id: round.id, patch: { date: e.target.value } })}
+            max={today()}
+            onChange={(e) =>
+              dispatch({
+                t: 'updateRound',
+                id: round.id,
+                patch: { date: e.target.value > today() ? today() : e.target.value },
+              })
+            }
           />
           {/* Typing a name here used to be all you could do, which left the pars blank for good
               on a round saved before its course had tees. Picking the tee fills them in. */}

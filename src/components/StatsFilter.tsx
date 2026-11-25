@@ -203,6 +203,7 @@ export function StatsFilter({
               type="date"
               value={f.to ?? ''}
               min={f.from}
+              max={latest}
               onChange={(e) => setF({ ...f, to: e.target.value || undefined, last: undefined })}
             />
           </label>

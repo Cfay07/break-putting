@@ -64,26 +64,33 @@ export function OldRoundImport() {
   return (
     <>
       <p className="small muted">
-        Write it the way you write it on your phone. Hole number, then one entry per putt in order, commas
-        between them. Words in an entry become tags: high, low, on line, short, long, past, lip, push,
-        pull. Whatever follows the pipe is your running score, which is how the app works out greens in
-        regulation.
+        Write it the way you write it on your phone. Hole number, then one entry per putt in order, commas between them.
+        Words in an entry become tags: high, low, on line, short, long, past, lip, push, pull. Whatever follows the pipe
+        is your running score, which is how the app works out greens in regulation.
       </p>
       <pre className="small card" style={{ margin: '0 0 10px', overflowX: 'auto' }}>{`1: 8 feet (lip) (high), 1 foot | E
 2: 22 feet (high&short), 2 feet (high and pushed), 1 foot | +1
 3: 34 feet (high), 1 foot | +3`}</pre>
       <p className="small muted">
-        A tagged last putt from more than 2 feet means the tap-in went unwritten, so one gets added. A tagged
-        tap-in inside 2 feet reads as a note on the putt before it. Either way the import tells you which holes
-        it did that to.
+        A tagged last putt from more than 2 feet means the tap-in went unwritten, so one gets added. A tagged tap-in
+        inside 2 feet reads as a note on the putt before it. Either way the import tells you which holes it did that to.
       </p>
       <div style={{ display: 'flex', gap: 10 }}>
         <div style={{ flex: 1 }}>
-          <div className="field-label" style={{ marginTop: 0 }}>Date</div>
-          <input type="date" value={pDate} onChange={(e) => setPDate(e.target.value)} />
+          <div className="field-label" style={{ marginTop: 0 }}>
+            Date
+          </div>
+          <input
+            type="date"
+            value={pDate}
+            max={today()}
+            onChange={(e) => setPDate(e.target.value > today() ? today() : e.target.value)}
+          />
         </div>
         <div style={{ flex: 1 }}>
-          <div className="field-label" style={{ marginTop: 0 }}>Holes</div>
+          <div className="field-label" style={{ marginTop: 0 }}>
+            Holes
+          </div>
           <div className="seg">
             {[18, 9].map((n) => (
               <button key={n} type="button" aria-pressed={pHoles === n} onClick={() => setPHoles(n)}>
@@ -110,11 +117,7 @@ export function OldRoundImport() {
         {state.putters
           .filter((p) => !p.retired)
           .map((p) => (
-            <button
-              key={p.id}
-              className={pPutter === p.id ? 'chip chip-sel' : 'chip'}
-              onClick={() => setPPutter(p.id)}
-            >
+            <button key={p.id} className={pPutter === p.id ? 'chip chip-sel' : 'chip'} onClick={() => setPPutter(p.id)}>
               {p.name}
             </button>
           ))}
