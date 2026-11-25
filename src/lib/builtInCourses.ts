@@ -4,7 +4,7 @@ import type { SavedCourse } from './types';
  * Courses whose eighteen is two named nines, so "Red/White" is part of where you played. Everywhere
  * else a slash in a name is a combo tee, like "Black / Gold", and belongs with the tees.
  */
-export const NAMED_NINES = new Set(['builtin-ives-grove']);
+export const NAMED_NINES = new Set(['builtin-ives-grove', 'builtin-ivanhoe']);
 
 /**
  * Courses the golf course API does not carry. Ives Grove has three nines, so every playable
@@ -60,17 +60,20 @@ export const ninesPart = (tee: string) => tee.split(NINES_SEP)[0];
 /** Rounds saved before tee boxes existed say only "Red/White": they were rated off the Blue box. */
 export const OLD_NINES_BOX = 'Blue';
 
-function combinations(nines: Record<string, number[]>) {
+type Rated = Record<string, [string, number, number][]>;
+
+/** Every ordering of two nines, each tee box rated for that pair, as "Out/In · Box". */
+function combinations(nines: Record<string, number[]>, yards: Record<string, Record<string, number>>, rated: Rated) {
   const names = Object.keys(nines);
   return names.flatMap((out) =>
     names
       .filter((back) => back !== out)
       .flatMap((back) =>
-        IVES_RATED[[out, back].sort().join('+')].map(([box, rating, slope]) => {
+        rated[[out, back].sort().join('+')].map(([box, rating, slope]) => {
           const plain = box.replace(' (W)', '');
           return {
             name: `${out}/${back}${NINES_SEP}${box}`,
-            yards: IVES_YARDS[out][plain] + IVES_YARDS[back][plain],
+            yards: yards[out][plain] + yards[back][plain],
             pars: [...nines[out], ...nines[back]],
             rating,
             slope,
@@ -79,6 +82,101 @@ function combinations(nines: Record<string, number[]>) {
       ),
   );
 }
+
+/**
+ * Ivanhoe Club's three nines, off the three BlueGolf detailed scorecards (Forest/Marsh,
+ * Marsh/Prairie, Forest/Prairie). Each nine prints the same pars and yards on both cards it is on.
+ */
+const IVANHOE_NINES: Record<string, number[]> = {
+  Forest: [4, 4, 5, 3, 4, 3, 4, 4, 5],
+  Marsh: [5, 4, 3, 4, 4, 5, 4, 3, 4],
+  Prairie: [4, 4, 4, 3, 5, 3, 4, 4, 5],
+};
+
+const IVANHOE_YARDS: Record<string, Record<string, number>> = {
+  Forest: {
+    Gold: 3508,
+    Black: 3389,
+    Green: 3238,
+    'Green/White': 3109,
+    White: 3069,
+    Silver: 2925,
+    Combo: 2771,
+    Copper: 2565,
+  },
+  Marsh: {
+    Gold: 3578,
+    Black: 3384,
+    Green: 3225,
+    'Green/White': 3107,
+    White: 3028,
+    Silver: 2869,
+    Combo: 2742,
+    Copper: 2581,
+  },
+  Prairie: {
+    Gold: 3481,
+    Black: 3323,
+    Green: 3196,
+    'Green/White': 3083,
+    White: 3009,
+    Silver: 2842,
+    Combo: 2733,
+    Copper: 2583,
+  },
+};
+
+/** Men's rating for every box and women's for six, per pair of nines, as BlueGolf prints them. */
+const IVANHOE_RATED: Rated = {
+  'Forest+Marsh': [
+    ['Gold', 75.3, 147],
+    ['Black', 73.9, 144],
+    ['Green', 72.5, 141],
+    ['Green/White', 71.4, 139],
+    ['White', 70.8, 137],
+    ['Silver', 69.4, 134],
+    ['Combo', 67.9, 131],
+    ['Copper', 66.5, 127],
+    ['Black (W)', 80.2, 145],
+    ['Green (W)', 78.4, 140],
+    ['White (W)', 76.5, 137],
+    ['Silver (W)', 74.8, 133],
+    ['Combo (W)', 73.2, 129],
+    ['Copper (W)', 71.2, 125],
+  ],
+  'Marsh+Prairie': [
+    ['Gold', 75.2, 152],
+    ['Black', 73.5, 148],
+    ['Green', 72.2, 146],
+    ['Green/White', 71.3, 143],
+    ['White', 70.5, 140],
+    ['Silver', 68.9, 138],
+    ['Combo', 68.0, 136],
+    ['Copper', 66.6, 132],
+    ['Black (W)', 79.8, 154],
+    ['Green (W)', 78.3, 150],
+    ['White (W)', 75.5, 141],
+    ['Silver (W)', 73.7, 136],
+    ['Combo (W)', 72.6, 134],
+    ['Copper (W)', 70.9, 130],
+  ],
+  'Forest+Prairie': [
+    ['Gold', 75.1, 148],
+    ['Black', 73.8, 145],
+    ['Green', 72.5, 142],
+    ['Green/White', 71.3, 140],
+    ['White', 70.9, 138],
+    ['Silver', 69.5, 135],
+    ['Combo', 68.1, 132],
+    ['Copper', 66.7, 128],
+    ['Black (W)', 79.8, 145],
+    ['Green (W)', 78.2, 141],
+    ['White (W)', 76.4, 137],
+    ['Silver (W)', 74.7, 133],
+    ['Combo (W)', 73.2, 130],
+    ['Copper (W)', 71.3, 126],
+  ],
+};
 
 /**
  * Out 36, in 34, par 70, off the 18Birdies card. GolfLink prints the second as a par 4 and then
@@ -138,7 +236,7 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     id: 'builtin-ives-grove',
     name: 'Ives Grove Golf Links',
     place: 'Sturtevant, WI',
-    tees: combinations(IVES_NINES),
+    tees: combinations(IVES_NINES, IVES_YARDS, IVES_RATED),
   },
   {
     id: 'builtin-petrifying-springs',
@@ -184,6 +282,12 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
       { name: 'White', yards: 2667, pars: SHOOP_PARS, rating: 33.1, slope: 104 },
       { name: 'Red', yards: 2615, pars: SHOOP_PARS, rating: 32.6, slope: 102 },
     ],
+  },
+  {
+    id: 'builtin-ivanhoe',
+    name: 'Ivanhoe Club',
+    place: 'Ivanhoe, IL',
+    tees: combinations(IVANHOE_NINES, IVANHOE_YARDS, IVANHOE_RATED),
   },
   {
     id: 'builtin-vernon-hills',

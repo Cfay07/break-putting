@@ -916,6 +916,11 @@ export interface StrikeRow {
   /** Leave as a share of the putt, so a 40 footer and a 6 footer can sit in one column. */
   leavePct: number | null;
   avgLeave: number | null;
+  /** Misses, and how many of them finished short, long, or at the right pace, as tagged. */
+  missed: number;
+  short: number;
+  long: number;
+  pace: number;
 }
 
 /**
@@ -923,12 +928,30 @@ export interface StrikeRow {
  * triangle and one row of Form since it was added and never had a panel of its own, so the
  * obvious question went unasked: does catching it out the toe cost you distance control?
  */
+/** Each round with strike tagged, oldest first: how many came off the middle out of how many tagged. */
+export function strikeByRound(rounds: Round[]): { id: string; date: string; middle: number; tagged: number }[] {
+  return rounds
+    .filter((r) => r.finished)
+    .map((r) => {
+      const ps = r.holes.flatMap((h) => h.putts).filter((p) => p.strike);
+      return { id: r.id, date: r.date, middle: ps.filter((p) => p.strike === 'centre').length, tagged: ps.length };
+    })
+    .filter((r) => r.tagged > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export function byStrike(rounds: Round[]): StrikeRow[] {
-  const acc: Record<string, { putts: number; makes: number; leaves: number[]; ratios: number[] }> = {
-    centre: { putts: 0, makes: 0, leaves: [], ratios: [] },
-    toe: { putts: 0, makes: 0, leaves: [], ratios: [] },
-    heel: { putts: 0, makes: 0, leaves: [], ratios: [] },
+  type Acc = {
+    putts: number;
+    makes: number;
+    leaves: number[];
+    ratios: number[];
+    short: number;
+    long: number;
+    pace: number;
   };
+  const fresh = (): Acc => ({ putts: 0, makes: 0, leaves: [], ratios: [], short: 0, long: 0, pace: 0 });
+  const acc: Record<string, Acc> = { centre: fresh(), toe: fresh(), heel: fresh() };
 
   // Usual comes only from rounds where strike was tagged, so the comparison is the same putter and
   // the same stretch of your putting, not every putt you have ever logged.
@@ -957,6 +980,9 @@ export function byStrike(rounds: Round[]): StrikeRow[] {
           a.makes++;
           return;
         }
+        if (p.speed === 'short') a.short++;
+        else if (p.speed === 'long') a.long++;
+        else if (p.speed === 'good') a.pace++;
         const leave = hole.putts[i + 1]?.d;
         if (leave === undefined || !p.d) return;
         a.leaves.push(leave);
@@ -977,6 +1003,10 @@ export function byStrike(rounds: Round[]): StrikeRow[] {
         expected: a.putts >= MIN_STRIKE ? expectedOf[key] : null,
         leavePct: a.ratios.length >= MIN_STRIKE ? mean(a.ratios) : null,
         avgLeave: a.leaves.length >= MIN_STRIKE ? mean(a.leaves) : null,
+        missed: a.putts - a.makes,
+        short: a.short,
+        long: a.long,
+        pace: a.pace,
       };
     })
     .filter((r) => r.putts > 0);

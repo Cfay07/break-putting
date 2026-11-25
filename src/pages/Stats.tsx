@@ -57,7 +57,7 @@ import { recentSplit, rowNumber, shootSplit, withinRange, type RowNumber } from 
 import { Why } from '../components/Why';
 import { BeatBar } from '../components/BeatBar';
 import { sample, signedFor } from '../lib/sample';
-import { byStrike } from '../lib/stats';
+import { byStrike, strikeByRound } from '../lib/stats';
 import { LearnedPanel } from '../components/LearnedPanel';
 import { PatternPanel } from '../components/PatternPanel';
 import { SpeedPanel } from '../components/SpeedPanel';
@@ -238,6 +238,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
   const lag = useMemo(() => lagSaves(rounds), [rounds]);
   const read = useMemo(() => readError(rounds), [rounds]);
   const strike = useMemo(() => byStrike(rounds), [rounds]);
+  const strikeRounds = useMemo(() => strikeByRound(rounds), [rounds]);
   const trial = useMemo(() => formTrial(rounds, state.baseline), [rounds, state.baseline]);
 
   /** Season Form. Rounds with no putts return null and simply do not count. */
@@ -879,8 +880,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
             <>
               {strike.length > 0 && (
                 <>
-                  <h2>Where on the face</h2>
-                  <StrikePanel rows={strike} />
+                  <StrikePanel rows={strike} byRound={strikeRounds} />
                 </>
               )}
             </>
@@ -953,7 +953,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
                 Inside 10% means it went in or finished within a tenth of the putt's length. The comeback is the putt
                 the rest left you.
               </p>
-              <LagMap rounds={rounds} limit={50} />
+              <LagMap rounds={rounds} />
 
               {lag.bySource.some((b) => b.threePutts > 0) && (
                 <>

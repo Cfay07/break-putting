@@ -45,7 +45,9 @@ export function asStraightNine(
 /** Through the course-lookup function, which holds the course service's key so the app never does. */
 async function get(params: Record<string, string>): Promise<unknown> {
   const res = await callFunction('course-lookup', params);
-  if (!res.ok) throw new Error(`The course service answered ${res.status}.`);
+  if (res.status === 429)
+    throw new Error('Course search has hit its limit for today. Courses BREAK! players have added still come up.');
+  if (!res.ok) throw new Error('Course search is not answering right now.');
   return res.json();
 }
 

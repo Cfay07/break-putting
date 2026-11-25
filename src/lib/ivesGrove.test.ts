@@ -68,3 +68,21 @@ describe('a course saved twice', () => {
     expect(teeOf({ courseId: 'th', tee: 'Silver' } as Round, [old, sharedCopy])).toMatchObject({ rating: 70.5 });
   });
 });
+
+describe('Ivanhoe Club', () => {
+  const ivanhoe = BUILT_IN_COURSES.find((c) => c.id === 'builtin-ivanhoe')!;
+  it('has its three nines in every order, with every tee box BlueGolf rates', () => {
+    expect(ivanhoe.place).toBe('Ivanhoe, IL');
+    expect(ivanhoe.tees).toHaveLength(6 * 14);
+    expect(ivanhoe.tees.find((t) => t.name === 'Forest/Marsh · Gold')).toMatchObject({
+      yards: 7086,
+      rating: 75.3,
+      slope: 147,
+    });
+    expect(ivanhoe.tees.find((t) => t.name === 'Prairie/Marsh · White (W)')).toMatchObject({
+      rating: 75.5,
+      slope: 141,
+    });
+    expect(ivanhoe.tees.every((t) => t.pars.reduce((a, b) => a + b) === 72)).toBe(true);
+  });
+});

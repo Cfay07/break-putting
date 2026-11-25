@@ -129,7 +129,7 @@ export function CoursePicker({
       }
     } catch (e) {
       setHits(mine);
-      if (!mine.length) setError(`${(e as Error).message} Type the pars in by hand instead.`);
+      if (!mine.length) setError(`${(e as Error).message} Try again tomorrow, or type the pars in below.`);
     } finally {
       setBusy(false);
     }

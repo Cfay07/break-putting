@@ -70,12 +70,28 @@ function lagsOf(rounds: Round[]): Lag[] {
  * out side by side rather than pretending to a precision the tag never had. The dashed ring is
  * the average leave of the lags shown, holed ones counting as zero.
  */
-export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
+export function LagMap({ rounds }: { rounds: Round[] }) {
   const [slope, setSlope] = useState<Slope | 'all'>('all');
-  const all = lagsOf(rounds);
-  const recent = limit === undefined ? all : all.slice(0, limit);
-  const cut = recent.length < all.length;
-  if (recent.filter((l) => !l.made && l.side && l.speed).length < 3) return null;
+  // Every lag in the rounds you filtered to. A cap of the newest fifty once hid two of the
+  // Cobra's three-putts from its first day; the filter, not the map, decides how far back to go.
+  const recent = lagsOf(rounds);
+  const missed = recent.filter((l) => !l.made);
+  const tagged = missed.filter((l) => l.side && l.speed);
+  if (tagged.length < 3) return null;
+  // A map of the few lags someone bothered to tag is the worst of them, not how they lag. With the
+  // DF3 only four of 26 had a finish, and all four were three-putts.
+  if (tagged.length * 2 < missed.length) {
+    const threes = tagged.filter((l) => l.result === 'three').length;
+    return (
+      <div className="card lag-map">
+        <p className="small muted" style={{ margin: 0 }}>
+          Only {tagged.length} of your {missed.length} missed lags have where they finished tagged
+          {threes === tagged.length ? ', and every one of them is a three-putt' : ''}, so a map would show the worst of
+          them, not how you lag. It draws once most of them carry a finish.
+        </p>
+      </div>
+    );
+  }
 
   const shown = recent.filter((l) => slope === 'all' || l.slope === slope);
   const plotted = shown.filter((l) => !l.made && l.side && l.speed && l.leave !== null);
@@ -187,8 +203,8 @@ export function LagMap({ rounds, limit }: { rounds: Round[]; limit?: number }) {
         </span>
       </div>
       <p className="small muted" style={{ margin: '8px 0 0' }}>
-        {cut ? `Your last ${limit} lags from ${LAG_FROM}+ ft` : `Your lags from ${LAG_FROM}+ ft`}, each at the length it
-        left you. Short is left, long is right, the high side is up.
+        Your lags from {LAG_FROM}+ ft, each at the length it left you. Short is left, long is right, the high side is
+        up.
         {holed ? ` ${holed} went in.` : ''}
         {plotted.some((l) => l.leave! > CAP) ? ` A dot outside the ${CAP} ft ring went further than that.` : ''}
         {untagged > 0 ? ` ${untagged} had no finish tagged, so they are not on the map.` : ''}

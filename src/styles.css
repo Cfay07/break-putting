@@ -482,8 +482,9 @@ thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; c
 
 /* forms */
 /* Style every text-ish input, not a hand-listed few. Email and password were being missed,
-   which left them unstyled and half width. */
-input:not([type='button']):not([type='checkbox']):not([type='radio']):not([type='file']),
+   which left them unstyled and half width. Sliders are left out: the padding kept the Dial's
+   thumb from reaching either end on a phone. */
+input:not([type='button']):not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']),
 textarea,
 select {
   width: 100%;
@@ -2714,7 +2715,7 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .dial-big b { font-size: 52px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
 .dial-big span { font-size: 15px; font-weight: 800; color: var(--ink-2); }
 .dial-at { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
-.dial-range { width: 100%; margin: 16px 0 4px; accent-color: var(--ink); }
+.dial-range { display: block; width: 100%; height: 28px; margin: 16px 0 4px; padding: 0; accent-color: var(--ink); touch-action: pan-y; }
 .dial-ft { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); }
 .dial-ends { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .dial-end { display: flex; flex-direction: column; align-items: center; gap: 1px; background: none; border: 0; padding: 0; font: inherit; color: var(--ink); cursor: pointer; }
@@ -2736,3 +2737,17 @@ span.dial-end { cursor: default; }
 .hole-card { font-size: 11.5px; }
 .hole-card th, .hole-card td { padding: 6px 2px; }
 .hole-card th { font-size: 9.5px; letter-spacing: 0.02em; }
+
+/* Strike: the face, heel to toe, each part as wide as its share of putts. */
+.strike-card { padding: 14px; margin-bottom: 14px; }
+.strike-face { display: flex; gap: 3px; height: 74px; border-radius: 12px; overflow: hidden; }
+.sf-seg { flex-basis: 0; min-width: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: rgba(20, 57, 43, 0.08); color: var(--ink); }
+.sf-centre { background: var(--ink); color: #f7f5ee; }
+.sf-seg b { font-size: 20px; font-weight: 900; line-height: 1; }
+.sf-seg span { font-size: 12px; font-weight: 700; }
+.sf-seg small { font-size: 11px; opacity: 0.7; }
+.strike-rounds { display: flex; align-items: flex-end; gap: 4px; overflow-x: auto; padding-bottom: 2px; }
+.sr-col { flex: 1 0 30px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.sr-col i { display: block; width: 18px; border-radius: 4px 4px 0 0; background: var(--ink); }
+.sr-col small { font-size: 11px; color: var(--ink-2); }
+.sr-col span { font-size: 10px; color: var(--ink-3); white-space: nowrap; }
