@@ -34,9 +34,15 @@ export function dedupeCourses(courses: SavedCourse[]): SavedCourse[] {
   return out;
 }
 
+const ratedCount = (c: SavedCourse) => c.tees.filter((t) => t.rating && t.slope).length;
+const mostRated = (cs: SavedCourse[]) =>
+  cs.reduce<SavedCourse | undefined>((best, c) => (!best || ratedCount(c) > ratedCount(best) ? c : best), undefined);
+
 export function courseOf(round: Round, courses: SavedCourse[]): SavedCourse | undefined {
   const all = [...courses, ...BUILT_IN_COURSES];
-  if (round.courseId) return all.find((c) => c.id === round.courseId);
+  // The same course can be here twice: a copy saved before ratings were kept, and a shared one
+  // with them. The one with the most rated tees wins.
+  if (round.courseId) return mostRated(all.filter((c) => c.id === round.courseId));
   return round.course ? dedupeCourses(all).find((c) => sameCourse(c.name, round.course!)) : undefined;
 }
 

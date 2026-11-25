@@ -3,6 +3,7 @@ import { BUILT_IN_COURSES } from './builtInCourses';
 import { loadCourse, searchCourses } from './courseApi';
 import { sameCourse, words } from './courses';
 import { fillFrom, ratedTees } from './openGolf';
+import { useSharedCourses } from './sharedCourses';
 import { useApp } from './store';
 import type { SavedCourse, SavedTee } from './types';
 
@@ -76,6 +77,7 @@ async function rate(course: SavedCourse): Promise<SavedTee[]> {
  */
 export function useCourseRatings(): SavedCourse[] {
   const { state, dispatch } = useApp();
+  const shared = useSharedCourses();
   const [, bump] = useState(0);
   useEffect(() => {
     const l = () => bump((n) => n + 1);
@@ -95,7 +97,9 @@ export function useCourseRatings(): SavedCourse[] {
       tried.add(id);
       loadCourse(id)
         .then(async (course) => {
-          const tees = unrated(course.tees) ? fillFrom(course.tees, await ratedTees(course).catch(() => [])) : course.tees;
+          const tees = unrated(course.tees)
+            ? fillFrom(course.tees, await ratedTees(course).catch(() => []))
+            : course.tees;
           publish({ ...course, tees });
         })
         .catch(() => undefined);
@@ -130,14 +134,18 @@ export function useCourseRatings(): SavedCourse[] {
       for (const name of fresh) {
         // "White Birch-Brighton Dale Links" is listed as "Brighton Dale Links · White Birch 18", so
         // try the whole name, then each half, then the bare words, until a hit names the same course.
-        const queries = [...new Set([name.replace(/-/g, ' '), ...name.split('-').map((p) => p.trim()), words(name).join(' ')])];
+        const queries = [
+          ...new Set([name.replace(/-/g, ' '), ...name.split('-').map((p) => p.trim()), words(name).join(' ')]),
+        ];
         for (const q of queries) {
           const hits = await gentleSearch(q);
           const hit = hits.find((h) => sameCourse(h.name, name) && states.has(h.place.split(',').pop()?.trim()));
           if (!hit) continue;
           const course = await loadCourse(hit.id).catch(() => null);
           if (!course) break;
-          const tees = unrated(course.tees) ? fillFrom(course.tees, await ratedTees(course).catch(() => [])) : course.tees;
+          const tees = unrated(course.tees)
+            ? fillFrom(course.tees, await ratedTees(course).catch(() => []))
+            : course.tees;
           publish({ ...course, tees });
           break;
         }
@@ -145,5 +153,5 @@ export function useCourseRatings(): SavedCourse[] {
     })();
   }, [state.courses, state.rounds, dispatch]);
 
-  return [...state.courses, ...fetched.values()];
+  return [...state.courses, ...fetched.values(), ...shared];
 }

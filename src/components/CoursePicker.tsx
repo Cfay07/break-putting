@@ -3,6 +3,7 @@ import { BUILT_IN_COURSES, NAMED_NINES, NINES_SEP, ninesPart } from '../lib/buil
 import { dedupeCourses } from '../lib/courses';
 import { loadCourse, searchCourses, type CourseHit } from '../lib/courseApi';
 import { newId } from '../lib/storage';
+import { shareCourse, useSharedCourses } from '../lib/sharedCourses';
 import { useApp } from '../lib/store';
 import type { SavedCourse, SavedTee } from '../lib/types';
 
@@ -65,6 +66,7 @@ export function CoursePicker({
   onChange: (c: CourseChoice) => void;
 }) {
   const { state, dispatch } = useApp();
+  const shared = useSharedCourses();
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<(CourseHit & { saved?: boolean })[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -105,10 +107,17 @@ export function CoursePicker({
     setBusy(true);
     setError('');
 
-    const local = mergeCourses(state.courses);
+    // Courses on the phone and built in, then ones other players added: no call to the course
+    // service needed for any of them.
+    const local = dedupeCourses([...mergeCourses(state.courses), ...shared]);
     const mine = local
       .filter((c) => c.name.toLowerCase().includes(q.toLowerCase()))
-      .map((c) => ({ id: c.id, name: c.name, place: c.place ?? '', saved: true }));
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        place: c.place ?? '',
+        saved: state.courses.some((s) => s.id === c.id) || c.id.startsWith('builtin-'),
+      }));
 
     try {
       const found = await searchCourses(q);
@@ -131,11 +140,18 @@ export function CoursePicker({
       openCourse(mine);
       return;
     }
+    const theirs = shared.find((c) => c.id === hit.id);
+    if (theirs) {
+      dispatch({ t: 'saveCourse', course: theirs });
+      openCourse(theirs);
+      return;
+    }
     setBusy(true);
     setError('');
     try {
       const course = await loadCourse(hit.id);
       dispatch({ t: 'saveCourse', course });
+      void shareCourse(course, 'service');
       openCourse(course);
     } catch (e) {
       setError((e as Error).message);
@@ -152,6 +168,7 @@ export function CoursePicker({
       tees: [{ name: mTee.trim() || 'Pars', pars: mPars.slice(0, holeCount) }],
     };
     dispatch({ t: 'saveCourse', course });
+    void shareCourse(course, 'typed');
     pick(course, course.tees[0]);
     setMName('');
     setMTee('');
@@ -300,7 +317,8 @@ export function CoursePicker({
             ))}
           </div>
           <p className="small muted">
-            Par {mPars.slice(0, holeCount).reduce((a, b) => a + b, 0)}. Saved for next time so you only do this once.
+            Par {mPars.slice(0, holeCount).reduce((a, b) => a + b, 0)}. Saved for every BREAK! player, so nobody types
+            this course again.
           </p>
           <button className="btn btn-primary btn-wide" disabled={!mName.trim()} onClick={saveManual}>
             Save course

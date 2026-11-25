@@ -56,3 +56,15 @@ describe('Vernon Hills Muni', () => {
     expect(muni.tees[0]).toMatchObject({ name: 'Blue', yards: 2836, rating: 34.5, slope: 124 });
   });
 });
+
+describe('a course saved twice', () => {
+  it('rates a round off the copy with ratings, not the old unrated one', () => {
+    const old: SavedCourse = { id: 'th', name: 'Thunderhawk', tees: [{ name: 'Silver', pars: Array(18).fill(4) }] };
+    const sharedCopy: SavedCourse = {
+      id: 'th',
+      name: 'Thunderhawk',
+      tees: [{ name: 'Silver', pars: Array(18).fill(4), rating: 70.5, slope: 134 }],
+    };
+    expect(teeOf({ courseId: 'th', tee: 'Silver' } as Round, [old, sharedCopy])).toMatchObject({ rating: 70.5 });
+  });
+});
