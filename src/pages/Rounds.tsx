@@ -15,6 +15,7 @@ import { courseLabel, roundScale, roundStats } from '../lib/stats';
 import type { GreenSpeed } from '../lib/types';
 import { newId } from '../lib/storage';
 import { liveRound, makeRound, useApp } from '../lib/store';
+import { ninesPart } from '../lib/builtInCourses';
 
 const SORTS = ['recent', 'best', 'worst'] as const;
 type Sort = (typeof SORTS)[number];
@@ -60,7 +61,11 @@ export function Rounds() {
   const [putterId, setPutterId] = useState(usable.find((p) => p.active)?.id ?? usable[0]?.id ?? '');
   const [newPutter, setNewPutter] = useState('');
 
-  const teeNines = choice.tee?.includes('/') ? choice.tee.split('/').map((n) => n.trim()) : null;
+  const teeNines = choice.tee?.includes('/')
+    ? ninesPart(choice.tee)
+        .split('/')
+        .map((n) => n.trim())
+    : null;
   const parsForRound =
     choice.pars && holeCount === 9 && choice.pars.length > 9
       ? half === 'back'

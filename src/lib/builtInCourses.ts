@@ -8,7 +8,7 @@ export const NAMED_NINES = new Set(['builtin-ives-grove']);
 
 /**
  * Courses the golf course API does not carry. Ives Grove has three nines, so every playable
- * eighteen is one of the six orderings. Pars come off the BlueGolf scorecards, where the Blue nine
+ * eighteen is one of the six orderings. Pars come off the BlueGolf scorecards, where each nine
  * appears on two different cards with the same numbers.
  */
 const IVES_NINES: Record<string, number[]> = {
@@ -17,25 +17,66 @@ const IVES_NINES: Record<string, number[]> = {
   Red: [4, 4, 3, 4, 5, 3, 4, 4, 5],
 };
 
-/**
- * Back-tee rating and slope for each pair of nines, from GolfPass. Red/White 72.8/130, Blue/Red
- * 73.0/131, and the White/Blue card's Blue tees 73.0/131. Same two nines either way round.
- */
-const IVES_RATED: Record<string, [number, number]> = {
-  'Red+White': [72.8, 130],
-  'Blue+Red': [73.0, 131],
-  'Blue+White': [73.0, 131],
+/** Yards for each tee box on each nine, the same on every BlueGolf card the nine appears on. */
+const IVES_YARDS: Record<string, Record<string, number>> = {
+  Red: { Blue: 3490, White: 3235, Gold: 2975, Red: 2695 },
+  White: { Blue: 3475, White: 3215, Gold: 2945, Red: 2725 },
+  Blue: { Blue: 3510, White: 3235, Gold: 2975, Red: 2705 },
 };
+
+/**
+ * Rating and slope for every tee box on each pair of nines, off the three BlueGolf detailed
+ * scorecards (Red/White, Blue/Red, White/Blue). Gold is rated for men and women; Red only for
+ * women, so it carries the (W) and never passes for a men's rating. Same two nines either way
+ * round. No rating is published for a single nine.
+ */
+const IVES_RATED: Record<string, [string, number, number][]> = {
+  'Red+White': [
+    ['Blue', 72.8, 130],
+    ['White', 70.5, 124],
+    ['Gold', 68.0, 118],
+    ['Gold (W)', 73.5, 128],
+    ['Red (W)', 70.4, 121],
+  ],
+  'Blue+Red': [
+    ['Blue', 73.0, 131],
+    ['White', 70.5, 124],
+    ['Gold', 68.1, 119],
+    ['Gold (W)', 73.6, 128],
+    ['Red (W)', 70.4, 121],
+  ],
+  'Blue+White': [
+    ['Blue', 73.0, 131],
+    ['White', 70.6, 124],
+    ['Gold', 68.1, 119],
+    ['Gold (W)', 73.5, 129],
+    ['Red (W)', 71.0, 123],
+  ],
+};
+
+/** "Red/White · Gold" is the two nines, then the tee box. */
+export const NINES_SEP = ' · ';
+export const ninesPart = (tee: string) => tee.split(NINES_SEP)[0];
+/** Rounds saved before tee boxes existed say only "Red/White": they were rated off the Blue box. */
+export const OLD_NINES_BOX = 'Blue';
 
 function combinations(nines: Record<string, number[]>) {
   const names = Object.keys(nines);
   return names.flatMap((out) =>
     names
       .filter((back) => back !== out)
-      .map((back) => {
-        const [rating, slope] = IVES_RATED[[out, back].sort().join('+')];
-        return { name: `${out}/${back}`, pars: [...nines[out], ...nines[back]], rating, slope };
-      }),
+      .flatMap((back) =>
+        IVES_RATED[[out, back].sort().join('+')].map(([box, rating, slope]) => {
+          const plain = box.replace(' (W)', '');
+          return {
+            name: `${out}/${back}${NINES_SEP}${box}`,
+            yards: IVES_YARDS[out][plain] + IVES_YARDS[back][plain],
+            pars: [...nines[out], ...nines[back]],
+            rating,
+            slope,
+          };
+        }),
+      ),
   );
 }
 
@@ -70,6 +111,13 @@ const SHOOP_PARS = [3, 5, 4, 5, 3, 4, 4, 3, 4];
  * tee table. The open course data only knows the club's par-3 course, and the main course service
  * does not list Como Crossings at all.
  */
+/**
+ * Nine holes, par 34, played twice round for a 68. Pars, yards and nine-hole ratings off the
+ * BlueGolf detailed scorecard (vernonhillsgc1), which 18Birdies matches at 34.5/124 from the Blue.
+ * Locals call it the Muni, so that is its name here, and "muni" or "Vernon Hills" both find it.
+ */
+const VERNON_HILLS_PARS = [4, 4, 3, 4, 4, 4, 3, 4, 4];
+
 const COMO_PARS = [4, 4, 3, 4, 4, 3, 5, 4, 5, 5, 3, 4, 4, 5, 4, 4, 3, 4];
 
 export const BUILT_IN_COURSES: SavedCourse[] = [
@@ -90,7 +138,7 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     id: 'builtin-ives-grove',
     name: 'Ives Grove Golf Links',
     place: 'Sturtevant, WI',
-        tees: combinations(IVES_NINES),
+    tees: combinations(IVES_NINES),
   },
   {
     id: 'builtin-petrifying-springs',
@@ -98,7 +146,7 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     place: 'Kenosha, WI',
     // Two tees on the 18Birdies card. Other sites name the 5588 "Red" and add a 5337 nobody
     // else lists, so this follows the one source that got every par right.
-        tees: [
+    tees: [
       // BlueGolf men's: White 67.8/119, the forward tee (their Red) 66.0/115.
       { name: 'White', yards: 5979, pars: PETRIFYING_PARS, rating: 67.8, slope: 119 },
       { name: 'Orange', yards: 5588, pars: PETRIFYING_PARS, rating: 66.0, slope: 115 },
@@ -108,7 +156,7 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
     id: 'builtin-browns-lake',
     name: 'Browns Lake Golf Course',
     place: 'Burlington, WI',
-        tees: [
+    tees: [
       // BlueGolf men's ratings.
       { name: 'White', yards: 6386, pars: BROWNS_LAKE_PARS, rating: 71.1, slope: 126 },
       { name: 'Yellow', yards: 5391, pars: BROWNS_LAKE_PARS, rating: 65.8, slope: 115 },
@@ -135,6 +183,17 @@ export const BUILT_IN_COURSES: SavedCourse[] = [
       // BlueGolf men's, rated as eighteen: White 66.2/104, Red 65.2/102. Halved for the nine.
       { name: 'White', yards: 2667, pars: SHOOP_PARS, rating: 33.1, slope: 104 },
       { name: 'Red', yards: 2615, pars: SHOOP_PARS, rating: 32.6, slope: 102 },
+    ],
+  },
+  {
+    id: 'builtin-vernon-hills',
+    name: 'Vernon Hills Muni',
+    place: 'Vernon Hills, IL',
+    tees: [
+      { name: 'Blue', yards: 2836, pars: VERNON_HILLS_PARS, rating: 34.5, slope: 124 },
+      { name: 'White', yards: 2750, pars: VERNON_HILLS_PARS, rating: 34.1, slope: 122 },
+      { name: 'White (W)', yards: 2750, pars: VERNON_HILLS_PARS, rating: 36.2, slope: 128 },
+      { name: 'Red (W)', yards: 2310, pars: VERNON_HILLS_PARS, rating: 33.7, slope: 116 },
     ],
   },
 ];

@@ -2415,6 +2415,7 @@ button.feed-live::after { content: '›'; margin-left: auto; font-size: 20px; co
 .round-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 .round-actions .status-tag { color: var(--ink); }
 .round-course { margin: 2px 0 0; font-size: 15px; color: var(--ink-2); }
+.round-place { display: block; font-size: 13px; color: var(--ink-3); }
 .status-tag.static { cursor: default; }
 
 /* The round in one card */

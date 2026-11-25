@@ -12,7 +12,34 @@ interface ApiTee {
   total_yards?: number;
   course_rating?: number;
   slope_rating?: number;
-  holes?: { par?: number }[];
+  front_course_rating?: number;
+  front_slope_rating?: number;
+  holes?: { par?: number; yardage?: number }[];
+}
+
+/**
+ * A nine-hole course the service lists as eighteen: the same nine twice, hole for hole, with an
+ * eighteen-hole rating. Red Pine 9 at Brighton Dale is one. It is saved as the nine it is, with
+ * the nine's own rating where the service gives one, else half the eighteen.
+ */
+export function asStraightNine(
+  tee: ApiTee,
+): { pars: number[]; yards?: number; rating?: number; slope?: number } | null {
+  const holes = tee.holes ?? [];
+  if (holes.length !== 18) return null;
+  const same = holes.slice(0, 9).every((h, i) => h.par === holes[i + 9].par && h.yardage === holes[i + 9].yardage);
+  if (!same || !holes[0].yardage) return null;
+  const rated = (tee.course_rating ?? 0) > 0 && (tee.slope_rating ?? 0) > 0;
+  return {
+    pars: holes.slice(0, 9).map((h) => h.par ?? 4),
+    yards: holes.slice(0, 9).reduce((a, h) => a + (h.yardage ?? 0), 0),
+    ...(rated
+      ? {
+          rating: (tee.front_course_rating ?? 0) > 0 ? tee.front_course_rating : tee.course_rating! / 2,
+          slope: (tee.front_slope_rating ?? 0) > 0 ? tee.front_slope_rating : tee.slope_rating,
+        }
+      : {}),
+  };
 }
 
 /** Through the course-lookup function, which holds the course service's key so the app never does. */
@@ -55,16 +82,22 @@ export async function loadCourse(id: string): Promise<SavedCourse> {
       const pars = (tee.holes ?? []).map((h) => h.par ?? 4);
       if (!pars.length) continue;
       const base = tee.tee_name ?? 'Tee';
-      if (tees.some((t) => t.name === base && t.yards === tee.total_yards)) continue;
+      const nine = asStraightNine(tee);
+      const yards = nine ? nine.yards : tee.total_yards;
+      if (tees.some((t) => t.name === base && t.yards === yards)) continue;
       // A women's tee sharing a men's name but not its length is a different box: label it.
       const name = tees.some((t) => t.name === base) ? `${base} (W)` : base;
       const rated = (tee.course_rating ?? 0) > 0 && (tee.slope_rating ?? 0) > 0;
-      tees.push({
-        name,
-        yards: tee.total_yards,
-        pars,
-        ...(rated ? { rating: tee.course_rating, slope: tee.slope_rating } : {}),
-      });
+      tees.push(
+        nine
+          ? { name, ...nine }
+          : {
+              name,
+              yards,
+              pars,
+              ...(rated ? { rating: tee.course_rating, slope: tee.slope_rating } : {}),
+            },
+      );
     }
   }
 

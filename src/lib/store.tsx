@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import { clearStored, emptyState, load, newId, save } from './storage';
 import type { Incoming } from './sync';
-import { NAMED_NINES } from './builtInCourses';
+import { NAMED_NINES, ninesPart } from './builtInCourses';
 import { holedOut } from './types';
 import type {
   AppState,
@@ -296,7 +296,11 @@ export function reducer(state: AppState, a: Action): AppState {
       // Only a course built from named nines turns "Red/White" into nines. Elsewhere a slash is a
       // combo tee ("Black / Gold") and stays the tee.
       const nines =
-        a.tee?.includes('/') && NAMED_NINES.has(a.courseId ?? '') ? a.tee.split('/').map((n) => n.trim()) : null;
+        a.tee?.includes('/') && NAMED_NINES.has(a.courseId ?? '')
+          ? ninesPart(a.tee)
+              .split('/')
+              .map((n) => n.trim())
+          : null;
       return mapRound(state, a.roundId, (r) => ({
         ...r,
         course: a.course,

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BUILT_IN_COURSES } from '../lib/builtInCourses';
+import { BUILT_IN_COURSES, NAMED_NINES, NINES_SEP, ninesPart } from '../lib/builtInCourses';
 import { dedupeCourses } from '../lib/courses';
 import { loadCourse, searchCourses, type CourseHit } from '../lib/courseApi';
 import { newId } from '../lib/storage';
@@ -38,6 +38,19 @@ function fitPars(pars: number[], holeCount: number): number[] {
   return out.slice(0, holeCount);
 }
 
+/**
+ * The tees that fit the round. A nine-hole tee on a course that also has eighteen-hole ones is
+ * one nine rated on its own, so it is offered for a nine and never stretched over eighteen.
+ */
+export function teesFor(course: SavedCourse, holeCount: number): SavedTee[] {
+  const full = course.tees.filter((t) => t.pars.length >= 18);
+  const nines = course.tees.filter((t) => t.pars.length === 9);
+  if (holeCount >= 18) return full.length ? full : nines;
+  return [...nines, ...full];
+}
+
+const isNine = (c: SavedCourse) => c.tees.length > 0 && c.tees.every((t) => t.pars.length === 9);
+
 function mergeCourses(saved: SavedCourse[]): SavedCourse[] {
   return dedupeCourses([...saved, ...BUILT_IN_COURSES]);
 }
@@ -57,6 +70,7 @@ export function CoursePicker({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [open, setOpen] = useState<SavedCourse | null>(null);
+  const [nines, setNines] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
   const [mName, setMName] = useState('');
   const [mTee, setMTee] = useState('');
@@ -64,10 +78,7 @@ export function CoursePicker({
 
   // The courses already on the phone are nearly always the one you want, and they used to be
   // invisible until you thought to run a search.
-  const known = useMemo(
-    () => mergeCourses(state.courses),
-    [state.courses],
-  );
+  const known = useMemo(() => mergeCourses(state.courses), [state.courses]);
 
   const pick = (course: SavedCourse, tee: SavedTee) => {
     onChange({
@@ -77,12 +88,14 @@ export function CoursePicker({
       pars: fitPars(tee.pars, holeCount),
     });
     setOpen(null);
+    setNines(null);
     setHits(null);
     setManual(false);
   };
 
   const openCourse = (course: SavedCourse) => {
-    if (course.tees.length === 1) pick(course, course.tees[0]);
+    const fits = teesFor(course, holeCount);
+    if (fits.length === 1) pick(course, fits[0]);
     else setOpen(course);
   };
 
@@ -113,8 +126,7 @@ export function CoursePicker({
   };
 
   const openHit = async (hit: CourseHit & { saved?: boolean }) => {
-    const mine =
-      state.courses.find((c) => c.id === hit.id) ?? BUILT_IN_COURSES.find((c) => c.id === hit.id);
+    const mine = state.courses.find((c) => c.id === hit.id) ?? BUILT_IN_COURSES.find((c) => c.id === hit.id);
     if (mine) {
       openCourse(mine);
       return;
@@ -164,21 +176,39 @@ export function CoursePicker({
   }
 
   if (open) {
+    const fits = teesFor(open, holeCount);
+    const byNines = NAMED_NINES.has(open.id);
+    const pairs = byNines ? [...new Set(fits.map((t) => ninesPart(t.name)))] : [];
+    const shown = byNines ? fits.filter((t) => ninesPart(t.name) === nines) : fits;
+    const mixed = open.tees.some((t) => t.pars.length >= 18) && open.tees.some((t) => t.pars.length === 9);
+    const chip = (t: SavedTee) =>
+      [byNines ? t.name.split(NINES_SEP)[1] : t.name, t.yards, mixed && t.pars.length === 9 ? '9 holes' : '']
+        .filter(Boolean)
+        .join(' · ');
     return (
       <div className="card">
         <h3>{open.name}</h3>
         <p className="small muted" style={{ margin: '2px 0 10px' }}>
-          Which tees?
+          {[open.place, byNines && !nines ? 'Which nines?' : 'Which tees?'].filter(Boolean).join(' · ')}
         </p>
         <div className="chips">
-          {open.tees.map((t) => (
-            <button key={`${t.name}${t.yards}`} className="chip" onClick={() => pick(open, t)}>
-              {t.name}
-              {t.yards ? ` · ${t.yards}` : ''}
-            </button>
-          ))}
+          {byNines && !nines
+            ? pairs.map((p) => (
+                <button key={p} className="chip" onClick={() => setNines(p)}>
+                  {p}
+                </button>
+              ))
+            : shown.map((t) => (
+                <button key={`${t.name}${t.yards}`} className="chip" onClick={() => pick(open, t)}>
+                  {chip(t)}
+                </button>
+              ))}
         </div>
-        <button className="btn btn-ghost btn-wide" style={{ marginTop: 10 }} onClick={() => setOpen(null)}>
+        <button
+          className="btn btn-ghost btn-wide"
+          style={{ marginTop: 10 }}
+          onClick={() => (nines ? setNines(null) : setOpen(null))}
+        >
           Back
         </button>
       </div>
@@ -210,7 +240,11 @@ export function CoursePicker({
                 {c.name}
               </span>
               <span className="small muted" style={{ display: 'block' }}>
-                {[c.place, `${c.tees.length} tee${c.tees.length === 1 ? '' : 's'}`]
+                {[
+                  c.place,
+                  isNine(c) ? '9 holes' : '',
+                  NAMED_NINES.has(c.id) ? '27 holes' : `${c.tees.length} tee${c.tees.length === 1 ? '' : 's'}`,
+                ]
                   .filter(Boolean)
                   .join(' · ')}
               </span>

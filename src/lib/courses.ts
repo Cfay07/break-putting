@@ -1,9 +1,13 @@
-import { BUILT_IN_COURSES } from './builtInCourses';
+import { BUILT_IN_COURSES, NAMED_NINES, NINES_SEP, OLD_NINES_BOX } from './builtInCourses';
 import type { Round, SavedCourse, SavedTee } from './types';
 
 const STOP = new Set(['golf', 'club', 'course', 'links', 'country', 'gc', 'cc', 'the', 'at', 'of', 'and', '18', '9']);
 export const words = (name: string) =>
-  name.toLowerCase().replace(/['’]/g, '').split(/[^a-z0-9]+/).filter((w) => w && !STOP.has(w));
+  name
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w && !STOP.has(w));
 
 /** True when every word of the shorter name is in the longer one: "Ives Grove" is Ives Grove Golf Links. */
 export function sameCourse(a: string, b: string): boolean {
@@ -23,16 +27,14 @@ export function dedupeCourses(courses: SavedCourse[]): SavedCourse[] {
   const rated = (c: SavedCourse) => c.tees.filter((t) => t.rating && t.slope).length * 100 + c.tees.length;
   const out: SavedCourse[] = [];
   for (const c of courses) {
-    const i = out.findIndex(
-      (o) => o.id === c.id || (sameCourse(o.name, c.name) && samePlace(o, c)),
-    );
+    const i = out.findIndex((o) => o.id === c.id || (sameCourse(o.name, c.name) && samePlace(o, c)));
     if (i < 0) out.push(c);
     else if (rated(c) > rated(out[i])) out[i] = c;
   }
   return out;
 }
 
-function courseOf(round: Round, courses: SavedCourse[]): SavedCourse | undefined {
+export function courseOf(round: Round, courses: SavedCourse[]): SavedCourse | undefined {
   const all = [...courses, ...BUILT_IN_COURSES];
   if (round.courseId) return all.find((c) => c.id === round.courseId);
   return round.course ? dedupeCourses(all).find((c) => sameCourse(c.name, round.course!)) : undefined;
@@ -40,7 +42,15 @@ function courseOf(round: Round, courses: SavedCourse[]): SavedCourse | undefined
 
 export function teeOf(round: Round, courses: SavedCourse[]): SavedTee | undefined {
   if (!round.courseId || !round.tee) return undefined;
-  return courseOf(round, courses)?.tees.find((t) => t.name === round.tee);
+  return findTee(courseOf(round, courses), round.tee);
+}
+
+/** A tee by name. On a course built from nines, an old "Red/White" with no box is the Blue box. */
+export function findTee(course: SavedCourse | undefined, name: string): SavedTee | undefined {
+  if (!course) return undefined;
+  const exact = course.tees.find((t) => t.name === name);
+  if (exact || !NAMED_NINES.has(course.id) || name.includes(NINES_SEP)) return exact;
+  return course.tees.find((t) => t.name === `${name}${NINES_SEP}${OLD_NINES_BOX}`);
 }
 
 /** A women's tee, by how the course service and the ratings backup label them. */
@@ -57,7 +67,7 @@ export function backTeeFor(round: Round, courses: SavedCourse[]): { course: Save
   if (!course) return null;
   const rated = course.tees.filter((t) => t.rating && t.slope && !womens(t));
   const nines = [round.firstNine, round.secondNine].filter(Boolean).join('/');
-  const byNines = nines ? rated.find((t) => t.name === nines) : undefined;
+  const byNines = nines ? findTee({ ...course, tees: rated }, nines) : undefined;
   if (byNines) return { course, tee: byNines };
   const fits = rated.filter((t) => t.pars.length === round.holeCount);
   const back = [...(fits.length ? fits : rated)].sort((a, b) => (b.yards ?? 0) - (a.yards ?? 0))[0];

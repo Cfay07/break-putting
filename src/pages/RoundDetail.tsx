@@ -12,7 +12,8 @@ import { ScoreMark } from '../components/ScoreMark';
 import { HoleScore, fmtVsPar } from '../components/HoleScore';
 import { RoundPractice } from '../components/RoundPractice';
 import { RoundStroke } from '../components/RoundStroke';
-import { teeOf } from '../lib/courses';
+import { courseOf, teeOf } from '../lib/courses';
+import { NINES_SEP } from '../lib/builtInCourses';
 import { useCourseRatings } from '../lib/useCourseRatings';
 import { RoundStory } from '../components/RoundTrophies';
 import { DistanceTable } from '../components/DistanceTable';
@@ -64,6 +65,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
   const courses = useCourseRatings();
   const round = findRound(state, id);
   const tee = round ? teeOf(round, courses) : undefined;
+  const place = round ? courseOf(round, courses)?.place : undefined;
   const practice = !!round?.practice;
   // Back to wherever the round was opened from: Stats, a moment, a session. A reload has no
   // trail, so it falls back to the list the round lives in.
@@ -321,6 +323,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         <p className="round-course">
           {round.course}
           {nines ? ` · ${nines}` : ''}
+          {place && <span className="round-place">{place}</span>}
         </p>
       )}
       <div className="status-tags">
@@ -331,6 +334,7 @@ export function RoundDetail({ id, openHole }: { id: string; openHole?: number })
         )}
         {nines && tee?.rating && tee.slope && (
           <span className="status-tag static">
+            {tee.name.includes(NINES_SEP) ? `${tee.name.split(NINES_SEP)[1]} tees · ` : ''}
             {tee.rating.toFixed(1)}/{tee.slope}
           </span>
         )}
