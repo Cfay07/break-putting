@@ -2215,7 +2215,29 @@ button.list-row:active { background: rgba(20, 57, 43, 0.05); }
 .round-numbers div { display: grid; gap: 4px; align-content: start; }
 .round-numbers span { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
 .round-numbers strong { font-size: 28px; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
-.progress-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 12px; }
+.progress-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; padding: 0; border-top: 0; }
+.progress-tiles > div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.progress-tiles span { font-size: 10px; }
+.progress-tiles strong { font-size: 24px; }
+.last-bars-card { padding: 12px 12px 10px; }
+.last-bars { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; height: 120px; }
+.last-bar { display: grid; grid-template-rows: 1fr auto; gap: 4px; justify-items: center; min-width: 0; }
+.last-pair { display: flex; gap: 2px; align-items: flex-end; height: 100%; }
+.last-pair i, .last-key i { display: block; width: 9px; border-radius: 3px 3px 0 0; }
+.last-bars i.shot, .last-key i.shot { background: var(--ink); }
+.last-bars i.tour, .last-key i.tour { background: var(--accent); opacity: 0.8; }
+.last-bar small { font-size: 9.5px; color: var(--ink-3); white-space: nowrap; }
+.last-key { display: flex; gap: 14px; margin-top: 8px; font-size: 11px; color: var(--ink-2); }
+.last-key span { display: inline-flex; align-items: center; gap: 5px; }
+.last-key i { height: 9px; border-radius: 2px; }
+.progress-note { margin: 6px 0 0; }
+.form-test-line { margin-top: 14px; padding: 12px 14px; font-size: 13px; color: var(--ink-2); border-style: dashed; }
+.form-test-line b { color: var(--ink); }
+details.more-numbers { margin: 14px 0 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 0 14px; }
+details.more-numbers > summary { display: flex; justify-content: space-between; gap: 10px; padding: 14px 0; font-size: 15px; }
+details.more-numbers > summary > span:first-child { white-space: nowrap; }
+details.more-numbers > summary span.muted { font-size: 12px; font-weight: 600; text-align: right; margin-left: auto; }
+details.more-numbers[open] { padding-bottom: 14px; }
 .sc-tag {
   display: inline-block;
   margin-left: 8px;

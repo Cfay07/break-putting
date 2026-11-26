@@ -65,6 +65,7 @@ import { StatsFilter } from '../components/StatsFilter';
 import { PracticeStats, type PracticeTopic } from './PracticeStats';
 import { applyFilter, filterLabel, isFiltered, NO_FILTER, type RoundFilter } from '../lib/roundFilter';
 import { Trend } from '../components/Trend';
+import { LastRoundsBars } from '../components/LastRoundsBars';
 import { ShootCard } from '../components/ShootCard';
 import { fmtDate, pctText, signed } from '../lib/format';
 import {
@@ -535,17 +536,13 @@ function RoundStats({ topic }: { topic?: Topic }) {
                   <strong className={(nums.sg?.now ?? 0) >= 0 ? 'num pos' : 'num neg'}>
                     {nums.sg ? signed(nums.sg.now) : '--'}
                   </strong>
-                  <small>
-                    {split && nums.sg?.before != null
-                      ? `last ${split.recent.length}, was ${signed(nums.sg.before)}`
-                      : 'a round'}
-                  </small>
+                  <small>{split && nums.sg?.before != null ? `from ${signed(nums.sg.before)}` : 'a round'}</small>
                 </div>
               </div>
-              {avgScore !== null && avgIfNeutral !== null && (
+              {avgScore !== null && avgIfNeutral !== null && avgScore - avgIfNeutral > 0.05 && (
                 <p className="topic-answer">
-                  You average {avgScore.toFixed(1)}. With a tour pro's putting it would be {avgIfNeutral.toFixed(1)}
-                  {cards.length > 0 ? ', and the list below is where most of that gap is.' : '.'}
+                  A tour pro's putter would save you {(avgScore - avgIfNeutral).toFixed(1)} a round
+                  {cards.length > 0 ? ', and these are most of it.' : '.'}
                 </p>
               )}
 
@@ -557,13 +554,10 @@ function RoundStats({ topic }: { topic?: Topic }) {
                 threePuttsPerRound={o.threePuttsPerRound}
                 taggedRounds={taggedRounds}
               />
-              {avgScore !== null && avgIfNeutral !== null && (
+              {withScore.length >= 2 && (
                 <>
-                  <h2>Your scores against tour putting</h2>
-                  <ShootCard
-                    shoot={avgScore}
-                    withTour={avgIfNeutral}
-                    anyShort={anyShort}
+                  <h2>Your last {Math.min(8, withScore.length)} rounds</h2>
+                  <LastRoundsBars
                     rounds={withScore
                       .slice()
                       .reverse()
@@ -575,285 +569,328 @@ function RoundStats({ topic }: { topic?: Topic }) {
                         short: x.k > 1,
                       }))}
                   />
+                  {anyShort && <p className="small muted progress-note">Nines are scaled up to eighteen.</p>}
                 </>
               )}
-
-              <h2>Handicap and trends</h2>
-              {filtered && handicap.length < 2 && (
-                <div className="card trend-card">
-                  <span className="tiny">Handicap · {filterLabel(filter, state.putters)}</span>
-                  <p className="small muted" style={{ margin: '6px 0 0' }}>
-                    Not enough scores on rated tees in these rounds for a handicap. It needs four.
-                  </p>
-                </div>
-              )}
-              {handicap.length >= 2 && (
-                <div className="card trend-card">
-                  <div className="trend-head">
-                    <span className="tiny">Handicap{filtered ? ` · ${filterLabel(filter, state.putters)}` : ''}</span>
-                    <span className="trend-now">
-                      <span className="num">{fmtIndex(handicap[handicap.length - 1].index)}</span>
-                      <span className="tiny muted">from {fmtIndex(handicap[0].index)}</span>
-                    </span>
-                  </div>
-                  <Trend
-                    values={handicap.map((h) => h.index)}
-                    invert
-                    labels={handicap.map((h) => {
-                      const ids = h.id.split('+');
-                      const r = state.rounds.find((x) => x.id === ids[ids.length - 1]);
-                      const score = ids
-                        .map((id) => state.rounds.find((x) => x.id === id))
-                        .reduce((a, x) => a + (x?.holes.reduce((n, hole) => n + (hole.strokes ?? 0), 0) ?? 0), 0);
-                      return [
-                        fmtDate(h.date),
-                        r ? courseLabel(r) : '',
-                        String(score),
-                        `differential ${h.diff.toFixed(1)}`,
-                        `handicap ${fmtIndex(h.index)}`,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ');
-                    })}
-                  />
-                  <p className="small muted" style={{ margin: '6px 0 0' }}>
-                    {filtered
-                      ? 'Only the rounds in this filter, worked out the standard way from their best scores on rated tees. Your real handicap counts every round.'
-                      : 'Worked out the standard way from your best scores on rated tees, from your eighth score on. Rounds without a known tee do not count. An estimate, not an official index.'}
-                  </p>
-                  {teeless.length > 0 && (
-                    <p className="small" style={{ margin: '6px 0 0' }}>
-                      {teeless.length} {teeless.length === 1 ? 'round has' : 'rounds have'} no tee, so{' '}
-                      {teeless.length === 1 ? 'it does' : 'they do'} not count.{' '}
-                      <button
-                        className="linkish"
-                        onClick={() =>
-                          teeless.forEach(({ r, pick }) =>
-                            dispatch({
-                              t: 'applyCourse',
-                              roundId: r.id,
-                              course: r.course ?? pick.course.name,
-                              courseId: pick.course.id,
-                              tee: pick.tee.name,
-                              pars: pick.tee.pars,
-                            }),
-                          )
-                        }
-                      >
-                        Count them off the back tees
-                      </button>
-                    </p>
-                  )}
-                </div>
-              )}
-              {[
-                {
-                  title: 'Putts per round',
-                  values: o.points.map((p) => p.stats.totalPutts * p.scale),
-                  invert: true,
-                  fmt: (v: number) => v.toFixed(0),
-                },
-                {
-                  title: '3-putts per round',
-                  values: o.points.map((p) => p.stats.threePlus * p.scale),
-                  invert: true,
-                  fmt: (v: number) => v.toFixed(0),
-                },
-                {
-                  title: 'Strokes gained per round',
-                  values: o.points.map((p) => p.stats.sg * p.scale),
-                  invert: false,
-                  fmt: (v: number) => signed(v),
-                },
-                {
-                  title: 'Make % from 3 to 10 ft',
-                  values: o.points.map((p) => pct(p.stats.scoring) ?? 0),
-                  invert: false,
-                  fmt: (v: number) => `${v.toFixed(0)}%`,
-                },
-              ].map((chart) => (
-                <div className="card trend-card" key={chart.title}>
-                  <div className="trend-head">
-                    <span className="tiny">{chart.title}</span>
-                    <span className="trend-now">
-                      <span className="num">{chart.fmt(chart.values[chart.values.length - 1])}</span>
-                      <span className="tiny muted">
-                        avg {chart.fmt(chart.values.reduce((a, b) => a + b, 0) / chart.values.length)}
-                      </span>
-                    </span>
-                  </div>
-                  <Trend values={chart.values} invert={chart.invert} />
-                </div>
-              ))}
-              {anyShort && (
-                <p className="small muted" style={{ marginTop: 10 }}>
-                  A short round is scaled up here, so it sits next to an eighteen fairly. Open the round itself to see
-                  what it actually was.
-                </p>
-              )}
-
-              {form && <h2>Form</h2>}
               {form && (
-                <>
-                  <div className="stat-row">
-                    <span className="k">Tells you more than gained?</span>
-                    <span className="v small muted">
-                      {trial.verdict === 'waiting'
-                        ? `${trial.judged} of ${trial.needed} rounds`
-                        : `r = ${trial.r?.toFixed(3)}`}
-                    </span>
+                <div className="card form-test-line">
+                  <b>Form test:</b>{' '}
+                  {trial.verdict === 'waiting'
+                    ? `${trial.judged} of ${trial.needed} rounds. ${trial.needed - trial.judged} more with tagged putts tells you whether Form ranks rounds differently from strokes gained.`
+                    : trial.verdict === 'keep'
+                      ? 'passed. Form measures something strokes gained does not.'
+                      : trial.verdict === 'retire'
+                        ? 'failed. Form ranks rounds the same as strokes gained.'
+                        : 'undecided so far.'}
+                </div>
+              )}
+
+              <details className="more-numbers">
+                <summary>
+                  <span>All the numbers</span>
+                  <span className="muted">Trends, Form, averages</span>
+                </summary>
+                {avgScore !== null && avgIfNeutral !== null && (
+                  <>
+                    <h2>Scores against tour putting</h2>
+                    <ShootCard
+                      shoot={avgScore}
+                      withTour={avgIfNeutral}
+                      anyShort={anyShort}
+                      rounds={withScore
+                        .slice()
+                        .reverse()
+                        .map((x) => ({
+                          id: x.r.id,
+                          date: x.r.date,
+                          shot: x.r.score! * x.k,
+                          withTour: (x.r.score! + x.s.sg) * x.k,
+                          short: x.k > 1,
+                        }))}
+                    />
+                  </>
+                )}
+
+                <h2>Handicap and trends</h2>
+                {filtered && handicap.length < 2 && (
+                  <div className="card trend-card">
+                    <span className="tiny">Handicap · {filterLabel(filter, state.putters)}</span>
+                    <p className="small muted" style={{ margin: '6px 0 0' }}>
+                      Not enough scores on rated tees in these rounds for a handicap. It needs four.
+                    </p>
                   </div>
-                  <p className="why-note">
-                    {trial.verdict === 'waiting' ? (
-                      <>
-                        Form only earns its place if it ranks rounds differently from strokes gained. The test needs{' '}
-                        <b>{trial.needed} rounds</b> with enough tagged putts to unlock the process layer, and{' '}
-                        <b>{trial.judged}</b> have it. Until then this is an open question, not a passed one.
-                      </>
-                    ) : trial.verdict === 'retire' ? (
-                      <>
-                        <b>Form is a second name for strokes gained.</b> r = {trial.r?.toFixed(3)} across {trial.judged}{' '}
-                        judged rounds, and {trial.moved} change position. The threshold was written down before the
-                        answer was known, and this clears it. It should go the way expected makes went.
-                      </>
-                    ) : trial.verdict === 'keep' ? (
-                      <>
-                        <b>Form earns its place.</b> r = {trial.r?.toFixed(3)} across {trial.judged} judged rounds, with{' '}
-                        {trial.moved} changing position. It is measuring something strokes gained is not.
-                      </>
-                    ) : (
-                      <>
-                        <b>Undecided.</b> r = {trial.r?.toFixed(3)} across {trial.judged} judged rounds. Between the two
-                        thresholds, so the 50/50 blend gets one attempt at reweighting before anyone reaches for delete.
-                      </>
+                )}
+                {handicap.length >= 2 && (
+                  <div className="card trend-card">
+                    <div className="trend-head">
+                      <span className="tiny">Handicap{filtered ? ` · ${filterLabel(filter, state.putters)}` : ''}</span>
+                      <span className="trend-now">
+                        <span className="num">{fmtIndex(handicap[handicap.length - 1].index)}</span>
+                        <span className="tiny muted">from {fmtIndex(handicap[0].index)}</span>
+                      </span>
+                    </div>
+                    <Trend
+                      values={handicap.map((h) => h.index)}
+                      invert
+                      labels={handicap.map((h) => {
+                        const ids = h.id.split('+');
+                        const r = state.rounds.find((x) => x.id === ids[ids.length - 1]);
+                        const score = ids
+                          .map((id) => state.rounds.find((x) => x.id === id))
+                          .reduce((a, x) => a + (x?.holes.reduce((n, hole) => n + (hole.strokes ?? 0), 0) ?? 0), 0);
+                        return [
+                          fmtDate(h.date),
+                          r ? courseLabel(r) : '',
+                          String(score),
+                          `differential ${h.diff.toFixed(1)}`,
+                          `handicap ${fmtIndex(h.index)}`,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ');
+                      })}
+                    />
+                    <p className="small muted" style={{ margin: '6px 0 0' }}>
+                      {filtered
+                        ? 'Only the rounds in this filter, worked out the standard way from their best scores on rated tees. Your real handicap counts every round.'
+                        : 'Worked out the standard way from your best scores on rated tees, from your eighth score on. Rounds without a known tee do not count. An estimate, not an official index.'}
+                    </p>
+                    {teeless.length > 0 && (
+                      <p className="small" style={{ margin: '6px 0 0' }}>
+                        {teeless.length} {teeless.length === 1 ? 'round has' : 'rounds have'} no tee, so{' '}
+                        {teeless.length === 1 ? 'it does' : 'they do'} not count.{' '}
+                        <button
+                          className="linkish"
+                          onClick={() =>
+                            teeless.forEach(({ r, pick }) =>
+                              dispatch({
+                                t: 'applyCourse',
+                                roundId: r.id,
+                                course: r.course ?? pick.course.name,
+                                courseId: pick.course.id,
+                                tee: pick.tee.name,
+                                pars: pick.tee.pars,
+                              }),
+                            )
+                          }
+                        >
+                          Count them off the back tees
+                        </button>
+                      </p>
                     )}
-                  </p>
-                  <div className="card">
-                    <div className="form-hero">
-                      <span className="form-big" style={{ color: formBand(form.avg).ink }}>
-                        {form.avg.toFixed(1)}
-                      </span>
-                      <span className="small muted">average over {form.rounds} rounds</span>
-                    </div>
-                    <div className="stat-row">
-                      <span className="k">Best / worst round</span>
-                      <span className="v num">
-                        {form.best.toFixed(1)} / {form.worst.toFixed(1)}
-                      </span>
-                    </div>
-                    {/* The two halves do not share a denominator: how you hit them can only average
-                    the rounds that were tagged. Saying so on the row is the difference between a
-                    comparison and a trap. */}
-                    <div className="stat-row">
-                      <span className="k">
-                        How you hit them
-                        <span className="small muted">
-                          {' '}
-                          · {form.measured} round
-                          {form.measured === 1 ? '' : 's'}
+                  </div>
+                )}
+                {[
+                  {
+                    title: 'Putts per round',
+                    values: o.points.map((p) => p.stats.totalPutts * p.scale),
+                    invert: true,
+                    fmt: (v: number) => v.toFixed(0),
+                  },
+                  {
+                    title: '3-putts per round',
+                    values: o.points.map((p) => p.stats.threePlus * p.scale),
+                    invert: true,
+                    fmt: (v: number) => v.toFixed(0),
+                  },
+                  {
+                    title: 'Strokes gained per round',
+                    values: o.points.map((p) => p.stats.sg * p.scale),
+                    invert: false,
+                    fmt: (v: number) => signed(v),
+                  },
+                  {
+                    title: 'Make % from 3 to 10 ft',
+                    values: o.points.map((p) => pct(p.stats.scoring) ?? 0),
+                    invert: false,
+                    fmt: (v: number) => `${v.toFixed(0)}%`,
+                  },
+                ].map((chart) => (
+                  <div className="card trend-card" key={chart.title}>
+                    <div className="trend-head">
+                      <span className="tiny">{chart.title}</span>
+                      <span className="trend-now">
+                        <span className="num">{chart.fmt(chart.values[chart.values.length - 1])}</span>
+                        <span className="tiny muted">
+                          avg {chart.fmt(chart.values.reduce((a, b) => a + b, 0) / chart.values.length)}
                         </span>
                       </span>
-                      <span className="v num">{form.process === null ? '--' : form.process.toFixed(1)}</span>
                     </div>
+                    <Trend values={chart.values} invert={chart.invert} />
+                  </div>
+                ))}
+                {anyShort && (
+                  <p className="small muted" style={{ marginTop: 10 }}>
+                    A short round is scaled up here, so it sits next to an eighteen fairly. Open the round itself to see
+                    what it actually was.
+                  </p>
+                )}
+
+                {form && <h2>Form</h2>}
+                {form && (
+                  <>
+                    <div className="stat-row">
+                      <span className="k">Tells you more than gained?</span>
+                      <span className="v small muted">
+                        {trial.verdict === 'waiting'
+                          ? `${trial.judged} of ${trial.needed} rounds`
+                          : `r = ${trial.r?.toFixed(3)}`}
+                      </span>
+                    </div>
+                    <p className="why-note">
+                      {trial.verdict === 'waiting' ? (
+                        <>
+                          Form only earns its place if it ranks rounds differently from strokes gained. The test needs{' '}
+                          <b>{trial.needed} rounds</b> with enough tagged putts to unlock the process layer, and{' '}
+                          <b>{trial.judged}</b> have it. Until then this is an open question, not a passed one.
+                        </>
+                      ) : trial.verdict === 'retire' ? (
+                        <>
+                          <b>Form is a second name for strokes gained.</b> r = {trial.r?.toFixed(3)} across{' '}
+                          {trial.judged} judged rounds, and {trial.moved} change position. The threshold was written
+                          down before the answer was known, and this clears it. It should go the way expected makes
+                          went.
+                        </>
+                      ) : trial.verdict === 'keep' ? (
+                        <>
+                          <b>Form earns its place.</b> r = {trial.r?.toFixed(3)} across {trial.judged} judged rounds,
+                          with {trial.moved} changing position. It is measuring something strokes gained is not.
+                        </>
+                      ) : (
+                        <>
+                          <b>Undecided.</b> r = {trial.r?.toFixed(3)} across {trial.judged} judged rounds. Between the
+                          two thresholds, so the 50/50 blend gets one attempt at reweighting before anyone reaches for
+                          delete.
+                        </>
+                      )}
+                    </p>
+                    <div className="card">
+                      <div className="form-hero">
+                        <span className="form-big" style={{ color: formBand(form.avg).ink }}>
+                          {form.avg.toFixed(1)}
+                        </span>
+                        <span className="small muted">average over {form.rounds} rounds</span>
+                      </div>
+                      <div className="stat-row">
+                        <span className="k">Best / worst round</span>
+                        <span className="v num">
+                          {form.best.toFixed(1)} / {form.worst.toFixed(1)}
+                        </span>
+                      </div>
+                      {/* The two halves do not share a denominator: how you hit them can only average
+                    the rounds that were tagged. Saying so on the row is the difference between a
+                    comparison and a trap. */}
+                      <div className="stat-row">
+                        <span className="k">
+                          How you hit them
+                          <span className="small muted">
+                            {' '}
+                            · {form.measured} round
+                            {form.measured === 1 ? '' : 's'}
+                          </span>
+                        </span>
+                        <span className="v num">{form.process === null ? '--' : form.process.toFixed(1)}</span>
+                      </div>
+                      <div className="stat-row">
+                        <span className="k">
+                          How they finished
+                          <span className="small muted"> · {form.rounds} rounds</span>
+                        </span>
+                        <span className="v num">{form.outcome.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    <p className="small muted" style={{ margin: '8px 0 0' }}>
+                      Those two are averaged over different rounds, so do not read them against each other: only{' '}
+                      {form.measured} of {form.rounds} rounds carried enough tagged putts to score how you hit them,
+                      while how they finished covers all {form.rounds}. The untagged ones score on the finish alone,
+                      which is what the faint rail on the rounds list means. Open any round to see what built its
+                      number.
+                    </p>
+                  </>
+                )}
+                <h2>Averages</h2>
+                <div className="card">
+                  {/* Each row says what it stands on. A per-round average over three rounds and one
+                over thirty are not the same claim and used to look identical. */}
+                  <div className="stat-row">
+                    <span className="k">
+                      Putts per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
+                    </span>
+                    <span className="v num">{o.puttsPerRound?.toFixed(1)}</span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="k">3-putts per round</span>
+                    <span className={(o.threePuttsPerRound ?? 0) > 0 ? 'v num neg' : 'v num'}>
+                      {o.threePuttsPerRound?.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="k">
+                      Make % from 3 to 10 ft <SampleTag s={sample(o.pooled.scoring.attempts, 50, 'putts')} />
+                    </span>
+                    <span className="v num">{pctText(o.scoringPct)}</span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="k">
+                      Strokes gained per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
+                    </span>
+                    <span className={(o.sgPerRound ?? 0) >= 0 ? 'v num pos' : 'v num neg'}>
+                      {signedFor(o.sgPerRound ?? 0, sample(o.rounds, 5, 'rounds'))}
+                    </span>
+                  </div>
+                  {o.girPerRound !== null && (
                     <div className="stat-row">
                       <span className="k">
-                        How they finished
-                        <span className="small muted"> · {form.rounds} rounds</span>
+                        Greens in regulation per round{' '}
+                        <SampleTag
+                          s={sample(
+                            o.points.reduce((n, p) => n + p.stats.scoredHoles, 0),
+                            90,
+                            'holes',
+                          )}
+                        />
                       </span>
-                      <span className="v num">{form.outcome.toFixed(1)}</span>
+                      <span className="v num">{o.girPerRound.toFixed(1)}</span>
                     </div>
-                  </div>
-                  <p className="small muted" style={{ margin: '8px 0 0' }}>
-                    Those two are averaged over different rounds, so do not read them against each other: only{' '}
-                    {form.measured} of {form.rounds} rounds carried enough tagged putts to score how you hit them, while
-                    how they finished covers all {form.rounds}. The untagged ones score on the finish alone, which is
-                    what the faint rail on the rounds list means. Open any round to see what built its number.
-                  </p>
-                </>
-              )}
-              <h2>Averages</h2>
-              <div className="card">
-                {/* Each row says what it stands on. A per-round average over three rounds and one
-                over thirty are not the same claim and used to look identical. */}
-                <div className="stat-row">
-                  <span className="k">
-                    Putts per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
-                  </span>
-                  <span className="v num">{o.puttsPerRound?.toFixed(1)}</span>
+                  )}
+                  {conv.greens > 0 && (
+                    <div className="stat-row">
+                      <span className="k">
+                        Birdies from greens <SampleTag s={sample(conv.greens, 60, 'greens')} />
+                      </span>
+                      <span className="v num">{Math.round((conv.birdies / conv.greens) * 100)}%</span>
+                    </div>
+                  )}
+                  {conv.missed > 0 && (
+                    <div className="stat-row">
+                      <span className="k">
+                        Pars saved <SampleTag s={sample(conv.missed, 40, 'misses')} />
+                      </span>
+                      <span className="v num">{Math.round((conv.saves / conv.missed) * 100)}%</span>
+                    </div>
+                  )}
+                  {vol && (
+                    <div className="stat-row">
+                      <span className="k">Round-to-round swing</span>
+                      <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(1)}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="stat-row">
-                  <span className="k">3-putts per round</span>
-                  <span className={(o.threePuttsPerRound ?? 0) > 0 ? 'v num neg' : 'v num'}>
-                    {o.threePuttsPerRound?.toFixed(1)}
-                  </span>
-                </div>
-                <div className="stat-row">
-                  <span className="k">
-                    Make % from 3 to 10 ft <SampleTag s={sample(o.pooled.scoring.attempts, 50, 'putts')} />
-                  </span>
-                  <span className="v num">{pctText(o.scoringPct)}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="k">
-                    Strokes gained per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
-                  </span>
-                  <span className={(o.sgPerRound ?? 0) >= 0 ? 'v num pos' : 'v num neg'}>
-                    {signedFor(o.sgPerRound ?? 0, sample(o.rounds, 5, 'rounds'))}
-                  </span>
-                </div>
-                {o.girPerRound !== null && (
-                  <div className="stat-row">
-                    <span className="k">
-                      Greens in regulation per round{' '}
-                      <SampleTag
-                        s={sample(
-                          o.points.reduce((n, p) => n + p.stats.scoredHoles, 0),
-                          90,
-                          'holes',
-                        )}
-                      />
-                    </span>
-                    <span className="v num">{o.girPerRound.toFixed(1)}</span>
-                  </div>
-                )}
-                {conv.greens > 0 && (
-                  <div className="stat-row">
-                    <span className="k">
-                      Birdies from greens <SampleTag s={sample(conv.greens, 60, 'greens')} />
-                    </span>
-                    <span className="v num">{Math.round((conv.birdies / conv.greens) * 100)}%</span>
-                  </div>
-                )}
-                {conv.missed > 0 && (
-                  <div className="stat-row">
-                    <span className="k">
-                      Pars saved <SampleTag s={sample(conv.missed, 40, 'misses')} />
-                    </span>
-                    <span className="v num">{Math.round((conv.saves / conv.missed) * 100)}%</span>
-                  </div>
-                )}
+
                 {vol && (
-                  <div className="stat-row">
-                    <span className="k">Round-to-round swing</span>
-                    <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(1)}</span>
-                  </div>
+                  <p className="small muted" style={{ marginTop: 8 }}>
+                    Swing is how far a normal round lands from your average. Your average is {signed(vol.mean)} strokes
+                    gained, so most rounds fall between {signed(vol.mean - vol.sd)} and {signed(vol.mean + vol.sd)}.
+                    Your best was {signed(vol.best)} and your worst {signed(vol.worst)}. A swing that wide is why one
+                    round tells you almost nothing.
+                  </p>
                 )}
-              </div>
 
-              {vol && (
-                <p className="small muted" style={{ marginTop: 8 }}>
-                  Swing is how far a normal round lands from your average. Your average is {signed(vol.mean)} strokes
-                  gained, so most rounds fall between {signed(vol.mean - vol.sd)} and {signed(vol.mean + vol.sd)}. Your
-                  best was {signed(vol.best)} and your worst {signed(vol.worst)}. A swing that wide is why one round
-                  tells you almost nothing.
-                </p>
-              )}
-
-              {anyShort && (
-                <p className="small muted" style={{ marginTop: -4 }}>
-                  A round shorter than eighteen is scaled up to compare with one.
-                </p>
-              )}
+                {anyShort && (
+                  <p className="small muted" style={{ marginTop: -4 }}>
+                    A round shorter than eighteen is scaled up to compare with one.
+                  </p>
+                )}
+              </details>
             </>
           )}
 
