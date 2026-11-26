@@ -161,6 +161,10 @@ export const MEASURES: Record<string, Measure> = {
     const fs = rs.map((r) => formOf(r, baseline)).filter((f) => f !== null);
     return fs.length ? { value: fs.reduce((a, f) => a + f.score, 0) / fs.length, n: fs.length } : null;
   },
+  sg: (rs, baseline) => {
+    const o = overall(rs, baseline);
+    return o.sgPerRound === null ? null : { value: o.sgPerRound, n: o.rounds };
+  },
   strike: (rs) => {
     const s = byStrike(rs);
     const total = s.reduce((n, r) => n + r.putts, 0);

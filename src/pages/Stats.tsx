@@ -122,9 +122,7 @@ export const TOPICS = {
   timing: 'When in the round',
   putter: 'By putter',
   birdie: 'Birdie vs par',
-  improving: 'Am I improving',
-  form: 'Form',
-  work: 'What to work on',
+  progress: 'Progress',
 } as const;
 export type Topic = keyof typeof TOPICS;
 
@@ -299,7 +297,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
   const nums = useMemo(
     () =>
       Object.fromEntries(
-        ['short', 'lag', 'bleed', 'reads', 'misses', 'strike', 'form'].map((k) => [
+        ['short', 'lag', 'bleed', 'reads', 'misses', 'strike', 'form', 'sg'].map((k) => [
           k,
           rowNumber(k, rounds, split, state.baseline),
         ]),
@@ -439,9 +437,15 @@ function RoundStats({ topic }: { topic?: Topic }) {
   const cards = insights(o.pooled, { rounds: o.rounds, threePuttsPerRound: o.threePuttsPerRound, taggedRounds });
   const time: TopicRow[] = [
     row({
-      key: 'improving',
-      title: 'Am I improving',
-      sub: handicap.length >= 2 ? 'Handicap' : 'Your trends',
+      key: 'progress',
+      title: 'Progress',
+      sub: [
+        handicap.length >= 2 ? 'Handicap' : 'Your trends',
+        nums.form ? 'Form' : '',
+        cards.length ? `${cards.length} ${cards.length === 1 ? 'thing' : 'things'} to work on` : '',
+      ]
+        .filter(Boolean)
+        .join(', '),
       num:
         handicap.length >= 2
           ? { now: handicap[handicap.length - 1].index, before: handicap[0].index, fresh: false }
@@ -449,25 +453,7 @@ function RoundStats({ topic }: { topic?: Topic }) {
       fmt: fmtIndex,
       better: 'down',
     }),
-    nums.form &&
-      row({
-        key: 'form',
-        title: 'Form',
-        sub:
-          trial.verdict === 'waiting'
-            ? `${trial.judged} of ${trial.needed} rounds to the test`
-            : 'Your rating of each round',
-        num: nums.form,
-        fmt: (v: number) => v.toFixed(1),
-        better: 'up',
-      }),
-    cards.length > 0 &&
-      row({
-        key: 'work',
-        title: 'What to work on',
-        sub: `${cards.length} ${cards.length === 1 ? 'thing' : 'things'} to practice`,
-      }),
-  ].filter((r): r is TopicRow => !!r);
+  ];
   const home = (
     <>
       {scoreSplit && <ShootSplitCard split={scoreSplit} within={within} practice={null} />}
@@ -529,11 +515,51 @@ function RoundStats({ topic }: { topic?: Topic }) {
           {!topic && home}
           {topic && lock && <LockedTopic topic={topic} lock={lock} filtered={filtered} />}
 
-          {!lock && topic === 'improving' && (
+          {!lock && topic === 'progress' && (
             <>
+              <div className="round-numbers progress-tiles">
+                <div>
+                  <span>Handicap</span>
+                  <strong className="num">
+                    {handicap.length >= 2 ? fmtIndex(handicap[handicap.length - 1].index) : '--'}
+                  </strong>
+                  <small>{handicap.length >= 2 ? `from ${fmtIndex(handicap[0].index)}` : 'needs rated tees'}</small>
+                </div>
+                <div>
+                  <span>Form</span>
+                  <strong className="num">{nums.form ? nums.form.now.toFixed(1) : '--'}</strong>
+                  <small>{nums.form?.before != null ? `from ${nums.form.before.toFixed(1)}` : ''}</small>
+                </div>
+                <div>
+                  <span>Gained</span>
+                  <strong className={(nums.sg?.now ?? 0) >= 0 ? 'num pos' : 'num neg'}>
+                    {nums.sg ? signed(nums.sg.now) : '--'}
+                  </strong>
+                  <small>
+                    {split && nums.sg?.before != null
+                      ? `last ${split.recent.length}, was ${signed(nums.sg.before)}`
+                      : 'a round'}
+                  </small>
+                </div>
+              </div>
+              {avgScore !== null && avgIfNeutral !== null && (
+                <p className="topic-answer">
+                  You average {avgScore.toFixed(1)}. With a tour pro's putting it would be {avgIfNeutral.toFixed(1)}
+                  {cards.length > 0 ? ', and the list below is where most of that gap is.' : '.'}
+                </p>
+              )}
+
+              {cards.length > 0 && <h2>What to work on</h2>}
+              <TargetLine />
+              <InsightList
+                stats={o.pooled}
+                rounds={o.rounds}
+                threePuttsPerRound={o.threePuttsPerRound}
+                taggedRounds={taggedRounds}
+              />
               {avgScore !== null && avgIfNeutral !== null && (
                 <>
-                  <h2>What you would be shooting</h2>
+                  <h2>Your scores against tour putting</h2>
                   <ShootCard
                     shoot={avgScore}
                     withTour={avgIfNeutral}
@@ -550,90 +576,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
                       }))}
                   />
                 </>
-              )}
-
-              <h2>Averages</h2>
-              <div className="card">
-                {/* Each row says what it stands on. A per-round average over three rounds and one
-                over thirty are not the same claim and used to look identical. */}
-                <div className="stat-row">
-                  <span className="k">
-                    Putts per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
-                  </span>
-                  <span className="v num">{o.puttsPerRound?.toFixed(1)}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="k">3-putts per round</span>
-                  <span className={(o.threePuttsPerRound ?? 0) > 0 ? 'v num neg' : 'v num'}>
-                    {o.threePuttsPerRound?.toFixed(1)}
-                  </span>
-                </div>
-                <div className="stat-row">
-                  <span className="k">
-                    Make % from 3 to 10 ft <SampleTag s={sample(o.pooled.scoring.attempts, 50, 'putts')} />
-                  </span>
-                  <span className="v num">{pctText(o.scoringPct)}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="k">
-                    Strokes gained per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
-                  </span>
-                  <span className={(o.sgPerRound ?? 0) >= 0 ? 'v num pos' : 'v num neg'}>
-                    {signedFor(o.sgPerRound ?? 0, sample(o.rounds, 5, 'rounds'))}
-                  </span>
-                </div>
-                {o.girPerRound !== null && (
-                  <div className="stat-row">
-                    <span className="k">
-                      Greens in regulation per round{' '}
-                      <SampleTag
-                        s={sample(
-                          o.points.reduce((n, p) => n + p.stats.scoredHoles, 0),
-                          90,
-                          'holes',
-                        )}
-                      />
-                    </span>
-                    <span className="v num">{o.girPerRound.toFixed(1)}</span>
-                  </div>
-                )}
-                {conv.greens > 0 && (
-                  <div className="stat-row">
-                    <span className="k">
-                      Birdies from greens <SampleTag s={sample(conv.greens, 60, 'greens')} />
-                    </span>
-                    <span className="v num">{Math.round((conv.birdies / conv.greens) * 100)}%</span>
-                  </div>
-                )}
-                {conv.missed > 0 && (
-                  <div className="stat-row">
-                    <span className="k">
-                      Pars saved <SampleTag s={sample(conv.missed, 40, 'misses')} />
-                    </span>
-                    <span className="v num">{Math.round((conv.saves / conv.missed) * 100)}%</span>
-                  </div>
-                )}
-                {vol && (
-                  <div className="stat-row">
-                    <span className="k">Round-to-round swing</span>
-                    <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(1)}</span>
-                  </div>
-                )}
-              </div>
-
-              {vol && (
-                <p className="small muted" style={{ marginTop: 8 }}>
-                  Swing is how far a normal round lands from your average. Your average is {signed(vol.mean)} strokes
-                  gained, so most rounds fall between {signed(vol.mean - vol.sd)} and {signed(vol.mean + vol.sd)}. Your
-                  best was {signed(vol.best)} and your worst {signed(vol.worst)}. A swing that wide is why one round
-                  tells you almost nothing.
-                </p>
-              )}
-
-              {anyShort && (
-                <p className="small muted" style={{ marginTop: -4 }}>
-                  A round shorter than eighteen is scaled up to compare with one.
-                </p>
               )}
 
               <h2>Handicap and trends</h2>
@@ -749,11 +691,8 @@ function RoundStats({ topic }: { topic?: Topic }) {
                   what it actually was.
                 </p>
               )}
-            </>
-          )}
 
-          {!lock && topic === 'form' && (
-            <>
+              {form && <h2>Form</h2>}
               {form && (
                 <>
                   <div className="stat-row">
@@ -831,6 +770,89 @@ function RoundStats({ topic }: { topic?: Topic }) {
                     what the faint rail on the rounds list means. Open any round to see what built its number.
                   </p>
                 </>
+              )}
+              <h2>Averages</h2>
+              <div className="card">
+                {/* Each row says what it stands on. A per-round average over three rounds and one
+                over thirty are not the same claim and used to look identical. */}
+                <div className="stat-row">
+                  <span className="k">
+                    Putts per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
+                  </span>
+                  <span className="v num">{o.puttsPerRound?.toFixed(1)}</span>
+                </div>
+                <div className="stat-row">
+                  <span className="k">3-putts per round</span>
+                  <span className={(o.threePuttsPerRound ?? 0) > 0 ? 'v num neg' : 'v num'}>
+                    {o.threePuttsPerRound?.toFixed(1)}
+                  </span>
+                </div>
+                <div className="stat-row">
+                  <span className="k">
+                    Make % from 3 to 10 ft <SampleTag s={sample(o.pooled.scoring.attempts, 50, 'putts')} />
+                  </span>
+                  <span className="v num">{pctText(o.scoringPct)}</span>
+                </div>
+                <div className="stat-row">
+                  <span className="k">
+                    Strokes gained per round <SampleTag s={sample(o.rounds, 5, 'rounds')} />
+                  </span>
+                  <span className={(o.sgPerRound ?? 0) >= 0 ? 'v num pos' : 'v num neg'}>
+                    {signedFor(o.sgPerRound ?? 0, sample(o.rounds, 5, 'rounds'))}
+                  </span>
+                </div>
+                {o.girPerRound !== null && (
+                  <div className="stat-row">
+                    <span className="k">
+                      Greens in regulation per round{' '}
+                      <SampleTag
+                        s={sample(
+                          o.points.reduce((n, p) => n + p.stats.scoredHoles, 0),
+                          90,
+                          'holes',
+                        )}
+                      />
+                    </span>
+                    <span className="v num">{o.girPerRound.toFixed(1)}</span>
+                  </div>
+                )}
+                {conv.greens > 0 && (
+                  <div className="stat-row">
+                    <span className="k">
+                      Birdies from greens <SampleTag s={sample(conv.greens, 60, 'greens')} />
+                    </span>
+                    <span className="v num">{Math.round((conv.birdies / conv.greens) * 100)}%</span>
+                  </div>
+                )}
+                {conv.missed > 0 && (
+                  <div className="stat-row">
+                    <span className="k">
+                      Pars saved <SampleTag s={sample(conv.missed, 40, 'misses')} />
+                    </span>
+                    <span className="v num">{Math.round((conv.saves / conv.missed) * 100)}%</span>
+                  </div>
+                )}
+                {vol && (
+                  <div className="stat-row">
+                    <span className="k">Round-to-round swing</span>
+                    <span className={vol.sd > 2.5 ? 'v num neg' : 'v num'}>±{vol.sd.toFixed(1)}</span>
+                  </div>
+                )}
+              </div>
+
+              {vol && (
+                <p className="small muted" style={{ marginTop: 8 }}>
+                  Swing is how far a normal round lands from your average. Your average is {signed(vol.mean)} strokes
+                  gained, so most rounds fall between {signed(vol.mean - vol.sd)} and {signed(vol.mean + vol.sd)}. Your
+                  best was {signed(vol.best)} and your worst {signed(vol.worst)}. A swing that wide is why one round
+                  tells you almost nothing.
+                </p>
+              )}
+
+              {anyShort && (
+                <p className="small muted" style={{ marginTop: -4 }}>
+                  A round shorter than eighteen is scaled up to compare with one.
+                </p>
               )}
             </>
           )}
@@ -1271,18 +1293,6 @@ function RoundStats({ topic }: { topic?: Topic }) {
                   </p>
                 </>
               )}
-            </>
-          )}
-
-          {!lock && topic === 'work' && (
-            <>
-              <TargetLine />
-              <InsightList
-                stats={o.pooled}
-                rounds={o.rounds}
-                threePuttsPerRound={o.threePuttsPerRound}
-                taggedRounds={taggedRounds}
-              />
             </>
           )}
         </>
