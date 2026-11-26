@@ -521,6 +521,7 @@ textarea { min-height: 90px; padding: 10px 12px; }
   align-items: flex-end;
   justify-content: center;
   z-index: 20;
+  overscroll-behavior: contain;
 }
 .sheet {
   background: var(--paper);
@@ -531,6 +532,7 @@ textarea { min-height: 90px; padding: 10px 12px; }
   max-width: 480px;
   max-height: 88vh;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 details { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 10px 0; }
