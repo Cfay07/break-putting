@@ -1,4 +1,4 @@
-const CACHE = 'break-4541262fab18';
+const CACHE = 'break-f4ddbcee2f0f';
 
 // Cache the page and every file it loads before taking over. Without this, a phone that adds the
 // app to its home screen and goes straight to a course with no signal opens a blank page: the
@@ -15,6 +15,11 @@ self.addEventListener('install', (event) => {
         const files = [...html.matchAll(/(?:src|href)="\.?\/?((?:assets\/)[^"]+|[^"]+\.(?:png|webmanifest))"/g)].map(
           (m) => `./${m[1]}`,
         );
+        // Fonts are named inside the stylesheet, not the page, so read it for them too.
+        for (const css of files.filter((f) => f.endsWith('.css'))) {
+          const text = await fetch(css).then((r) => (r.ok ? r.text() : ''));
+          for (const m of text.matchAll(/url\(\.?\/?([^)]+\.woff2)\)/g)) files.push(`./assets/${m[1].split('/').pop()}`);
+        }
         await cache.addAll([...new Set(files)]);
       })
       .catch(() => undefined)
