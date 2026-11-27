@@ -148,33 +148,34 @@ p { line-height: 1.45; }
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  margin-bottom: 8px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 10px 2px 10px 14px;
+  margin: 0;
   cursor: pointer;
   font: inherit;
   color: inherit;
 }
-.round-row:active { background: #f4f1e8; }
+.round-row:active { background: rgba(20, 57, 43, 0.05); }
 /* The leading edge belongs to Form now, so competitive is a cup by the date. The border stays
    a shade firmer so a round that counted still reads as one at a glance. */
-.round-row.comp { border-color: rgba(20, 57, 43, 0.28); }
-.round-row { position: relative; overflow: hidden; padding-left: 18px; }
+.round-row { position: relative; overflow: hidden; }
 .round-when { display: inline-flex; align-items: baseline; gap: 7px; min-width: 0; }
 .comp-cup { font-size: 13px; line-height: 1; flex: 0 0 auto; }
-.form-rail { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+.form-rail { position: absolute; left: 0; top: 10px; bottom: 10px; width: 4px; border-radius: 2px; }
 
-.round-head { display: flex; align-items: center; gap: 8px; }
-.round-head .round-when { flex: 1 1 auto; overflow: hidden; }
-.round-date { font-weight: 800; font-size: 14px; white-space: nowrap; }
-.round-course { display: block; margin-top: 1px; font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.round-chip { flex: 0 0 auto; font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; border: 1.5px solid var(--ink); border-radius: 6px; padding: 1px 5px; }
+.round-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.round-date { font-weight: 800; font-size: 13px; white-space: nowrap; flex: 0 0 auto; }
+.round-row .round-course { margin: 0; flex: 0 1 auto; min-width: 0; font-size: 12px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.round-head .tag { flex: 0 0 auto; max-width: 40%; font-size: 9.5px; padding: 1px 6px; letter-spacing: 0.04em; }
+.round-head .bleed-tag { margin-left: auto; }
+.round-chip { flex: 0 0 auto; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; border: 1.5px solid var(--ink); border-radius: 6px; padding: 1px 5px; }
 .round-cols, .round-nums { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1.2fr 1.1fr; gap: 6px; }
-.round-cols { padding: 0 14px 6px 18px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; white-space: nowrap; text-transform: uppercase; color: var(--ink-3); }
+.round-cols { padding: 8px 2px 6px 14px; border-bottom: 2px solid var(--ink); font-size: 10px; font-weight: 800; letter-spacing: 0.05em; white-space: nowrap; text-transform: uppercase; color: var(--ink-3); }
 .round-cols span:last-child, .round-nums .round-form { text-align: right; justify-content: flex-end; }
-.round-nums { margin-top: 8px; font-size: 20px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; align-items: baseline; }
+.round-nums { margin-top: 5px; font-size: 20px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; align-items: baseline; }
 .round-nums .round-score { font-size: 26px; font-weight: 900; }
 .round-nums .round-form { display: inline-flex; align-items: center; gap: 5px; }
 .round-nums .round-form i { display: inline-block; width: 9px; height: 9px; border: 1.5px solid; border-radius: 2px; }
@@ -2814,3 +2815,7 @@ button.nr-row { width: 100%; background: none; border-left: 0; border-right: 0; 
 .nr-start { position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom)); margin: 14px -16px calc(-20px - env(safe-area-inset-bottom)); padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1px solid var(--line); }
 .nr-start .btn { display: grid; gap: 2px; min-height: 62px; }
 .nr-start .btn small { font-size: 12px; font-weight: 600; opacity: 0.75; text-transform: none; letter-spacing: 0; }
+
+.list-head h2 { white-space: nowrap; }
+.list-count { white-space: nowrap; margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--ink-3); letter-spacing: 0; }
+.rounds-history { display: block; margin: 12px 0 4px; text-align: right; font-size: 14px; font-weight: 700; color: var(--ink); text-decoration: none; }

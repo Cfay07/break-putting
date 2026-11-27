@@ -42,6 +42,7 @@ export function Rounds() {
     return rows;
   }, [state.rounds, state.baseline, sort]);
   const [open, setOpen] = useState(false);
+  const currentPutter = state.putters.find((p) => p.active && !p.retired)?.id;
   const [showAll, setShowAll] = useState(false);
   return (
     <>
@@ -76,12 +77,7 @@ export function Rounds() {
       )}
 
       <div className="list-head">
-        <h2>Rounds</h2>
-        {finished.length >= 3 && (
-          <a href="#/history" className="small rounds-moments">
-            History
-          </a>
-        )}
+        <h2>Rounds{finished.length > 0 && <span className="list-count">{finished.length} finished</span>}</h2>
         {finished.length >= 3 && (
           <div className="sort-pick">
             {SORTS.map((o) => (
@@ -139,10 +135,12 @@ export function Rounds() {
               />
             )}
             <div className="round-head">
-              <span className="round-when">
-                <span className="round-date">{fmtDay(r.date)}</span>
-              </span>
+              <span className="round-date">{fmtDay(r.date)}</span>
+              {r.course && <span className="round-course">{courseLabel(r)}</span>}
               {r.competitive && <span className="round-chip">Tourn.</span>}
+              {/* The putter shows when it is not the one in the bag now, which is where a switch
+                  shows up down the list. */}
+              {r.putterId !== currentPutter && <PutterTag putterId={r.putterId} />}
               {/* A drop whenever a putting mistake happened; the number is what it went on to cost. */}
               {mistakes > 0 && (
                 <span
@@ -153,9 +151,7 @@ export function Rounds() {
                   {bled > 0 ? bled : ''}
                 </span>
               )}
-              <PutterTag putterId={r.putterId} />
             </div>
-            {r.course && <span className="round-course">{courseLabel(r)}</span>}
             <div className="round-nums num">
               <span className="round-score">{r.score ?? '--'}</span>
               <span>{s.totalPutts}</span>
@@ -183,6 +179,11 @@ export function Rounds() {
         ))}
       </div>
 
+      {finished.length >= 3 && (
+        <a href="#/history" className="rounds-history">
+          History ›
+        </a>
+      )}
       {finished.length > 20 && !showAll && (
         <button className="btn btn-ghost btn-wide" onClick={() => setShowAll(true)}>
           Show all {finished.length} rounds
