@@ -51,6 +51,7 @@ body { overscroll-behavior-y: none; }
   margin: 0;
   color: var(--ink);
 }
+.wordmark-mark { color: var(--accent); }
 .wordmark button, .linkish {
   background: none;
   border: 0;

@@ -262,7 +262,9 @@ export default function App() {
     return (
       <div className="app">
         <div className="topbar">
-          <h1 className="wordmark">BREAK!</h1>
+          <h1 className="wordmark">
+            BREAK<span className="wordmark-mark">!</span>
+          </h1>
           <span className="sub">Shared round</span>
         </div>
         <main className="main">
@@ -376,7 +378,9 @@ export default function App() {
   return (
     <div className="app">
       <div className="topbar">
-        <h1 className="wordmark">BREAK!</h1>
+        <h1 className="wordmark">
+            BREAK<span className="wordmark-mark">!</span>
+          </h1>
         <span className="sub">{sub}</span>
       </div>
       <main className="main" key={tabTap}>
