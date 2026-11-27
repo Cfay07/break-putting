@@ -185,6 +185,15 @@ export function Rounds() {
         </div>
       )}
 
+      {finished.length > 0 && (
+        <div className="round-cols" aria-hidden="true">
+          <span>Score</span>
+          <span>Putts</span>
+          <span>3-putts</span>
+          <span>Gained</span>
+          <span>Form</span>
+        </div>
+      )}
       <div className="round-list">
         {(showAll ? finished : finished.slice(0, 20)).map(({ round: r, stats: s, mistakes, bled, form }) => (
           <button
@@ -192,77 +201,55 @@ export function Rounds() {
             className={r.competitive ? 'round-row comp' : 'round-row'}
             onClick={() => go(`/round/${r.id}`)}
           >
-            {/* The leading edge used to be the competitive marker. Form took it, because a colour
-              running the height of every card is the one thing you can read down a whole list
-              without stopping, and competitive moved to a trophy that needs no learning. */}
+            {/* Form owns the leading edge: a colour you can read down the whole list. Width, never
+              opacity, marks an untagged round, so the colour ramp is never overridden. */}
             {form && (
               <span
                 className="form-rail"
-                // Width, never opacity. Fading an untagged round lightened its colour and so
-                // overrode the ramp: a dark-green 9.1 drawn at 0.75 came out lighter than a
-                // mid-green 6.5 at full strength, which is the one thing the scale must not do.
-                style={{
-                  background: formBand(form.score).ink,
-                  width: form.process === null ? 2 : 5,
-                }}
+                style={{ background: formBand(form.score).ink, width: form.process === null ? 2 : 5 }}
                 aria-hidden="true"
               />
             )}
             <div className="round-head">
-              {/* Date and cup travel as one. Loose in a space-between row they were two separate
-                children, so a round with no blood drop split the spare width between them and
-                left the cup stranded mid-card. */}
               <span className="round-when">
-                <span className="round-date">{fmtDate(r.date)}</span>
-                {r.competitive && (
-                  <span className="comp-cup" aria-label="competitive round">
-                    🏆
-                  </span>
-                )}
+                <span className="round-date">{fmtDay(r.date)}</span>
               </span>
-              {/* Drawn whenever a putting mistake happened, same as the drop on the scorecard,
-                so no drop means no mistake. The number is what it went on to cost, and a mistake
-                that cost nothing shows the drop alone. */}
+              {r.competitive && <span className="round-chip">Tourn.</span>}
+              {/* A drop whenever a putting mistake happened; the number is what it went on to cost. */}
               {mistakes > 0 && (
                 <span
                   className={bled > 0 ? 'bleed-tag' : 'bleed-tag clean'}
                   aria-label={bled > 0 ? `putting mistakes put ${bled} on the card` : 'a putting mistake'}
                 >
-                  🩸{bled > 0 ? bled : ''}
+                  <DropMark />
+                  {bled > 0 ? bled : ''}
                 </span>
               )}
               <PutterTag putterId={r.putterId} />
             </div>
-            {r.course && (
-              <span className="small muted" style={{ display: 'block', marginTop: 2 }}>
-                {courseLabel(r)}
-              </span>
-            )}
-            <div className="metrics num">
-              <span className="metric">
-                <span className="tiny">Putts</span>
-                <span className="val">{s.totalPutts}</span>
-              </span>
-              <span className="metric">
-                <span className="tiny">3-putts</span>
-                <span className={s.threePlus ? 'val neg' : 'val'}>{s.threePlus}</span>
-              </span>
-              <span className="metric">
-                <span className="tiny">SG</span>
-                <span className={s.sg >= 0 ? 'val pos' : 'val neg'}>{signed(s.sg)}</span>
-              </span>
-              <span className="metric">
-                <span className="tiny">Score</span>
-                <span className="val">{r.score ?? '--'}</span>
-              </span>
-              {form && (
-                <span className="metric metric-form">
-                  <span className="tiny">Form</span>
-                  <span className="val" style={{ color: formBand(form.score).ink }}>
+            {r.course && <span className="round-course">{courseLabel(r)}</span>}
+            <div className="round-nums num">
+              <span className="round-score">{r.score ?? '--'}</span>
+              <span>{s.totalPutts}</span>
+              <span className={s.threePlus ? 'neg' : undefined}>{s.threePlus}</span>
+              <span className={s.sg >= 0 ? 'pos' : 'neg'}>{signed(s.sg, 1)}</span>
+              <span className="round-form">
+                {form ? (
+                  <>
                     {form.score.toFixed(1)}
-                  </span>
-                </span>
-              )}
+                    <i
+                      style={
+                        form.process === null
+                          ? { borderColor: formBand(form.score).ink }
+                          : { background: formBand(form.score).ink, borderColor: formBand(form.score).ink }
+                      }
+                      aria-label={form.process === null ? 'scored on the finish only' : 'tagged round'}
+                    />
+                  </>
+                ) : (
+                  '--'
+                )}
+              </span>
             </div>
           </button>
         ))}
@@ -394,5 +381,22 @@ export function Rounds() {
         </Sheet>
       )}
     </>
+  );
+}
+
+/** "Mon, Sep 14": the weekday helps you find a round faster than the date does. */
+function fmtDay(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(y, m - 1, d).getDay()];
+  return `${day}, ${fmtDate(iso)}`;
+}
+
+/** A putting mistake. Drawn, so it reads the same on every phone, unlike the emoji it replaces. */
+function DropMark() {
+  return (
+    <svg width="9" height="12" viewBox="0 0 9 12" aria-hidden="true">
+      <path d="M4.5 0.5C4.5 0.5 0.8 5 0.8 7.6a3.7 3.7 0 0 0 7.4 0C8.2 5 4.5 0.5 4.5 0.5Z" fill="currentColor" />
+    </svg>
   );
 }
