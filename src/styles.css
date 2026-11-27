@@ -2785,3 +2785,32 @@ span.dial-end { cursor: default; }
 .sr-col i { display: block; width: 18px; border-radius: 4px 4px 0 0; background: var(--ink); }
 .sr-col small { font-size: 11px; color: var(--ink-2); }
 .sr-col span { font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+
+/* New round: one screen, filled in from the last round. */
+.nr-date { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 700; cursor: pointer; }
+.nr-date::after { content: '▾'; font-size: 10px; color: var(--ink-3); }
+.nr-date input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.nr-course { margin-top: 12px; padding: 14px; border: 2px solid var(--ink); border-radius: 14px; background: var(--card); display: grid; gap: 2px; }
+.nr-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.nr-name { font-size: 24px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; }
+.nr-sub { font-size: 12px; color: var(--ink-2); }
+.nr-tees { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.nr-tees button, .nr-others button { min-height: 38px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.nr-tees button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.nr-others { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.nr-others button { background: var(--card); font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nr-others .nr-search { border-style: dashed; color: var(--ink-2); }
+.nr-rows { margin-top: 14px; border-top: 1px solid var(--line); }
+.nr-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.nr-row > span:first-child { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); flex: 0 0 auto; }
+.nr-row .seg { flex: 0 1 auto; margin: 0; min-width: 0; }
+.nr-row .seg > button { min-height: 38px; padding: 0 12px; font-size: 13px; white-space: nowrap; }
+.nr-row input { flex: 1 1 auto; min-width: 0; }
+button.nr-row { width: 100%; background: none; border-left: 0; border-right: 0; border-top: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.nr-greens-v { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; }
+.nr-greens-v i { font-style: normal; color: var(--ink-3); font-size: 16px; }
+.nr-greens-open { padding: 10px 0 4px; border-bottom: 1px solid var(--line); }
+.nr-note { margin: 10px 0 0; }
+.nr-start { position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom)); margin: 14px -16px calc(-20px - env(safe-area-inset-bottom)); padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1px solid var(--line); }
+.nr-start .btn { display: grid; gap: 2px; min-height: 62px; }
+.nr-start .btn small { font-size: 12px; font-weight: 600; opacity: 0.75; text-transform: none; letter-spacing: 0; }

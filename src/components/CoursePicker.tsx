@@ -35,7 +35,7 @@ export interface CourseChoice {
  * that reads par quietly skipped them. Playing a nine twice round is ordinary, so the nine
  * repeats rather than the round being forced down to nine.
  */
-function fitPars(pars: number[], holeCount: number): number[] {
+export function fitPars(pars: number[], holeCount: number): number[] {
   if (!pars.length) return [];
   const out: number[] = [];
   while (out.length < holeCount) out.push(...pars);
@@ -53,9 +53,9 @@ export function teesFor(course: SavedCourse, holeCount: number): SavedTee[] {
   return [...nines, ...full];
 }
 
-const isNine = (c: SavedCourse) => c.tees.length > 0 && c.tees.every((t) => t.pars.length === 9);
+export const isNine = (c: SavedCourse) => c.tees.length > 0 && c.tees.every((t) => t.pars.length === 9);
 
-function mergeCourses(saved: SavedCourse[]): SavedCourse[] {
+export function mergeCourses(saved: SavedCourse[]): SavedCourse[] {
   return dedupeCourses([...saved, ...BUILT_IN_COURSES]);
 }
 

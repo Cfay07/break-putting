@@ -1,21 +1,15 @@
 import { useMemo, useState } from 'react';
 import { CompareRounds } from '../components/CompareRounds';
 import { ConfirmButton } from '../components/ConfirmButton';
-import { CoursePicker, type CourseChoice } from '../components/CoursePicker';
+import { NewRoundSheet } from '../components/NewRoundSheet';
 import { PutterTag } from '../components/PutterTag';
-import { Sheet } from '../components/Sheet';
-import { fmtDate, signed, today } from '../lib/format';
+import { fmtDate, signed } from '../lib/format';
 import { go } from '../lib/router';
-import { GreenSpeedPick } from '../components/GreenSpeedPick';
-import { Conditions } from '../components/Conditions';
 import { currentSession } from '../lib/cloud';
 import { bleedsIn } from '../lib/bleed';
 import { formOf, formBand } from '../lib/form';
 import { courseLabel, roundScale, roundStats } from '../lib/stats';
-import type { GreenSpeed } from '../lib/types';
-import { newId } from '../lib/storage';
-import { liveRound, makeRound, useApp } from '../lib/store';
-import { ninesPart } from '../lib/builtInCourses';
+import { liveRound, useApp } from '../lib/store';
 
 const SORTS = ['recent', 'best', 'worst'] as const;
 type Sort = (typeof SORTS)[number];
@@ -47,74 +41,8 @@ export function Rounds() {
     }
     return rows;
   }, [state.rounds, state.baseline, sort]);
-  const usable = state.putters.filter((p) => !p.retired);
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const [date, setDate] = useState(today);
-  const [choice, setChoice] = useState<CourseChoice>({ name: '' });
-  const [half, setHalf] = useState<'front' | 'back'>('front');
-  const [holeCount, setHoleCount] = useState(18);
-  const [competitive, setCompetitive] = useState(false);
-  const [greenSpeed, setGreenSpeed] = useState<GreenSpeed | undefined>();
-  const [aerated, setAerated] = useState<boolean | undefined>();
-  const [bumpy, setBumpy] = useState<number | undefined>();
-  const [putterId, setPutterId] = useState(usable.find((p) => p.active)?.id ?? usable[0]?.id ?? '');
-  const [newPutter, setNewPutter] = useState('');
-
-  const teeNines = choice.tee?.includes('/')
-    ? ninesPart(choice.tee)
-        .split('/')
-        .map((n) => n.trim())
-    : null;
-  const parsForRound =
-    choice.pars && holeCount === 9 && choice.pars.length > 9
-      ? half === 'back'
-        ? choice.pars.slice(9, 18)
-        : choice.pars.slice(0, 9)
-      : choice.pars;
-  // The saved tee already carries the nine names, so there is nothing to type in by hand.
-  const nineNames =
-    holeCount === 9
-      ? { first: teeNines ? teeNines[half === 'back' ? 1 : 0] : '', second: '' }
-      : { first: teeNines ? teeNines[0] : '', second: teeNines ? teeNines[1] : '' };
-
-  const start = () => {
-    let id = putterId;
-    if (!usable.length) {
-      if (!newPutter.trim()) return;
-      id = newId();
-      dispatch({ t: 'addPutter', id, name: newPutter });
-    }
-    if (!id) return;
-    dispatch({
-      t: 'newRound',
-      round: {
-        ...makeRound({
-          date,
-          course: choice.name,
-          putterId: id,
-          holeCount,
-          pars: parsForRound,
-        }),
-        courseId: choice.courseId,
-        tee: choice.tee,
-        competitive: competitive || undefined,
-        greenSpeed,
-        aerated,
-        bumpy,
-        firstNine: nineNames.first.trim() || undefined,
-        secondNine: nineNames.second.trim() || undefined,
-      },
-    });
-    setOpen(false);
-    setChoice({ name: '' });
-    setNewPutter('');
-    // The sheet is reused, so conditions from the last round must not ride along into the next.
-    setAerated(undefined);
-    setBumpy(undefined);
-    go('/track');
-  };
-
   return (
     <>
       {live && (
@@ -266,120 +194,7 @@ export function Rounds() {
         baseline={state.baseline}
       />
 
-      {open && (
-        <Sheet title="New round" onClose={() => setOpen(false)}>
-          <div className="field-label">Date</div>
-          <input
-            type="date"
-            value={date}
-            max={today()}
-            onChange={(e) => setDate(e.target.value > today() ? today() : e.target.value)}
-          />
-
-          <CoursePicker
-            holeCount={holeCount}
-            value={choice}
-            onChange={(c) => {
-              // A nine-hole course is a nine-hole round: never stretched over eighteen.
-              if (c.nineOnly && holeCount !== 9) {
-                setHoleCount(9);
-                setChoice({ ...c, pars: c.pars?.slice(0, 9) });
-              } else setChoice(c);
-            }}
-          />
-
-          <div className="field-label">Holes</div>
-          <div className="seg">
-            {[18, 9].map((n) => (
-              <button
-                key={n}
-                type="button"
-                aria-pressed={holeCount === n}
-                disabled={choice.nineOnly && n === 18}
-                onClick={() => setHoleCount(n)}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-          {choice.nineOnly && <p className="small muted">{choice.name} is nine holes.</p>}
-
-          <div className="field-label">Greens, by stimp</div>
-          <GreenSpeedPick value={greenSpeed} onPick={setGreenSpeed} />
-          {/* Green speed sits here and is on 27 of 27 rounds. Bumpiness and aeration sat on the
-              round page afterwards and are on 2 and 0. Same question, same sheet. */}
-          <Conditions
-            aerated={aerated}
-            bumpy={bumpy}
-            onChange={(patch) => {
-              if ('aerated' in patch) setAerated(patch.aerated);
-              if ('bumpy' in patch) setBumpy(patch.bumpy);
-            }}
-          />
-
-          <div className="field-label">Playing</div>
-          <div className="seg">
-            {[false, true].map((t) => (
-              <button key={String(t)} type="button" aria-pressed={competitive === t} onClick={() => setCompetitive(t)}>
-                {t ? 'Competitive' : 'Casual'}
-              </button>
-            ))}
-          </div>
-
-          {holeCount === 9 && (choice.pars?.length ?? 0) > 9 && (
-            <>
-              <div className="field-label">Which nine</div>
-              <div className="seg">
-                {(['front', 'back'] as const).map((h) => (
-                  <button key={h} type="button" aria-pressed={half === h} onClick={() => setHalf(h)}>
-                    {h === 'front' ? 'Front' : 'Back'}
-                    {teeNines ? ` · ${teeNines[h === 'back' ? 1 : 0]}` : ''}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          <div className="field-label">Putter</div>
-          {usable.length ? (
-            <div className="chips">
-              {usable.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={putterId === p.id ? 'chip chip-sel' : 'chip'}
-                  onClick={() => setPutterId(p.id)}
-                >
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <>
-              <input
-                type="text"
-                value={newPutter}
-                onChange={(e) => setNewPutter(e.target.value)}
-                placeholder="Scotty Cameron, L.A.B. DF3, whatever is in the bag"
-              />
-              <p className="small muted" style={{ margin: '6px 0 0' }}>
-                Name your putter once and it is remembered. This is the only thing needed to start.
-              </p>
-            </>
-          )}
-
-          <button
-            className="btn btn-primary btn-wide"
-            style={{ marginTop: 18 }}
-            onClick={start}
-            // A round with no course cannot say where it was played, and every panel that
-            // groups or labels by course has to carry a fallback for it. Require one.
-            disabled={!choice.name.trim() || (usable.length ? !putterId : !newPutter.trim())}
-          >
-            Start tracking
-          </button>
-        </Sheet>
-      )}
+      {open && <NewRoundSheet onClose={() => setOpen(false)} />}
     </>
   );
 }
