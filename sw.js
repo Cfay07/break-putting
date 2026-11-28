@@ -1,4 +1,4 @@
-const CACHE = 'break-e0e7246e592c';
+const CACHE = 'break-13e2015ca224';
 
 // Cache the page and every file it loads before taking over. Without this, a phone that adds the
 // app to its home screen and goes straight to a course with no signal opens a blank page: the
